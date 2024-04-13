@@ -150,9 +150,11 @@
     <ClCompile Include="..\Foundation\src\fileio.cpp" />
     <ClCompile Include="..\Foundation\src\foundation.cpp" />
     <ClCompile Include="..\Foundation\src\memutils.cpp" />
-    <ClCompile Include="..\Foundation\src\string.cpp" />
+    <ClCompile Include="..\Foundation\src\strings.cpp" />
+    <ClCompile Include="..\Foundation\src\timing.cpp" />
     <ClCompile Include="..\Foundation\src\win32_specific.cpp" />
     <ClCompile Include="src\core.cpp" />
+    <ClCompile Include="src\tests.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Foundation\src\fileio.h" />
@@ -163,7 +165,8 @@
     <ClInclude Include="..\Foundation\src\math\v4.h" />
     <ClInclude Include="..\Foundation\src\memutils.h" />
     <ClInclude Include="..\Foundation\src\os_specific.h" />
-    <ClInclude Include="..\Foundation\src\string.h" />
+    <ClInclude Include="..\Foundation\src\strings.h" />
+    <ClInclude Include="..\Foundation\src\timing.h" />
     <ClInclude Include="src\core.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

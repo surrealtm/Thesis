@@ -30,10 +30,16 @@
     <ClCompile Include="..\Foundation\src\memutils.cpp">
       <Filter>Foundation</Filter>
     </ClCompile>
-    <ClCompile Include="..\Foundation\src\string.cpp">
+    <ClCompile Include="..\Foundation\src\strings.cpp">
       <Filter>Foundation</Filter>
     </ClCompile>
     <ClCompile Include="..\Foundation\src\win32_specific.cpp">
+      <Filter>Foundation</Filter>
+    </ClCompile>
+    <ClCompile Include="src\tests.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Foundation\src\timing.cpp">
       <Filter>Foundation</Filter>
     </ClCompile>
   </ItemGroup>
@@ -53,7 +59,7 @@
     <ClInclude Include="..\Foundation\src\os_specific.h">
       <Filter>Foundation</Filter>
     </ClInclude>
-    <ClInclude Include="..\Foundation\src\string.h">
+    <ClInclude Include="..\Foundation\src\strings.h">
       <Filter>Foundation</Filter>
     </ClInclude>
     <ClInclude Include="..\Foundation\src\math\math.h">
@@ -66,6 +72,9 @@
       <Filter>Foundation</Filter>
     </ClInclude>
     <ClInclude Include="..\Foundation\src\math\v4.h">
+      <Filter>Foundation</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Foundation\src\timing.h">
       <Filter>Foundation</Filter>
     </ClInclude>
   </ItemGroup>
