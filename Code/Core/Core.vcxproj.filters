@@ -44,9 +44,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\core.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\Foundation\src\fileio.h">
       <Filter>Foundation</Filter>
     </ClInclude>
@@ -76,6 +73,12 @@
     </ClInclude>
     <ClInclude Include="..\Foundation\src\timing.h">
       <Filter>Foundation</Filter>
+    </ClInclude>
+    <ClInclude Include="bindings\bindings.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

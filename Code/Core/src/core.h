@@ -2,7 +2,7 @@
 #include "memutils.h"
 #include "strings.h"
 #include "math/math.h"
-
+#include "../bindings/bindings.h" // Make sure to export all marked procedures...
 
 
 /* ----------------------------------------------- 3D Geometry ----------------------------------------------- */
