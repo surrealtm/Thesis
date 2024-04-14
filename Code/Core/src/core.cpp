@@ -26,7 +26,7 @@ void Octree::create(Allocator *allocator, v3f center, v3f half_size, u8 depth) {
 
 Octree *Octree::get_octree_for_aabb(AABB const &aabb, Allocator *allocator) {
     tmFunction();
-
+    
     //
     // Transform the AABB into local octree space. If the AABB is out of bounds of this octree,
     // then return null.

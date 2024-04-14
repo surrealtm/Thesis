@@ -42,6 +42,9 @@
     <ClCompile Include="..\Foundation\src\timing.cpp">
       <Filter>Foundation</Filter>
     </ClCompile>
+    <ClCompile Include="bindings\bindings.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Foundation\src\fileio.h">

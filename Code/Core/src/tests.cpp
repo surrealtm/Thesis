@@ -13,7 +13,7 @@ void do_simple_test() {
         world.create_octree();
     }
 
-    tmFinishFrame();
+    tmFinish();
 }
 
 int main() {
