@@ -4,6 +4,11 @@
 #include "math/math.h"
 
 
+#define TM_OCTREE_COLOR 0
+#define TM_WORLD_COLOR  1
+#define TM_SYSTEM_COLOR 2
+
+
 /* ----------------------------------------------- 3D Geometry ----------------------------------------------- */
 
 struct Triangle {

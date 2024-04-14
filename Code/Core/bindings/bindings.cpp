@@ -5,7 +5,7 @@ extern "C" {
     /* ----------------------------------------------- Testing ------------------------------------------------ */
 
     void core_do_simple_test() {
-        tmZone("do_simple_test");
+        tmZone("do_simple_test", TM_SYSTEM_COLOR);
 
         World world;
         world.create(v3f(100, 100, 100));
@@ -28,7 +28,7 @@ extern "C" {
     }
 
     void core_print_profiling() {
-        tmPrintToConsole(TIMING_OUTPUT_Summary | TIMING_OUTPUT_Timeline, TIMING_OUTPUT_Sort_By_Inclusive);
+        tmPrintToConsole(TIMING_OUTPUT_Summary | TIMING_OUTPUT_Timeline, TIMING_OUTPUT_Sort_By_Exclusive);
     }
 
     Timing_Data core_get_profiling_data() {
@@ -40,3 +40,20 @@ extern "C" {
         tmFreeData(data);
     }
 }
+
+
+#if FOUNDATION_WIN32
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
+
+
+BOOL WINAPI DllMain(HINSTANCE hinstance, DWORD reason, LPVOID reserved) {
+    //
+    // Set up some things regarding the core library.
+    //
+    tmSetColor(TM_OCTREE_COLOR,  46, 184, 230);
+    tmSetColor(TM_WORLD_COLOR,   95, 230,  46);
+    tmSetColor(TM_SYSTEM_COLOR, 209, 202, 197);
+    return true;
+}
+#endif

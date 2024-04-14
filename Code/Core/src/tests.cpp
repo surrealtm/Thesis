@@ -3,7 +3,7 @@
 
 void do_simple_test() {
     {
-        tmZone("do_simple_test");
+        tmZone("do_simple_test", 0);
 
         World world;
         world.create(v3f(100, 100, 100));

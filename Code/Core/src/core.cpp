@@ -25,7 +25,7 @@ void Octree::create(Allocator *allocator, v3f center, v3f half_size, u8 depth) {
 }
 
 Octree *Octree::get_octree_for_aabb(AABB const &aabb, Allocator *allocator) {
-    tmFunction();
+    tmFunction(TM_OCTREE_COLOR);
     
     //
     // Transform the AABB into local octree space. If the AABB is out of bounds of this octree,
@@ -102,7 +102,7 @@ void World::add_boundary(string name, v3f position, v3f axis) {
 }
 
 void World::create_octree() {
-    tmFunction();
+    tmFunction(TM_WORLD_COLOR);
     
     //
     // Insert all boundaris.

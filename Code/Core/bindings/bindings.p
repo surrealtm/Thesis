@@ -8,6 +8,7 @@ Timing_Timeline_Entry :: struct {
     relative_start, relative_end: f64; // Relative to the entire time span, meaning in the interval [0,1]
     time_in_seconds: f64;
     depth: s64; // The vertical depth of the entry, representing the call stack depth
+    r, g, b: u8;
 };
 
 Timing_Summary_Entry :: struct {

@@ -32,8 +32,19 @@ Viewer :: struct {
     ui:     UI;
 
     profiling_data: Timing_Data;
+    profiling_string: string;
+    profiling_show_summary: bool;
+    
+    profiling_panel_state := UI_Window_State.Closed;
+    profiling_panel_position := UI_Vector2.{ .5, .1 };
 }
 
+
+menu_bar :: (viewer: *Viewer) {
+    ui_push_width(*viewer.ui, .Pixels, 80, 1);
+    ui_toggle_button_with_pointer(*viewer.ui, "Profiling", xx *viewer.profiling_panel_state);
+    ui_pop_width(*viewer.ui);
+}
 
 one_viewer_frame :: (viewer: *Viewer) {
     update_window(*viewer.window);
@@ -41,6 +52,7 @@ one_viewer_frame :: (viewer: *Viewer) {
     gfx_prepare_frame(*viewer.gfx, .{ 100, 100, 100, 255 });
     gfx_prepare_ui(*viewer.gfx, *viewer.ui);
 
+    menu_bar(viewer);
     profiling_ui(viewer);
     
     gfx_finish_ui(*viewer.gfx, *viewer.ui);
@@ -68,6 +80,7 @@ main :: () -> s32 {
     core_do_simple_test();
     core_stop_profiling();
     viewer.profiling_data = core_get_profiling_data();
+    viewer.profiling_string = "simple_test";
     
     while !viewer.window.should_close {
         one_viewer_frame(*viewer);
@@ -86,4 +99,5 @@ main :: () -> s32 {
 /*
  * The command to compile and run this application is:
  * prometheus Viewer/src/viewer.p -o:Viewer/run_tree/viewer.exe -l:Core/x64/ReleaseDll/Core.lib -run
+ *
  */
