@@ -5,6 +5,20 @@ VisualStudioVersion = 17.9.34728.123
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Core", "Core.vcxproj", "{4068DA6A-66E9-48D9-B488-144C024E2439}"
 EndProject
+Project("{911E67C6-3D85-4FCE-B560-20A9C3E3FF48}") = "viewer", "..\Viewer\run_tree\viewer.exe", "{72D3B058-1646-45CC-9FF2-B7443A75B3A1}"
+	ProjectSection(DebuggerProjectSystem) = preProject
+		PortSupplier = 00000000-0000-0000-0000-000000000000
+		Executable = C:\source\Thesis\Code\Viewer\run_tree\viewer.exe
+		RemoteMachine = DESKTOP-VICTOR
+		StartingDirectory = C:\source\Thesis\Code\Viewer\run_tree
+		Environment = Default
+		LaunchingEngine = 00000000-0000-0000-0000-000000000000
+		UseLegacyDebugEngines = No
+		LaunchSQLEngine = No
+		AttachLaunchAction = No
+		IORedirection = Auto
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -33,6 +47,14 @@ Global
 		{4068DA6A-66E9-48D9-B488-144C024E2439}.ReleaseDll|x64.Build.0 = ReleaseDll|x64
 		{4068DA6A-66E9-48D9-B488-144C024E2439}.ReleaseDll|x86.ActiveCfg = ReleaseDll|Win32
 		{4068DA6A-66E9-48D9-B488-144C024E2439}.ReleaseDll|x86.Build.0 = ReleaseDll|Win32
+		{72D3B058-1646-45CC-9FF2-B7443A75B3A1}.Debug|x64.ActiveCfg = Release|x64
+		{72D3B058-1646-45CC-9FF2-B7443A75B3A1}.Debug|x86.ActiveCfg = Release|x64
+		{72D3B058-1646-45CC-9FF2-B7443A75B3A1}.DebugDll|x64.ActiveCfg = Release|x64
+		{72D3B058-1646-45CC-9FF2-B7443A75B3A1}.DebugDll|x86.ActiveCfg = Release|x64
+		{72D3B058-1646-45CC-9FF2-B7443A75B3A1}.Release|x64.ActiveCfg = Release|x64
+		{72D3B058-1646-45CC-9FF2-B7443A75B3A1}.Release|x86.ActiveCfg = Release|x64
+		{72D3B058-1646-45CC-9FF2-B7443A75B3A1}.ReleaseDll|x64.ActiveCfg = Release|x64
+		{72D3B058-1646-45CC-9FF2-B7443A75B3A1}.ReleaseDll|x86.ActiveCfg = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

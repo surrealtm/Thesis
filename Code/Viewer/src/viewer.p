@@ -21,23 +21,48 @@ import_latest_dll :: #no_export () {
 }
 
 
+TARGET_FRAME_TIME: f32 : (1 / 60);
+
 Viewer :: struct {
+    frame_arena: Memory_Arena;
+    frame_allocator: Allocator;
+
     window: Window;
-    gfx: GFX;
-    font: Font;
+    gfx:    GFX;
+    ui:     UI;
 
     profiling_data: Timing_Data;
 }
 
 
-main :: () -> s32 {
-    viewer: Viewer;
+one_viewer_frame :: (viewer: *Viewer) {
+    update_window(*viewer.window);
 
+    gfx_prepare_frame(*viewer.gfx, .{ 100, 100, 100, 255 });
+    gfx_prepare_ui(*viewer.gfx, *viewer.ui);
+
+    profiling_ui(viewer);
+    
+    gfx_finish_ui(*viewer.gfx, *viewer.ui);
+    gfx_finish_frame(*viewer.gfx);
+    if viewer.window.frame_time < TARGET_FRAME_TIME window_sleep(TARGET_FRAME_TIME - viewer.window.frame_time);
+
+    reset_allocator(*viewer.frame_allocator);
+}
+
+main :: () -> s32 {
+    enable_high_resolution_time();
+
+    viewer: Viewer;
+    create_memory_arena(*viewer.frame_arena, 4 * MEGABYTES);
+    viewer.frame_allocator = memory_arena_allocator(*viewer.frame_arena);
+    
     create_window(*viewer.window, "Viewer", WINDOW_DONT_CARE, WINDOW_DONT_CARE, WINDOW_DONT_CARE, WINDOW_DONT_CARE, .Default);
     show_window(*viewer.window);
 
     create_gfx(*viewer.gfx, *viewer.window, Default_Allocator);
-    gfx_create_font_from_file(*viewer.font, "C:/Windows/Fonts/times.ttf", 25, true);
+
+    gfx_create_ui(*viewer.gfx, *viewer.ui, UI_Dark_Theme);
     
     core_begin_profiling();
     core_do_simple_test();
@@ -45,16 +70,12 @@ main :: () -> s32 {
     viewer.profiling_data = core_get_profiling_data();
     
     while !viewer.window.should_close {
-        update_window(*viewer.window);
-
-        gfx_prepare_frame(*viewer.gfx, .{ 100, 100, 100, 255 });
-        draw_profiling(*viewer);
-        gfx_finish_frame(*viewer.gfx);
+        one_viewer_frame(*viewer);
     }
         
     core_free_profiling_data(*viewer.profiling_data);
 
-    gfx_destroy_font(*viewer.font);
+    gfx_destroy_ui(*viewer.gfx, *viewer.ui);
     destroy_gfx(*viewer.gfx);
     destroy_window(*viewer.window);
     return 0;
@@ -63,6 +84,6 @@ main :: () -> s32 {
 #run import_latest_dll();
 
 /*
- * The command to compile this application is:
- * prometheus Viewer/src/viewer.p -o:Viewer/run_tree/viewer.exe -l:Core/x64/ReleaseDll/Core.lib
+ * The command to compile and run this application is:
+ * prometheus Viewer/src/viewer.p -o:Viewer/run_tree/viewer.exe -l:Core/x64/ReleaseDll/Core.lib -run
  */
