@@ -52,6 +52,8 @@ draw_profiling :: (*void, element: *UI_Element, data: *Profiling_UI_Data) {
         center := v2f.{ roundf((xx entry.relative_end + xx entry.relative_start) / 2 * w + x0), roundf(y0 + (xx entry.depth + 1.5) * PROFILING_BAR_HEIGHT) };
         size   := v2f.{ roundf((xx entry.relative_end - xx entry.relative_start) * w), PROFILING_BAR_HEIGHT - 1 };
 
+        if size.x == 0 || (center.x + size.x / 2 < element.screen_position.x) || (center.x - size.x / 2 > element.screen_position.x + element.screen_size.x) continue;
+        
         bg_color: GFX_Color = .{ entry.r, entry.g, entry.b, 255 };
         fg_color: GFX_Color = .{ 255, 255, 255, 255 };
 
@@ -108,7 +110,8 @@ update_profiling :: (input: UI_Input, element: *UI_Element, data: *Profiling_UI_
     previous_zoom := data.zoom.x;
     
     if input.mouse_wheel_turns != 0 {
-        data.zoom.x = clamp(data.zoom.x + input.mouse_wheel_turns, 1, 100);        
+        // @Cleanup: Improve this.
+        data.zoom.x = clamp(data.zoom.x + input.mouse_wheel_turns, 1, 1000);        
     }
 
     if abs(previous_zoom - data.zoom.x) > F32_EPSILON {

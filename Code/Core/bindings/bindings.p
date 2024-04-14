@@ -31,6 +31,7 @@ Timing_Data :: struct {
 /* ------------------------------------------------- Testing ------------------------------------------------- */
 
 core_do_simple_test :: #foreign ();
+core_do_octree_test :: #foreign ();
 
 
 

@@ -10,6 +10,7 @@ extern "C" {
     /* ----------------------------------------------- Testing ----------------------------------------------- */
     
     EXPORT void core_do_simple_test();
+    EXPORT void core_do_octree_test();
     
 
 

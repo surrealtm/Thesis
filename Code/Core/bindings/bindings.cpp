@@ -1,5 +1,6 @@
 #include "bindings.h"
 #include "../src/core.h"
+#include "../src/random.h"
 
 extern "C" {
     /* ----------------------------------------------- Testing ------------------------------------------------ */
@@ -8,13 +9,39 @@ extern "C" {
         tmZone("do_simple_test", TM_SYSTEM_COLOR);
 
         World world;
-        world.create(v3f(100, 100, 100));
+        world.create(v3f(100, 10, 100));
         world.add_anchor("Kitchen"_s, v3f(10, 1, 1));
         world.add_anchor("Living Room"_s, v3f(10, 1, 10));
         world.add_boundary("KitchenWall"_s, v3f(5, 1, 5), v3f(4, .25, .5));
         world.create_octree();
     }
 
+    void core_do_octree_test() {
+        tmZone("do_octree_test", TM_SYSTEM_COLOR);
+        
+        const f32 width    = 100;
+        const f32 height   = 10;
+        const f32 length   = 100;
+        const f32 max_size = 5;
+
+        World world;
+        world.create(v3f(width, height, length));
+
+        {
+            tmZone("create_random_objects", TM_SYSTEM_COLOR);
+
+            for(s64 i = 0; i < 10000; ++i) {
+                v3f size     = v3f(get_random_f32_uniform(0.1f, max_size), get_random_f32_uniform(0.1f, max_size), get_random_f32_uniform(0.1f, max_size));
+                v3f position = v3f(get_random_f32_uniform(-width  + size.x, width  - size.x),
+                                   get_random_f32_uniform(-height + size.y, height - size.y),
+                                   get_random_f32_uniform(-length + size.z, length - size.z));
+                world.add_boundary("Boundary"_s, position, size);
+            }
+        }
+        
+        world.create_octree();
+    }
+    
 
 
     /* ---------------------------------------------- Profiling ---------------------------------------------- */

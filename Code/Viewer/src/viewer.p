@@ -62,6 +62,14 @@ one_viewer_frame :: (viewer: *Viewer) {
     reset_allocator(*viewer.frame_allocator);
 }
 
+profile_octree_test :: (viewer: *Viewer) {
+    core_begin_profiling();
+    core_do_octree_test();
+    core_stop_profiling();
+    viewer.profiling_data = core_get_profiling_data();
+    viewer.profiling_string = "octree_test";
+}
+
 main :: () -> s32 {
     enable_high_resolution_time();
 
@@ -75,12 +83,8 @@ main :: () -> s32 {
     create_gfx(*viewer.gfx, *viewer.window, Default_Allocator);
 
     gfx_create_ui(*viewer.gfx, *viewer.ui, UI_Dark_Theme);
-    
-    core_begin_profiling();
-    core_do_simple_test();
-    core_stop_profiling();
-    viewer.profiling_data = core_get_profiling_data();
-    viewer.profiling_string = "simple_test";
+
+    profile_octree_test(*viewer);
     
     while !viewer.window.should_close {
         one_viewer_frame(*viewer);

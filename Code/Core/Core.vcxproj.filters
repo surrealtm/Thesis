@@ -45,6 +45,9 @@
     <ClCompile Include="bindings\bindings.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\Foundation\src\random.cpp">
+      <Filter>Foundation</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Foundation\src\fileio.h">
@@ -82,6 +85,9 @@
     </ClInclude>
     <ClInclude Include="src\core.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Foundation\src\random.h">
+      <Filter>Foundation</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

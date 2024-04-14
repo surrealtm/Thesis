@@ -15,6 +15,8 @@ AABB aabb_from_position_and_size(v3f center, v3f half_sizes) {
 /* -------------------------------------------------- Octree -------------------------------------------------- */
 
 void Octree::create(Allocator *allocator, v3f center, v3f half_size, u8 depth) {
+    tmFunction(TM_OCTREE_COLOR);
+
     this->depth = depth;
     this->center = center;
     this->half_size = half_size;
@@ -71,11 +73,13 @@ Octree *Octree::get_octree_for_aabb(AABB const &aabb, Allocator *allocator) {
 /* -------------------------------------------------- World -------------------------------------------------- */
 
 void World::create(v3f size) {
+    tmFunction(TM_WORLD_COLOR);
+
     this->arena.create(16 * ONE_MEGABYTE);
     this->pool.create(&this->arena);
     this->pool_allocator = this->pool.allocator();
     this->allocator = &this->pool_allocator;
-    
+
     this->size = size;
 
     this->anchors.allocator    = this->allocator;
@@ -84,16 +88,22 @@ void World::create(v3f size) {
 }
 
 void World::destroy() {
+    tmFunction(TM_WORLD_COLOR);
+
     this->arena.destroy();
 }
 
 void World::add_anchor(string name, v3f position) {
+    tmFunction(TM_WORLD_COLOR);
+
     Anchor *anchor   = this->anchors.push();
     anchor->name     = copy_string(this->allocator, name);
     anchor->position = position;
 }
 
 void World::add_boundary(string name, v3f position, v3f axis) {
+    tmFunction(TM_WORLD_COLOR);
+
     Boundary *boundary = this->boundaries.push();
     boundary->name     = copy_string(this->allocator, name);
     boundary->position = position;
