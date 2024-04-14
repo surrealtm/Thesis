@@ -110,6 +110,8 @@ struct World {
     void create(v3f size);
     void destroy();
 
+    void reserve_objects(s64 anchors, s64 boundaries);
+    
     void add_anchor(string name, v3f position);
     void add_boundary(string name, v3f position, v3f axis);
 

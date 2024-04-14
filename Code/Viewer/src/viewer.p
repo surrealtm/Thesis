@@ -12,7 +12,7 @@
 // the viewer's output directory.
 // I think this is pretty cool.
 //
-import_latest_dll :: #no_export () {
+copy_latest_dll :: #no_export () {
     input_file  := sprint(Default_Allocator, "%..\\..\\Core\\x64\\ReleaseDll\\Core.dll", compiler_get_output_folder_path());
     output_file := sprint(Default_Allocator, "%Core.dll", compiler_get_output_folder_path());
     if !copy_file(output_file, input_file, true) {
@@ -20,8 +20,9 @@ import_latest_dll :: #no_export () {
     }
 }
 
+#run copy_latest_dll();
 
-TARGET_FRAME_TIME: f32 : (1 / 60);
+REQUESTED_FPS: f64 : 60;
 
 Viewer :: struct {
     frame_arena: Memory_Arena;
@@ -47,8 +48,10 @@ menu_bar :: (viewer: *Viewer) {
 }
 
 one_viewer_frame :: (viewer: *Viewer) {
-    update_window(*viewer.window);
+    frame_start := get_hardware_time();
 
+    update_window(*viewer.window);
+    
     gfx_prepare_frame(*viewer.gfx, .{ 100, 100, 100, 255 });
     gfx_prepare_ui(*viewer.gfx, *viewer.ui);
 
@@ -57,9 +60,11 @@ one_viewer_frame :: (viewer: *Viewer) {
     
     gfx_finish_ui(*viewer.gfx, *viewer.ui);
     gfx_finish_frame(*viewer.gfx);
-    if viewer.window.frame_time < TARGET_FRAME_TIME window_sleep(TARGET_FRAME_TIME - viewer.window.frame_time);
 
     reset_allocator(*viewer.frame_allocator);
+
+    frame_end := get_hardware_time();
+    window_ensure_frame_time(frame_start, frame_end, REQUESTED_FPS);
 }
 
 profile_octree_test :: (viewer: *Viewer) {
@@ -68,6 +73,14 @@ profile_octree_test :: (viewer: *Viewer) {
     core_stop_profiling();
     viewer.profiling_data = core_get_profiling_data();
     viewer.profiling_string = "octree_test";
+}
+
+profile_simple_test :: (viewer: *Viewer) {
+    core_begin_profiling();
+    core_do_simple_test();
+    core_stop_profiling();
+    viewer.profiling_data = core_get_profiling_data();
+    viewer.profiling_string = "simple_test";
 }
 
 main :: () -> s32 {
@@ -84,7 +97,8 @@ main :: () -> s32 {
 
     gfx_create_ui(*viewer.gfx, *viewer.ui, UI_Dark_Theme);
 
-    profile_octree_test(*viewer);
+    //profile_octree_test(*viewer);
+    profile_simple_test(*viewer);
     
     while !viewer.window.should_close {
         one_viewer_frame(*viewer);
@@ -97,8 +111,6 @@ main :: () -> s32 {
     destroy_window(*viewer.window);
     return 0;
 }
-
-#run import_latest_dll();
 
 /*
  * The command to compile and run this application is:

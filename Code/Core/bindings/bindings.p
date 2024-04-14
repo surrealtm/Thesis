@@ -5,16 +5,15 @@
 
 Timing_Timeline_Entry :: struct {
     name: cstring;
-    relative_start, relative_end: f64; // Relative to the entire time span, meaning in the interval [0,1]
-    time_in_seconds: f64;
+    start_in_nanoseconds, end_in_nanoseconds: s64; // Relative to the start of the timing data
     depth: s64; // The vertical depth of the entry, representing the call stack depth
     r, g, b: u8;
 };
 
 Timing_Summary_Entry :: struct {
     name: cstring;
-    inclusive_time_in_seconds: f64;
-    exclusive_time_in_seconds: f64;
+    inclusive_time_in_nanoseconds: s64;
+    exclusive_time_in_nanoseconds: s64;
     count: s64;
 };
 
@@ -24,7 +23,7 @@ Timing_Data :: struct {
     summary: *Timing_Summary_Entry;
     summary_count: s64;
 
-    total_time_in_seconds: f64; // To make it easier to port
+    total_time_in_nanoseconds: s64;
 };
 
 

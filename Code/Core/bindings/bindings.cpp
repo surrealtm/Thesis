@@ -19,6 +19,7 @@ extern "C" {
     void core_do_octree_test() {
         tmZone("do_octree_test", TM_SYSTEM_COLOR);
         
+        const s64 count    = 10000;
         const f32 width    = 100;
         const f32 height   = 10;
         const f32 length   = 100;
@@ -26,11 +27,12 @@ extern "C" {
 
         World world;
         world.create(v3f(width, height, length));
-
+        world.reserve_objects(0, count);
+        
         {
             tmZone("create_random_objects", TM_SYSTEM_COLOR);
 
-            for(s64 i = 0; i < 10000; ++i) {
+            for(s64 i = 0; i < count; ++i) {
                 v3f size     = v3f(get_random_f32_uniform(0.1f, max_size), get_random_f32_uniform(0.1f, max_size), get_random_f32_uniform(0.1f, max_size));
                 v3f position = v3f(get_random_f32_uniform(-width  + size.x, width  - size.x),
                                    get_random_f32_uniform(-height + size.y, height - size.y),
@@ -59,7 +61,7 @@ extern "C" {
     }
 
     Timing_Data core_get_profiling_data() {
-        Timing_Data data = tmData(TIMING_OUTPUT_Sort_By_Inclusive);
+        Timing_Data data = tmData(TIMING_OUTPUT_Sort_By_Exclusive);
         return data;
     }
 

@@ -93,6 +93,11 @@ void World::destroy() {
     this->arena.destroy();
 }
 
+void World::reserve_objects(s64 anchors, s64 boundaries) {
+    this->anchors.reserve(anchors);
+    this->boundaries.reserve(boundaries);
+}
+
 void World::add_anchor(string name, v3f position) {
     tmFunction(TM_WORLD_COLOR);
 
@@ -105,7 +110,7 @@ void World::add_boundary(string name, v3f position, v3f axis) {
     tmFunction(TM_WORLD_COLOR);
 
     Boundary *boundary = this->boundaries.push();
-    boundary->name     = copy_string(this->allocator, name);
+    boundary->name     = copy_string(this->allocator, name); // @Cleanup: This seems to be veryy fucking slow...
     boundary->position = position;
     boundary->axis     = axis;
     boundary->aabb     = aabb_from_position_and_size(position, axis);
