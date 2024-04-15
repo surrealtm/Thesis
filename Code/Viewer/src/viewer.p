@@ -5,6 +5,7 @@
 #load "../../Core/bindings/bindings.p";
 
 #load "profiling_panel.p";
+#load "draw.p";
 
 //
 // The viewer program obviously requires the Core dll, which is built into the Core subdirectory somewhere.
@@ -31,7 +32,8 @@ Viewer :: struct {
     window: Window;
     gfx:    GFX;
     ui:     UI;
-
+    renderer: Renderer;
+    
     profiling_data: Timing_Data;
     profiling_string: string;
     profiling_show_summary: bool;
@@ -48,16 +50,34 @@ menu_bar :: (viewer: *Viewer) {
 }
 
 one_viewer_frame :: (viewer: *Viewer) {
+    //
+    // Prepare the frame.
+    //
     frame_start := get_hardware_time();
 
     update_window(*viewer.window);
     
-    gfx_prepare_frame(*viewer.gfx, .{ 100, 100, 100, 255 });
+    gfx_prepare_frame(*viewer.gfx, .{ 50, 50, 50, 255 });
     gfx_prepare_ui(*viewer.gfx, *viewer.ui);
 
+    //
+    // Immediate mode 3D drawing.
+    //
+    {
+        update_camera(*viewer.renderer);
+        draw_line(*viewer.renderer, .{ 0, 0, -10 }, .{ 0, 10, -10 }, 1, .{ 255, 255, 255, 255 });
+        flush_lines(*viewer.renderer);
+    }
+
+    //
+    // UI.
+    //
     menu_bar(viewer);
     profiling_ui(viewer);
-    
+
+    //
+    // Finish the frame.
+    //
     gfx_finish_ui(*viewer.gfx, *viewer.ui);
     gfx_finish_frame(*viewer.gfx);
 
@@ -94,7 +114,8 @@ main :: () -> s32 {
     show_window(*viewer.window);
 
     create_gfx(*viewer.gfx, *viewer.window, Default_Allocator);
-
+    create_renderer(*viewer.renderer, *viewer.window, Default_Allocator);
+    
     gfx_create_ui(*viewer.gfx, *viewer.ui, UI_Dark_Theme);
 
     profile_octree_test(*viewer);
@@ -107,6 +128,7 @@ main :: () -> s32 {
     core_free_profiling_data(*viewer.profiling_data);
 
     gfx_destroy_ui(*viewer.gfx, *viewer.ui);
+    destroy_renderer(*viewer.renderer, Default_Allocator);
     destroy_gfx(*viewer.gfx);
     destroy_window(*viewer.window);
     return 0;
