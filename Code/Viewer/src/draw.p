@@ -1,4 +1,5 @@
 LINE_BATCH_COUNT :: 512;
+SAMPLES :: 8;
 
 Camera :: struct {
     fov:    f32 = 70;
@@ -20,6 +21,8 @@ Renderer :: struct {
     lit_shader: Shader;
     wireframe_shader: Shader;
 
+    frame_buffer: Frame_Buffer; // Used for multisampling the 3D rendering.
+    
     cube_buffer: Vertex_Buffer;
 
     line_buffer: Vertex_Buffer;
@@ -37,6 +40,7 @@ create_renderer :: (renderer: *Renderer, window: *Window, allocator: *Allocator)
     {
         create_shader_from_string(*renderer.lit_shader, lit_shader_code, "lit_shader");
         create_shader_from_string(*renderer.wireframe_shader, wireframe_shader_code, "wireframe_shader");
+        dump_gl_errors("Shader");
     }
         
     //
@@ -77,6 +81,7 @@ create_renderer :: (renderer: *Renderer, window: *Window, allocator: *Allocator)
         add_vertex_data(*renderer.cube_buffer, cube_vertices, cube_vertices.count, 3);
         add_vertex_data(*renderer.cube_buffer, cube_normals, cube_normals.count, 3);
         set_vertex_buffer_name(*renderer.line_buffer, "cube_buffer");
+        dump_gl_errors("Cube Vertex");
     }
 
     //
@@ -93,6 +98,15 @@ create_renderer :: (renderer: *Renderer, window: *Window, allocator: *Allocator)
 
         renderer.line_vertices = allocate_array(allocator, LINE_BATCH_COUNT * 6 * 7, f32);
         renderer.line_colors = allocate_array(allocator, LINE_BATCH_COUNT * 6 * 4, f32);
+        dump_gl_errors("Line Vertex");
+    }
+
+    //
+    // Set up the framebuffer.
+    //
+    {
+        create_frame_buffers(renderer, false);
+        dump_gl_errors("Framebuffer");
     }
 }
 
@@ -103,6 +117,17 @@ destroy_renderer :: (renderer: *Renderer, allocator: *Allocator) {
     destroy_vertex_buffer(*renderer.line_buffer);
     destroy_shader(*renderer.lit_shader);
     destroy_shader(*renderer.wireframe_shader);
+    destroy_frame_buffer(*renderer.frame_buffer);
+}
+
+create_frame_buffers :: (renderer: *Renderer, destroy: bool) {
+    if destroy {
+        destroy_frame_buffer(*renderer.frame_buffer);
+    }
+
+    create_frame_buffer(*renderer.frame_buffer);
+    create_color_texture_attachment(*renderer.frame_buffer, renderer.window.width, renderer.window.height, .RGB, SAMPLES);
+    create_depth_buffer_attachment(*renderer.frame_buffer, renderer.window.width, renderer.window.height, SAMPLES);
 }
 
 
@@ -114,7 +139,37 @@ update_camera :: (renderer: *Renderer) {
     // Move the camera.
     //
     {
-        // @Incomplete.
+        yaw := turns_to_radians(renderer.camera.rotation.y);
+        speed := 100 * renderer.window.frame_time;
+        
+        if renderer.window.key_held[.W] {
+            renderer.camera.position.x += sinf(yaw) * speed;
+            renderer.camera.position.z -= cosf(yaw) * speed;
+        }
+
+        if renderer.window.key_held[.S] {
+            renderer.camera.position.x -= sinf(yaw) * speed;
+            renderer.camera.position.z += cosf(yaw) * speed;
+        }
+
+        if renderer.window.key_held[.A] {
+            renderer.camera.position.x -= cosf(yaw) * speed;
+            renderer.camera.position.z -= sinf(yaw) * speed;
+        }
+
+        if renderer.window.key_held[.D] {
+            renderer.camera.position.x += cosf(yaw) * speed;
+            renderer.camera.position.z += sinf(yaw) * speed;
+        }
+
+        if renderer.window.key_held[.X] renderer.camera.position.y += speed;
+
+        if renderer.window.key_held[.Y] renderer.camera.position.y -= speed;
+        
+        if renderer.window.button_held[.Middle] {
+            renderer.camera.rotation.x += xx renderer.window.raw_mouse_delta_y * 0.0002;
+            renderer.camera.rotation.y += xx renderer.window.raw_mouse_delta_x * 0.0002;
+        }
     }
 
     renderer.camera.aspect     = xx renderer.window.width / xx renderer.window.height;
@@ -125,6 +180,21 @@ update_camera :: (renderer: *Renderer) {
 
 
 /* ---------------------------------------------- Immediate API ---------------------------------------------- */
+
+prepare_3d :: (renderer: *Renderer, color: GFX_Color) {
+    if renderer.window.resized {
+        create_frame_buffers(renderer, true);
+    }
+
+    set_frame_buffer(*renderer.frame_buffer);
+    glClearColor(xx color.r / 255., xx color.g / 255., xx color.b / 255., xx color.a / 255.);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+}
+
+finish_3d :: (renderer: *Renderer) {
+    blit_frame_buffer_to_default(*renderer.frame_buffer, renderer.window.width, renderer.window.height);
+    set_default_frame_buffer(renderer.window.width, renderer.window.height);
+}
 
 flush_lines :: (renderer: *Renderer) {
     if renderer.line_count == 0 return;
