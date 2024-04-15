@@ -97,8 +97,8 @@ main :: () -> s32 {
 
     gfx_create_ui(*viewer.gfx, *viewer.ui, UI_Dark_Theme);
 
-    //profile_octree_test(*viewer);
-    profile_simple_test(*viewer);
+    profile_octree_test(*viewer);
+    //profile_simple_test(*viewer);
     
     while !viewer.window.should_close {
         one_viewer_frame(*viewer);

@@ -47,6 +47,15 @@ get_profiling_view_port :: (element: *UI_Element, data: *Profiling_UI_Data, curr
     }
 }
 
+draw_profiling_marker :: (gfx: *GFX, element: *UI_Element, x: f64, h: f32) {
+    marker_color :: GFX_Color.{ 150, 150, 150, 255 };       
+
+    _x: f32 = cast(f32) x;
+    if _x >= element.screen_position.x && _x <= element.screen_position.x + element.screen_size.x {
+        gfx_draw_line(gfx, .{ _x, element.screen_position.y }, .{ _x, element.screen_position.y + xx h }, 1, marker_color);
+    }
+}
+
 draw_profiling_timeline :: (*void, element: *UI_Element, data: *Profiling_UI_Data) {
     w, h, x0, y0 := get_profiling_view_port(element, data, true);
 
@@ -66,26 +75,31 @@ draw_profiling_timeline :: (*void, element: *UI_Element, data: *Profiling_UI_Dat
     //
     // Render the actual timeline.
     //
+    low_x_clamp : f64 = xx (element.screen_position.x);
+    high_x_clamp: f64 = xx (element.screen_position.x + element.screen_size.x);
+
     for i := 0; i < viewer.profiling_data.timeline_count; ++i {
         entry  := *viewer.profiling_data.timeline[i];
 
-        offset_time, offset_time_unit     := get_best_time_resolution(entry.start_in_nanoseconds);
+        start_time, start_time_unit       := get_best_time_resolution(entry.start_in_nanoseconds);
+        end_time, end_time_unit           := get_best_time_resolution(entry.end_in_nanoseconds);
         duration_time, duration_time_unit := get_best_time_resolution(entry.end_in_nanoseconds - entry.start_in_nanoseconds);
         
-        entry_x0: f32 = xx round(x0 + offset_time * width_per_time_unit[offset_time_unit]);
-        entry_y0: f32 = xx round(y0 + (cast(f64) entry.depth + 2) * PROFILING_BAR_HEIGHT);
+        entry_x0: f64 = round(x0 + start_time * width_per_time_unit[start_time_unit]);
+        entry_y0: f64 = round(y0 + (cast(f64) entry.depth + 2) * PROFILING_BAR_HEIGHT);
 
-        entry_w: f32 = xx round(duration_time * width_per_time_unit[duration_time_unit]);
-        entry_h: f32 = xx PROFILING_BAR_HEIGHT;
+        entry_x1: f64 = round(x0 + end_time * width_per_time_unit[end_time_unit]);
+        entry_y1: f64 = round(y0 + (cast(f64) entry.depth + 3) * PROFILING_BAR_HEIGHT);
         
-        text   := v2f.{ entry_x0, entry_y0 + + entry_h + xx gfx.ui_font.descender };
-        center := v2f.{ entry_x0 + entry_w / 2, entry_y0 + entry_h / 2 };
-        size   := v2f.{ entry_w, entry_h };
-
-        if (entry_x0 + entry_w < element.screen_position.x) || (entry_x0 > element.screen_position.x + element.screen_size.x) continue;
-
-        if size.x >= 2 {
-            combine_scissors(gfx, .{ element.screen_position.x, element.screen_position.y }, .{ element.screen_position.x + element.screen_size.x, element.screen_position.y + element.screen_size.y }, .{ center.x - size.x / 2, center.y - size.y / 2 }, .{ center.x + size.x / 2, center.y + size.y / 2 });
+        if (xx entry_x1 < element.screen_position.x) || (xx entry_x0 > element.screen_position.x + element.screen_size.x) continue;
+        
+        if duration_time * width_per_time_unit[duration_time_unit] > 2 {
+            entry_x0 = clamp(entry_x0, low_x_clamp, high_x_clamp);
+            entry_x1 = clamp(entry_x1, low_x_clamp, high_x_clamp);
+            
+            text   := v2f.{ xx (entry_x0),                xx (entry_y1 + xx gfx.ui_font.descender) };
+            center := v2f.{ xx (entry_x0 + entry_x1) / 2, xx (entry_y0 + entry_y1) / 2 };
+            size   := v2f.{ xx (entry_x1 - entry_x0),     xx (entry_y1 - entry_y0) };
 
             bg_color: GFX_Color = .{ entry.r, entry.g, entry.b, 255 };
             fg_color: GFX_Color = .{ 255, 255, 255, 255 };
@@ -99,32 +113,45 @@ draw_profiling_timeline :: (*void, element: *UI_Element, data: *Profiling_UI_Dat
 
             gfx_draw_quad(gfx, center, size, bg_color);
             gfx_draw_outlined_quad(gfx, center, size, 2, .{ bg_color.r + 20, bg_color.g + 20, bg_color.b + 20, 255 });
-
+            gfx_flush_quads(gfx); // So that the text gets rendered on top of this...
+            
+            combine_scissors(gfx, .{ element.screen_position.x, element.screen_position.y }, .{ element.screen_position.x + element.screen_size.x, element.screen_position.y + element.screen_size.y }, .{ center.x - size.x / 2, center.y - size.y / 2 }, .{ center.x + size.x / 2, center.y + size.y / 2 });
             gfx_draw_text_with_background(gfx, *gfx.ui_font, string, text, .Left, fg_color, bg_color);
             gfx_flush_text(gfx); // Due to scissoring
+            gfx_clear_scissors(gfx);
         } else {
-            size.x = 2;
+            entry_center := round((entry_x0 + entry_x1) / 2);
+            entry_x0 = clamp(entry_center - 1, low_x_clamp, high_x_clamp);
+            entry_x1 = clamp(entry_center + 1, low_x_clamp, high_x_clamp);
 
-            combine_scissors(gfx, .{ element.screen_position.x, element.screen_position.y }, .{ element.screen_position.x + element.screen_size.x, element.screen_position.y + element.screen_size.y }, .{ center.x - size.x / 2, center.y - size.y / 2 }, .{ center.x + size.x / 2, center.y + size.y / 2 });
+            center := v2f.{ xx (entry_x0 + entry_x1) / 2, xx (entry_y0 + entry_y1) / 2 };
+            size   := v2f.{ xx (entry_x1 - entry_x0),     xx (entry_y1 - entry_y0) };
 
             bg_color: GFX_Color = .{ 84, 95, 135, 255 };
             gfx_draw_quad(gfx, center, size, bg_color);
         }
     }
 
-    gfx_set_scissors(gfx, .{ element.screen_position.x, element.screen_position.y }, .{ element.screen_position.x + element.screen_size.x, element.screen_position.y + element.screen_size.y });
-    
     //
-    // Mark the start and end of profiling visually.
+    // Add more vertical markers at specific time intervals.
     //
-    {
-        marker_color :: GFX_Color.{ 150, 150, 150, 255 };
-        gfx_draw_line(gfx, .{ xx (x0 + .5), element.screen_position.y }, .{ xx (x0 + .5), element.screen_position.y + element.screen_size.y }, 1, marker_color); // Mark the start of profiling
-        gfx_draw_line(gfx, .{ xx (x0 + w),  element.screen_position.y }, .{ xx (x0 +  w), element.screen_position.y + element.screen_size.y }, 1, marker_color); // Mark the end of profiling
+    {        
+        draw_profiling_marker(gfx, element, x0, element.screen_size.y);
+        draw_profiling_marker(gfx, element, x0 + w, element.screen_size.y);
+
+        interval_time, interval_time_unit := get_best_time_resolution(xx viewer.profiling_data.total_time_in_nanoseconds / xx data.current_zoom);
+        interval_width := width_per_time_unit[interval_time_unit];
+
+        if interval_time > 100 interval_width *= 10;
+        
+        screen_x0_offset := xx element.screen_position.x - x0;
+        for x := -fmod(screen_x0_offset, interval_width); x <= xx element.screen_size.x; x += interval_width {
+            draw_profiling_marker(gfx, element, x + xx element.screen_position.x, 10);
+        }
     }
 
     //
-    // Add more vertical markers at specific time intervals.
+    // Display the total time interval shown in the current zoom.
     //
     {       
         fg_color := GFX_Color.{ 255, 255, 255, 255 };
@@ -136,6 +163,8 @@ draw_profiling_timeline :: (*void, element: *UI_Element, data: *Profiling_UI_Dat
 
         gfx_flush_text(gfx); // Due to the scissoring
     }
+
+    gfx_flush_quads(gfx); // Finally flush the quads, since they work correctly without scissors.
 }
 
 update_profiling_timeline :: (input: UI_Input, element: *UI_Element, data: *Profiling_UI_Data) {   
