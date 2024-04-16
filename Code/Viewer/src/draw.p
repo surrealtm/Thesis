@@ -16,8 +16,13 @@ Camera :: struct {
 
 Renderer :: struct {
     window: *Window;
-    camera: Camera;
+    gfx: *GFX;
 
+    camera: Camera;
+    light_direction: v3f;
+
+    hud_font: Font;
+    
     lit_shader: Shader;
     wireframe_shader: Shader;
 
@@ -31,8 +36,11 @@ Renderer :: struct {
     line_count: s64;
 }
 
-create_renderer :: (renderer: *Renderer, window: *Window, allocator: *Allocator) {
+create_renderer :: (renderer: *Renderer, window: *Window, gfx: *GFX, allocator: *Allocator) {
     renderer.window = window;
+    renderer.gfx    = gfx;
+    renderer.light_direction = v3f_normalize(.{ 3, 2, 1 });
+    create_font_from_file(*renderer.hud_font, "C:/Windows/Fonts/segoeui.ttf", 20, false, create_gl_texture_2d, null);
     
     //
     // Set up shaders.
@@ -80,14 +88,14 @@ create_renderer :: (renderer: *Renderer, window: *Window, allocator: *Allocator)
         create_vertex_buffer(*renderer.cube_buffer);
         add_vertex_data(*renderer.cube_buffer, cube_vertices, cube_vertices.count, 3);
         add_vertex_data(*renderer.cube_buffer, cube_normals, cube_normals.count, 3);
-        set_vertex_buffer_name(*renderer.line_buffer, "cube_buffer");
+        set_vertex_buffer_name(*renderer.cube_buffer, "cube_buffer");
         dump_gl_errors("Cube Vertex");
     }
 
     //
     // Set up the line buffer.
     //
-    {
+    {        
         create_vertex_buffer(*renderer.line_buffer);
         add_vertex_attribute_buffer(*renderer.line_buffer, null, LINE_BATCH_COUNT * 6 * 7, 7);
         allocate_vertex_attribute(*renderer.line_buffer, 3, 7, 0); // Position
@@ -118,6 +126,7 @@ destroy_renderer :: (renderer: *Renderer, allocator: *Allocator) {
     destroy_shader(*renderer.lit_shader);
     destroy_shader(*renderer.wireframe_shader);
     destroy_frame_buffer(*renderer.frame_buffer);
+    destroy_font(*renderer.hud_font, destroy_gl_texture_2d, null);
 }
 
 create_frame_buffers :: (renderer: *Renderer, destroy: bool) {
@@ -128,6 +137,7 @@ create_frame_buffers :: (renderer: *Renderer, destroy: bool) {
     create_frame_buffer(*renderer.frame_buffer);
     create_color_texture_attachment(*renderer.frame_buffer, renderer.window.width, renderer.window.height, .RGB, SAMPLES);
     create_depth_buffer_attachment(*renderer.frame_buffer, renderer.window.width, renderer.window.height, SAMPLES);
+    validate_frame_buffer(*renderer.frame_buffer);
 }
 
 
@@ -141,6 +151,8 @@ update_camera :: (renderer: *Renderer) {
     {
         yaw := turns_to_radians(renderer.camera.rotation.y);
         speed := 100 * renderer.window.frame_time;
+
+        if renderer.window.key_held[.Shift] speed /= 2;
         
         if renderer.window.key_held[.W] {
             renderer.camera.position.x += sinf(yaw) * speed;
@@ -192,6 +204,10 @@ prepare_3d :: (renderer: *Renderer, color: GFX_Color) {
 }
 
 finish_3d :: (renderer: *Renderer) {
+    set_depth_test(.Disabled);
+    set_cull_test(.Disabled);
+    set_blending(.Default);
+    
     blit_frame_buffer_to_default(*renderer.frame_buffer, renderer.window.width, renderer.window.height);
     set_default_frame_buffer(renderer.window.width, renderer.window.height);
 }
@@ -199,10 +215,12 @@ finish_3d :: (renderer: *Renderer) {
 flush_lines :: (renderer: *Renderer) {
     if renderer.line_count == 0 return;
 
+    set_cull_test(.Disabled);
+    set_depth_test(.Less_Equals);
+    
     set_shader(*renderer.wireframe_shader);
     set_shader_uniform_m4f(*renderer.wireframe_shader, "u_projection", renderer.camera.projection._m[0].data);
     set_shader_uniform_m4f(*renderer.wireframe_shader, "u_view", renderer.camera.view._m[0].data);
-    set_shader_uniform_b(*renderer.wireframe_shader, "u_use_normal", false);
     set_shader_uniform_b(*renderer.wireframe_shader, "u_use_constant_screen_size", false);
     set_shader_uniform_f(*renderer.wireframe_shader, "u_aspect", renderer.camera.aspect);
     
@@ -237,17 +255,60 @@ add_line_endpoint :: (renderer: *Renderer, i: s64, p: v3f, e: v3f, ex: f32, colo
 
 draw_line :: (renderer: *Renderer, p0: v3f, p1: v3f, thickness: f32, color: GFX_Color) {
     if renderer.line_count == LINE_BATCH_COUNT flush_lines(renderer);
-    
-    color_array: [4]f32 = { xx color.r / 255., xx color.g / 255., xx color.b / 255., xx color.a / 255. };
-    add_line_endpoint(renderer, 0, p0, p1, +thickness, color_array);
-    add_line_endpoint(renderer, 1, p0, p1, -thickness, color_array);
-    add_line_endpoint(renderer, 2, p1, p0, -thickness, color_array);
+   
+    // The lines are extruded in the vertex shader to ensure proper depth values and
+    // screen scaling of the triangles.
+    // -1      p0 ------------  p1    1
+    //         |       /        |
+    //  1      p0 ------------  p1   -1
+    // 
+    // Since the direction vector always points towards the other end, the normal gets flipped across the two
+    // points, meaning we need different directions for the two points.
 
-    add_line_endpoint(renderer, 3, p0, p1, -thickness, color_array);
+    color_array: [4]f32 = { xx color.r / 255., xx color.g / 255., xx color.b / 255., xx color.a / 255. };
+
+    add_line_endpoint(renderer, 0, p0, p1, -thickness, color_array);
+    add_line_endpoint(renderer, 1, p1, p0, +thickness, color_array);
+    add_line_endpoint(renderer, 2, p0, p1, +thickness, color_array);
+
+    add_line_endpoint(renderer, 3, p0, p1, +thickness, color_array);
     add_line_endpoint(renderer, 4, p1, p0, +thickness, color_array);
     add_line_endpoint(renderer, 5, p1, p0, -thickness, color_array);
 
     ++renderer.line_count;
+}
+
+draw_cuboid :: (renderer: *Renderer, center: v3f, size: v3f, color: GFX_Color) {
+    transformation := make_transformation_matrix_with_v3f_rotation(center, .{ 0, 0, 0 }, size);
+
+    set_cull_test(.Backfaces);
+    set_depth_test(.Default);
+    
+    set_shader(*renderer.lit_shader);
+    set_shader_uniform_m4f(*renderer.lit_shader, "u_projection", renderer.camera.projection._m[0].data);
+    set_shader_uniform_m4f(*renderer.lit_shader, "u_view", renderer.camera.view._m[0].data);
+    set_shader_uniform_m4f(*renderer.lit_shader, "u_transformation", transformation._m[0].data);
+    set_shader_uniform_v3f(*renderer.lit_shader, "u_light_direction", renderer.light_direction.x, renderer.light_direction.y, renderer.light_direction.z);
+    set_shader_uniform_color(*renderer.lit_shader, "u_color", color.r, color.g, color.b, color.a);
+
+    set_vertex_buffer(*renderer.cube_buffer);
+    draw_vertex_buffer(*renderer.cube_buffer);
+}
+
+draw_3d_hud_text :: (renderer: *Renderer, center: v3f, text: string, color: GFX_Color) {
+    screen_position, on_screen := world_space_to_screen_space(renderer.camera.projection, renderer.camera.view, center, .{ xx renderer.window.width, xx renderer.window.height });
+
+    if !on_screen return;
+
+    width := query_text_width(*renderer.hud_font, text);
+
+    bg_color :: GFX_Color.{ 50, 50, 50, 200 };
+    
+    gfx_draw_quad(renderer.gfx, .{ screen_position.x, screen_position.y + xx renderer.hud_font.descender }, .{ xx width, xx renderer.hud_font.line_height }, bg_color);
+    gfx_flush_quads(renderer.gfx);
+
+    gfx_draw_text_without_background(renderer.gfx, *renderer.hud_font, text, screen_position, .Centered, color);
+    gfx_flush_text(renderer.gfx);
 }
 
 
@@ -279,7 +340,7 @@ uniform vec4 u_color;
 uniform vec3 u_light_direction;
 
 void main(void) {
-    float diffuse = dot(pass_normal, u_light_direction);
+    float diffuse = max(dot(pass_normal, u_light_direction), 0.2);
     out_color = vec4(u_color.rgb * diffuse, u_color.a);
 }
 ";
@@ -311,30 +372,24 @@ vec2 to_screen_space(vec4 clip_space) {
 }
 
 void main(void) {
-    if(u_use_normal) {
-        // Add the normal values in world space, then calculate the screen space position for that
-        vec3 tangent = normalize(cross(in_endpoint - in_position, u_normal));
-        gl_Position = u_projection * u_view * vec4(in_position + tangent * in_extension, 1.0);
-    } else {
-        // Calculate the screen space position of both endpoints, derive the normal from that to always
-        // have the line triangles face the camera
-        vec4 this_clip_space = to_clip_space(in_position);
-        vec2 this_screen_space = to_screen_space(this_clip_space);
+    // Calculate the screen space position of both endpoints, derive the normal from that to always
+    // have the line triangles face the camera
+    vec4 this_clip_space = to_clip_space(in_position);
+    vec2 this_screen_space = to_screen_space(this_clip_space);
 
-        vec4 endpoint_clip_space = to_clip_space(in_endpoint);
-        vec2 endpoint_screen_space = to_screen_space(endpoint_clip_space);
+    vec4 endpoint_clip_space = to_clip_space(in_endpoint);
+    vec2 endpoint_screen_space = to_screen_space(endpoint_clip_space);
 
-        vec2 line_direction = normalize(endpoint_screen_space - this_screen_space);
-        vec2 line_normal    = vec2(-line_direction.y, line_direction.x) * sign(this_clip_space.w) * in_extension / 2.0;
+    vec2 line_direction = normalize(endpoint_screen_space - this_screen_space);
+    vec2 line_normal    = vec2(-line_direction.y, line_direction.x) * in_extension / 2.0;
 
-        if(u_use_constant_screen_size) {
-            line_normal *= this_clip_space.w; // Maybe there is a smarter way of doing this without conditionals? Like multiplying the normal by just 1 if constant_screen_size is not set?
-            line_normal.x /= u_aspect; // Adjust the normal to the aspect ratio of the screen
-        }
-
-        vec4 clip_offset = vec4(line_normal, 0.0, 0.0);
-        gl_Position = this_clip_space + clip_offset;
+    if(u_use_constant_screen_size) {
+        line_normal *= this_clip_space.w; // Maybe there is a smarter way of doing this without conditionals? Like multiplying the normal by just 1 if constant_screen_size is not set?
+        line_normal.x /= u_aspect; // Adjust the normal to the aspect ratio of the screen
     }
+
+    vec4 clip_offset = vec4(line_normal, 0.0, 0.0);
+    gl_Position = this_clip_space + clip_offset;
 
     pass_color = in_color;
 }

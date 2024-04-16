@@ -66,7 +66,7 @@ one_viewer_frame :: (viewer: *Viewer) {
 
     update_window(*viewer.window);
 
-    background_color :: GFX_Color.{ 50, 50, 50, 255 };
+    background_color :: GFX_Color.{ 86, 130, 166, 255 };
     
     gfx_prepare_frame(*viewer.gfx, background_color);
     gfx_prepare_ui(*viewer.gfx, *viewer.ui);
@@ -78,9 +78,14 @@ one_viewer_frame :: (viewer: *Viewer) {
         prepare_3d(*viewer.renderer, background_color);
         update_camera(*viewer.renderer);
         draw_line(*viewer.renderer, .{ 0, 0, -10 }, .{ 0, 10, -10 }, .05, .{ 255, 255, 255, 255 });
-        draw_line(*viewer.renderer, .{ 10, 5, -10 }, .{ 0, 10, -10 }, .05, .{ 0, 0, 255, 255 });
+//        draw_line(*viewer.renderer, .{ 10, 5, -10 }, .{ 0, 10, -10 }, .05, .{ 0, 0, 255, 255 });
         flush_lines(*viewer.renderer);
+
+        draw_cuboid(*viewer.renderer, .{ 0, 0, -10 }, .{ 1, 1, 1 }, .{ 255, 0, 0, 255 });
+        
         finish_3d(*viewer.renderer);
+
+        draw_3d_hud_text(*viewer.renderer, .{ 0, 0, -10 }, "Hello Cube!", .{ 255, 255, 255, 255 });
     }
 
     //
@@ -130,10 +135,10 @@ main :: () -> s32 {
     create_gfx(*viewer.gfx, *viewer.window, Default_Allocator);
     dump_gl_errors("GFX");
 
-    create_renderer(*viewer.renderer, *viewer.window, Default_Allocator);
+    create_renderer(*viewer.renderer, *viewer.window, *viewer.gfx, Default_Allocator);
     dump_gl_errors("Renderer");
     
-    gfx_create_ui(*viewer.gfx, *viewer.ui, UI_Dark_Theme);
+    gfx_create_ui(*viewer.gfx, *viewer.ui, UI_Watermelon_Theme);
 
     dump_gl_errors("Setup");
     
