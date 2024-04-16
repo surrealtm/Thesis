@@ -26,7 +26,7 @@ extern "C" {
         world->create(v3f(100, 10, 100));
         world->add_anchor("Kitchen"_s, v3f(10, 1, 1));
         world->add_anchor("Living Room"_s, v3f(10, 1, 10));
-        world->add_boundary("KitchenWall"_s, v3f(5, 1, 5), v3f(4, .25, .5));
+        world->add_boundary("KitchenWall"_s, v3f(6.25, 1, 6.25), v3f(5, .25, .5));
         world->create_octree();
 
         return (World_Handle) world;
@@ -37,9 +37,11 @@ extern "C" {
         
         const s64 count    = 10000;
         const f32 width    = 100;
-        const f32 height   = 10;
+        const f32 height   = 40;
         const f32 length   = 100;
-        const f32 max_size = 5;
+
+        const f32 min_size = .01f;
+        const f32 max_size = 1.f;
 
         World *world = (World *) core_allocate_world();
         world->create(v3f(width, height, length));
@@ -49,7 +51,7 @@ extern "C" {
             tmZone("create_random_objects", TM_SYSTEM_COLOR);
 
             for(s64 i = 0; i < count; ++i) {
-                v3f size     = v3f(get_random_f32_uniform(0.1f, max_size), get_random_f32_uniform(0.1f, max_size), get_random_f32_uniform(0.1f, max_size));
+                v3f size     = v3f(get_random_f32_uniform(min_size, max_size), get_random_f32_uniform(min_size, max_size), get_random_f32_uniform(min_size, max_size));
                 v3f position = v3f(get_random_f32_uniform(-width  + size.x, width  - size.x),
                                    get_random_f32_uniform(-height + size.y, height - size.y),
                                    get_random_f32_uniform(-length + size.z, length - size.z));

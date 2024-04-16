@@ -49,7 +49,8 @@ struct Boundary {
 
 /* -------------------------------------------------- Octree -------------------------------------------------- */
 
-#define MAX_OCTREE_DEPTH 8
+#define OCTREE_DEPTH 8
+#define MAX_OCTREE_DEPTH (OCTREE_DEPTH - 1)
 
 enum Octree_Child_Index {
     OCTREE_CHILD_nx_ny_nz = 0,

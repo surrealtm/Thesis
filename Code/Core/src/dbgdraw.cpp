@@ -7,6 +7,7 @@ struct Dbg_Internal_Draw_Data {
 	Resizable_Array<Debug_Draw_Line> lines;
 	Resizable_Array<Debug_Draw_Text> texts;
 	Resizable_Array<Debug_Draw_Cuboid> cuboids;
+	Resizable_Array<Debug_Draw_Sphere> spheres;
 };
 
 struct Dbg_Draw_Color {
@@ -87,20 +88,37 @@ void debug_draw_octree(Dbg_Internal_Draw_Data &_internal, Octree *node, Octree_C
 
 Debug_Draw_Data debug_draw_world(World *world, Debug_Draw_Options options) {
 	Dbg_Internal_Draw_Data _internal;
-	_internal.lines.allocator = dbg_alloc;
-	_internal.texts.allocator = dbg_alloc;
+	_internal.lines.allocator   = dbg_alloc;
+	_internal.texts.allocator   = dbg_alloc;
 	_internal.cuboids.allocator = dbg_alloc;
+	_internal.spheres.allocator = dbg_alloc;
 
+    b8 labels = !!(options & DEBUG_DRAW_Labels);
+    const Dbg_Draw_Color label_color = { 255, 255, 255 };
+    
 	if(options & DEBUG_DRAW_Octree) {
 		debug_draw_octree(_internal, &world->root, OCTREE_CHILD_COUNT, 0);
 	}
 
 	if(options & DEBUG_DRAW_Anchors) {
-		// @Incomplete
+		const Dbg_Draw_Color anchor_color = { 255, 100, 100 };
+		const f32 anchor_radius = 0.5f;
+
+		for(auto *anchor: world->anchors) {
+			_internal.spheres.add({ anchor->position, anchor_radius, anchor_color.r, anchor_color.g, anchor_color.b });
+
+			if(labels) _internal.texts.add({ anchor->position, anchor->name, label_color.r, label_color.g, label_color.b });
+		}			
 	}
 
 	if(options & DEBUG_DRAW_Boundaries) {
-		// @Incomplete
+		const Dbg_Draw_Color boundary_color = { 100, 100, 100 };
+
+		for(auto *boundary : world->boundaries) {
+			_internal.cuboids.add({ boundary->position, boundary->axis, boundary_color.r, boundary_color.g, boundary_color.b });
+
+            if(labels) _internal.texts.add({ boundary->position, boundary->name, label_color.r, label_color.g, label_color.b });
+        }
 	}
 
 	Debug_Draw_Data data = { 0 };
@@ -110,6 +128,8 @@ Debug_Draw_Data debug_draw_world(World *world, Debug_Draw_Options options) {
 	data.text_count   = _internal.texts.count;
 	data.cuboids      = _internal.cuboids.data;
 	data.cuboid_count = _internal.cuboids.count;
+	data.spheres      = _internal.spheres.data;
+	data.sphere_count = _internal.spheres.count;
 	return data;
 }
 
@@ -122,4 +142,7 @@ void free_debug_draw_data(Debug_Draw_Data *data) {
 
 	dbg_alloc->deallocate(data->cuboids);
 	data->cuboid_count = 0;
+
+	dbg_alloc->deallocate(data->spheres);
+	data->sphere_count = 0;
 }

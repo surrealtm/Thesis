@@ -29,6 +29,7 @@ Renderer :: struct {
     frame_buffer: Frame_Buffer; // Used for multisampling the 3D rendering.
     
     cube_buffer: Vertex_Buffer;
+    sphere_buffer: Vertex_Buffer;
 
     line_buffer: Vertex_Buffer;
     line_vertices: []f32; // Position, Endpoint, Extension
@@ -48,7 +49,7 @@ create_renderer :: (renderer: *Renderer, window: *Window, gfx: *GFX, allocator: 
     {
         create_shader_from_string(*renderer.lit_shader, lit_shader_code, "lit_shader");
         create_shader_from_string(*renderer.wireframe_shader, wireframe_shader_code, "wireframe_shader");
-        dump_gl_errors("Shader");
+        dump_gl_errors("Shaders");
     }
         
     //
@@ -87,11 +88,27 @@ create_renderer :: (renderer: *Renderer, window: *Window, gfx: *GFX, allocator: 
 
         create_vertex_buffer(*renderer.cube_buffer);
         add_vertex_data(*renderer.cube_buffer, cube_vertices, cube_vertices.count, 3);
-        add_vertex_data(*renderer.cube_buffer, cube_normals, cube_normals.count, 3);
+        add_vertex_data(*renderer.cube_buffer, cube_normals,  cube_normals.count,  3);
         set_vertex_buffer_name(*renderer.cube_buffer, "cube_buffer");
-        dump_gl_errors("Cube Vertex");
+        dump_gl_errors("Cube Buffer");
     }
 
+    //
+    // Set up the sphere buffer.
+    //
+    {
+        vertices, normals := get_sphere_vertices(0.5, 32);
+
+        create_vertex_buffer(*renderer.sphere_buffer);
+        add_vertex_data(*renderer.sphere_buffer, vertices, vertices.count, 3);
+        add_vertex_data(*renderer.sphere_buffer, normals,  normals.count,  3);
+        set_vertex_buffer_name(*renderer.sphere_buffer, "sphere_buffer");
+        dump_gl_errors("Sphere Buffer");
+        
+        deallocate_array(Default_Allocator, *normals);
+        deallocate_array(Default_Allocator, *vertices);
+    }
+    
     //
     // Set up the line buffer.
     //
@@ -106,7 +123,7 @@ create_renderer :: (renderer: *Renderer, window: *Window, gfx: *GFX, allocator: 
 
         renderer.line_vertices = allocate_array(allocator, LINE_BATCH_COUNT * 6 * 7, f32);
         renderer.line_colors = allocate_array(allocator, LINE_BATCH_COUNT * 6 * 4, f32);
-        dump_gl_errors("Line Vertex");
+        dump_gl_errors("Line Buffer");
     }
 
     //
@@ -122,6 +139,7 @@ destroy_renderer :: (renderer: *Renderer, allocator: *Allocator) {
     deallocate_array(allocator, *renderer.line_vertices);
     deallocate_array(allocator, *renderer.line_colors);
     destroy_vertex_buffer(*renderer.cube_buffer);
+    destroy_vertex_buffer(*renderer.sphere_buffer);
     destroy_vertex_buffer(*renderer.line_buffer);
     destroy_shader(*renderer.lit_shader);
     destroy_shader(*renderer.wireframe_shader);
@@ -150,7 +168,7 @@ update_camera :: (renderer: *Renderer) {
     //
     {
         yaw := turns_to_radians(renderer.camera.rotation.y);
-        speed := 100 * renderer.window.frame_time;
+        speed := 30 * renderer.window.frame_time;
 
         if renderer.window.key_held[.Shift] speed /= 2;
         
@@ -278,6 +296,23 @@ draw_line :: (renderer: *Renderer, p0: v3f, p1: v3f, thickness: f32, color: GFX_
     ++renderer.line_count;
 }
 
+draw_sphere :: (renderer: *Renderer, center: v3f, size: v3f, color: GFX_Color) {
+    transformation := make_transformation_matrix_with_v3f_rotation(center, .{ 0, 0, 0 }, size);
+
+    set_cull_test(.Backfaces);
+    set_depth_test(.Default);
+    
+    set_shader(*renderer.lit_shader);
+    set_shader_uniform_m4f(*renderer.lit_shader, "u_projection", renderer.camera.projection._m[0].data);
+    set_shader_uniform_m4f(*renderer.lit_shader, "u_view", renderer.camera.view._m[0].data);
+    set_shader_uniform_m4f(*renderer.lit_shader, "u_transformation", transformation._m[0].data);
+    set_shader_uniform_v3f(*renderer.lit_shader, "u_light_direction", renderer.light_direction.x, renderer.light_direction.y, renderer.light_direction.z);
+    set_shader_uniform_color(*renderer.lit_shader, "u_color", color.r, color.g, color.b, color.a);
+
+    set_vertex_buffer(*renderer.sphere_buffer);
+    draw_vertex_buffer(*renderer.sphere_buffer);
+}
+
 draw_cuboid :: (renderer: *Renderer, center: v3f, size: v3f, color: GFX_Color) {
     transformation := make_transformation_matrix_with_v3f_rotation(center, .{ 0, 0, 0 }, size);
 
@@ -300,7 +335,7 @@ draw_3d_hud_text :: (renderer: *Renderer, center: v3f, text: string, color: GFX_
 
     if !on_screen return;
 
-    width := query_text_width(*renderer.hud_font, text);
+    width := query_text_width(*renderer.hud_font, text) + 10;
 
     bg_color :: GFX_Color.{ 50, 50, 50, 200 };
     
@@ -322,10 +357,22 @@ draw_debug_draw_data :: (renderer: *Renderer, data: *Debug_Draw_Data, background
     for i := 0; i < data.line_count; ++i {
         draw_line(renderer, data.lines[i].p0, data.lines[i].p1, data.lines[i].thickness, .{ data.lines[i].r, data.lines[i].g, data.lines[i].b, 255 });
     }
-
-    flush_lines(renderer);
     
+    flush_lines(renderer);
+
+    for i := 0; i < data.cuboid_count; ++i {
+        draw_cuboid(renderer, data.cuboids[i].position, data.cuboids[i].size, .{ data.cuboids[i].r, data.cuboids[i].g, data.cuboids[i].b, 255 });
+    }
+
+    for i := 0; i < data.sphere_count; ++i {
+        draw_sphere(renderer, data.spheres[i].position, .{ data.spheres[i].radius, data.spheres[i].radius, data.spheres[i].radius }, .{ data.spheres[i].r, data.spheres[i].g, data.spheres[i].b, 255 });
+    }
+
     finish_3d(renderer);
+    
+    for i := 0; i < data.text_count; ++i {
+        draw_3d_hud_text(renderer, data.texts[i].position, data.texts[i].text, .{ data.texts[i].r, data.texts[i].g, data.texts[i].b, 255 });
+    }
 }
 
 
@@ -420,3 +467,94 @@ void main(void) {
     out_color = pass_color;
 }
 ";
+
+get_sphere_vertices :: (radius: f32, segments: s64) -> []f32, []f32 {
+    vertices, normals: []f32;
+    vertices = allocate_array(Default_Allocator, segments * segments * 6 * 3, f32);
+    normals  = allocate_array(Default_Allocator, segments * segments * 6 * 3, f32);
+
+    idx := 0;
+    angle_per_segment := FPI / cast(f32) segments;
+    
+    for y0i := 0; y0i < segments; ++y0i {
+        y1i := y0i + 1;
+        
+        y0 := sinf(FPI / 2 - xx y0i * angle_per_segment) * radius;
+        y1 := sinf(FPI / 2 - xx y1i * angle_per_segment) * radius;
+
+        r0 := cosf(FPI / 2 - xx y0i * angle_per_segment) * radius;
+        r1 := cosf(FPI / 2 - xx y1i * angle_per_segment) * radius;
+
+        for x0i := 0; x0i < segments; ++x0i {
+            x1i := (x0i + 1) % segments;
+
+            theta0 := cast(f32) x0i / cast(f32) segments * 2 * FPI;
+            theta1 := cast(f32) x1i / cast(f32) segments * 2 * FPI;
+
+            p0 := v2f.{ cosf(theta0), sinf(theta0) };
+            p1 := v2f.{ cosf(theta1), sinf(theta1) };
+
+            p00 := v3f.{ cosf(theta0) * r0, y0, sinf(theta0) * r0 };
+            p01 := v3f.{ cosf(theta0) * r1, y1, sinf(theta0) * r1 };
+            p10 := v3f.{ cosf(theta1) * r0, y0, sinf(theta1) * r0 };
+            p11 := v3f.{ cosf(theta1) * r1, y1, sinf(theta1) * r1 };
+
+            n00 := v3f_normalize(p00);
+            n01 := v3f_normalize(p01);
+            n10 := v3f_normalize(p10);
+            n11 := v3f_normalize(p11);
+
+            vertices[idx + 0] = p10.x;
+            vertices[idx + 1] = p10.y;
+            vertices[idx + 2] = p10.z;
+
+            vertices[idx + 3] = p01.x;
+            vertices[idx + 4] = p01.y;
+            vertices[idx + 5] = p01.z;
+
+            vertices[idx + 6] = p00.x;
+            vertices[idx + 7] = p00.y;
+            vertices[idx + 8] = p00.z;
+
+            vertices[idx + 9]  = p10.x;
+            vertices[idx + 10] = p10.y;
+            vertices[idx + 11] = p10.z;
+
+            vertices[idx + 12] = p11.x;
+            vertices[idx + 13] = p11.y;
+            vertices[idx + 14] = p11.z;
+
+            vertices[idx + 15] = p01.x;
+            vertices[idx + 16] = p01.y;
+            vertices[idx + 17] = p01.z;
+
+            normals[idx + 0] = n10.x;
+            normals[idx + 1] = n10.y;
+            normals[idx + 2] = n10.z;
+
+            normals[idx + 3] = n01.x;
+            normals[idx + 4] = n01.y;
+            normals[idx + 5] = n01.z;
+
+            normals[idx + 6] = n00.x;
+            normals[idx + 7] = n00.y;
+            normals[idx + 8] = n00.z;
+
+            normals[idx + 9]  = n10.x;
+            normals[idx + 10] = n10.y;
+            normals[idx + 11] = n10.z;
+
+            normals[idx + 12] = n11.x;
+            normals[idx + 13] = n11.y;
+            normals[idx + 14] = n11.z;
+
+            normals[idx + 15] = n01.x;
+            normals[idx + 16] = n01.y;
+            normals[idx + 17] = n01.z;
+
+            idx += 18;
+        }
+    }
+    
+    return vertices, normals;
+}

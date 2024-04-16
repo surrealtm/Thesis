@@ -47,6 +47,12 @@ Debug_Draw_Cuboid :: struct {
     r, g, b: u8;
 }
 
+Debug_Draw_Sphere :: struct {
+    position: v3f;
+    radius: f32;
+    r, g, b: u8;
+}
+
 Debug_Draw_Data :: struct {
     lines: *Debug_Draw_Line;
     line_count: s64;
@@ -56,6 +62,9 @@ Debug_Draw_Data :: struct {
 
     cuboids: *Debug_Draw_Cuboid;
     cuboid_count: s64;
+
+    spheres: *Debug_Draw_Sphere;
+    sphere_count: s64;
 }
 
 core_debug_draw_world :: #foreign (world: World_Handle, options: Debug_Draw_Options) -> Debug_Draw_Data;

@@ -100,15 +100,24 @@ one_viewer_frame :: (viewer: *Viewer) {
 }
 
 viewer_run_test :: (viewer: *Viewer, test_proc: () -> World_Handle, test_string: string) {
+    viewer_destroy_test_data(viewer);
+
     core_begin_profiling();
     world := test_proc();
     core_stop_profiling();
 
+    draw_options: Debug_Draw_Options : .Octree | .Anchors | .Boundaries;
+    
     viewer.profiling_data  = core_get_profiling_data();
-    viewer.debug_draw_data = core_debug_draw_world(world, .Everything);
+    viewer.debug_draw_data = core_debug_draw_world(world, draw_options);
     viewer.test_string     = test_string;
 
     set_window_name(*viewer.window, sprint(*viewer.frame_allocator, "Viewer: %", viewer.test_string));
+}
+
+viewer_destroy_test_data :: (viewer: *Viewer) {
+    core_free_profiling_data(*viewer.profiling_data);
+    core_free_debug_draw_data(*viewer.debug_draw_data);
 }
 
 main :: () -> s32 {
@@ -138,8 +147,8 @@ main :: () -> s32 {
         one_viewer_frame(*viewer);
     }
         
-    core_free_profiling_data(*viewer.profiling_data);
-
+    viewer_destroy_test_data(*viewer);
+    
     gfx_destroy_ui(*viewer.gfx, *viewer.ui);
     destroy_renderer(*viewer.renderer, Default_Allocator);
     destroy_gfx(*viewer.gfx);

@@ -33,6 +33,12 @@ struct Debug_Draw_Cuboid {
     u8 r, g, b;
 };
 
+struct Debug_Draw_Sphere {
+    v3f position;
+    f32 radius;
+    u8 r, g, b;
+};
+
 struct Debug_Draw_Data {
     Debug_Draw_Line *lines;
     s64 line_count;
@@ -42,6 +48,9 @@ struct Debug_Draw_Data {
 
     Debug_Draw_Cuboid *cuboids;
     s64 cuboid_count;
+
+    Debug_Draw_Sphere *spheres;
+    s64 sphere_count;
 };
 
 Debug_Draw_Data debug_draw_world(World *world, Debug_Draw_Options options);
