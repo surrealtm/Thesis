@@ -5,7 +5,7 @@ Camera :: struct {
     fov:    f32 = 70;
     aspect: f32;
     near:   f32 = 0.01;
-    far:    f32 = 100;
+    far:    f32 = 500;
 
     position: v3f;
     rotation: v3f;
@@ -39,7 +39,7 @@ Renderer :: struct {
 create_renderer :: (renderer: *Renderer, window: *Window, gfx: *GFX, allocator: *Allocator) {
     renderer.window = window;
     renderer.gfx    = gfx;
-    renderer.light_direction = v3f_normalize(.{ 3, 2, 1 });
+    renderer.light_direction = v3f_normalize(.{ 1, 2, 3 });
     create_font_from_file(*renderer.hud_font, "C:/Windows/Fonts/segoeui.ttf", 20, false, create_gl_texture_2d, null);
     
     //
@@ -309,6 +309,23 @@ draw_3d_hud_text :: (renderer: *Renderer, center: v3f, text: string, color: GFX_
 
     gfx_draw_text_without_background(renderer.gfx, *renderer.hud_font, text, screen_position, .Centered, color);
     gfx_flush_text(renderer.gfx);
+}
+
+
+
+/* --------------------------------------------- Higher Level API --------------------------------------------- */
+
+draw_debug_draw_data :: (renderer: *Renderer, data: *Debug_Draw_Data, background_color: GFX_Color) {
+    prepare_3d(renderer, background_color);
+    update_camera(renderer);
+
+    for i := 0; i < data.line_count; ++i {
+        draw_line(renderer, data.lines[i].p0, data.lines[i].p1, data.lines[i].thickness, .{ data.lines[i].r, data.lines[i].g, data.lines[i].b, 255 });
+    }
+
+    flush_lines(renderer);
+    
+    finish_3d(renderer);
 }
 
 

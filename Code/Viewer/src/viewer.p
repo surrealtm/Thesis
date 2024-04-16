@@ -35,26 +35,31 @@ copy_latest_dll :: #no_export () {
 REQUESTED_FPS: f64 : 60;
 
 Viewer :: struct {
+    // Memory Management.
     frame_arena: Memory_Arena;
     frame_allocator: Allocator;
 
+    // Display stuff.
     window: Window;
     gfx:    GFX;
     ui:     UI;
     renderer: Renderer;
-    
-    profiling_data: Timing_Data;
-    profiling_string: string;
-    profiling_show_summary: bool;
-    
+
+    // UI stuff.
     profiling_panel_state := UI_Window_State.Closed;
     profiling_panel_position := UI_Vector2.{ .5, .1 };
+
+    // Core data.
+    test_string: string;
+    debug_draw_data: Debug_Draw_Data;    
+    profiling_data: Timing_Data;
+    profiling_show_summary: bool;    
 }
 
 
 menu_bar :: (viewer: *Viewer) {
     ui_push_width(*viewer.ui, .Pixels, 80, 1);
-    ui_toggle_button_with_pointer(*viewer.ui, "Profiling", xx *viewer.profiling_panel_state);
+    ui_toggle_button_with_pointer(*viewer.ui, "Profiler", xx *viewer.profiling_panel_state);
     ui_pop_width(*viewer.ui);
 }
 
@@ -66,27 +71,15 @@ one_viewer_frame :: (viewer: *Viewer) {
 
     update_window(*viewer.window);
 
-    background_color :: GFX_Color.{ 86, 130, 166, 255 };
+    background_color :: GFX_Color.{ 32, 80, 128, 255 };
     
     gfx_prepare_frame(*viewer.gfx, background_color);
     gfx_prepare_ui(*viewer.gfx, *viewer.ui);
 
     //
-    // Immediate mode 3D drawing.
+    // 3D Drawing.
     //
-    {
-        prepare_3d(*viewer.renderer, background_color);
-        update_camera(*viewer.renderer);
-        draw_line(*viewer.renderer, .{ 0, 0, -10 }, .{ 0, 10, -10 }, .05, .{ 255, 255, 255, 255 });
-//        draw_line(*viewer.renderer, .{ 10, 5, -10 }, .{ 0, 10, -10 }, .05, .{ 0, 0, 255, 255 });
-        flush_lines(*viewer.renderer);
-
-        draw_cuboid(*viewer.renderer, .{ 0, 0, -10 }, .{ 1, 1, 1 }, .{ 255, 0, 0, 255 });
-        
-        finish_3d(*viewer.renderer);
-
-        draw_3d_hud_text(*viewer.renderer, .{ 0, 0, -10 }, "Hello Cube!", .{ 255, 255, 255, 255 });
-    }
+    draw_debug_draw_data(*viewer.renderer, *viewer.debug_draw_data, background_color);
 
     //
     // UI.
@@ -106,20 +99,16 @@ one_viewer_frame :: (viewer: *Viewer) {
     window_ensure_frame_time(frame_start, frame_end, REQUESTED_FPS);
 }
 
-profile_octree_test :: (viewer: *Viewer) {
+viewer_run_test :: (viewer: *Viewer, test_proc: () -> World_Handle, test_string: string) {
     core_begin_profiling();
-    core_do_octree_test();
+    world := test_proc();
     core_stop_profiling();
-    viewer.profiling_data = core_get_profiling_data();
-    viewer.profiling_string = "octree_test";
-}
 
-profile_simple_test :: (viewer: *Viewer) {
-    core_begin_profiling();
-    core_do_simple_test();
-    core_stop_profiling();
-    viewer.profiling_data = core_get_profiling_data();
-    viewer.profiling_string = "simple_test";
+    viewer.profiling_data  = core_get_profiling_data();
+    viewer.debug_draw_data = core_debug_draw_world(world, .Everything);
+    viewer.test_string     = test_string;
+
+    set_window_name(*viewer.window, sprint(*viewer.frame_allocator, "Viewer: %", viewer.test_string));
 }
 
 main :: () -> s32 {
@@ -142,8 +131,8 @@ main :: () -> s32 {
 
     dump_gl_errors("Setup");
     
-    profile_octree_test(*viewer);
-    //profile_simple_test(*viewer);
+    viewer_run_test(*viewer, core_do_octree_test, "octree_test");
+//    viewer_run_test(*viewer, core_do_simple_test, "simple_test");
     
     while !viewer.window.should_close {
         one_viewer_frame(*viewer);

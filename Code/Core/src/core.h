@@ -1,3 +1,5 @@
+#pragma once
+
 #include "foundation.h"
 #include "memutils.h"
 #include "strings.h"
@@ -58,6 +60,7 @@ enum Octree_Child_Index {
     OCTREE_CHILD_px_ny_pz = 5,
     OCTREE_CHILD_px_py_nz = 6,
     OCTREE_CHILD_px_py_pz = 7,
+    OCTREE_CHILD_COUNT    = 8,
 
     OCTREE_CHILD_px_flag = 4,
     OCTREE_CHILD_py_flag = 2,
@@ -72,7 +75,7 @@ struct Octree {
     u8 depth;
     v3f center;
     v3f half_size;
-    Octree *children[8];
+    Octree *children[OCTREE_CHILD_COUNT];
 
     Resizable_Array<Anchor*> contained_anchors;
     Resizable_Array<Boundary*> contained_boundaries;

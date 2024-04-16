@@ -1,0 +1,48 @@
+#pragma once
+
+#include "foundation.h"
+#include "strings.h"
+#include "math/v3.h"
+
+struct World;
+
+enum Debug_Draw_Options {
+    DEBUG_DRAW_Nothing    = 0x0,
+    DEBUG_DRAW_Octree     = 0x1,
+    DEBUG_DRAW_Anchors    = 0x2,
+    DEBUG_DRAW_Boundaries = 0x4,
+    DEBUG_DRAW_Labels     = 0x1000, // Draw hud texts for all anchors and boundaries.
+    DEBUG_DRAW_Everything = 0xffffffff,
+};
+
+struct Debug_Draw_Line {
+    v3f p0, p1;
+    f32 thickness;
+    u8 r, g, b;
+};
+
+struct Debug_Draw_Text {
+    v3f position;
+    string text;
+    u8 r, g, b;
+};
+
+struct Debug_Draw_Cuboid {
+    v3f position;
+    v3f size;
+    u8 r, g, b;
+};
+
+struct Debug_Draw_Data {
+    Debug_Draw_Line *lines;
+    s64 line_count;
+
+    Debug_Draw_Text *texts;
+    s64 text_count;
+
+    Debug_Draw_Cuboid *cuboids;
+    s64 cuboid_count;
+};
+
+Debug_Draw_Data debug_draw_world(World *world, Debug_Draw_Options options);
+void free_debug_draw_data(Debug_Draw_Data *data);

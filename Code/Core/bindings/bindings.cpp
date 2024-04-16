@@ -3,20 +3,36 @@
 #include "../src/random.h"
 
 extern "C" {
-    /* ----------------------------------------------- Testing ------------------------------------------------ */
+    /* --------------------------------------------- General API --------------------------------------------- */
 
-    void core_do_simple_test() {
-        tmZone("do_simple_test", TM_SYSTEM_COLOR);
-
-        World world;
-        world.create(v3f(100, 10, 100));
-        world.add_anchor("Kitchen"_s, v3f(10, 1, 1));
-        world.add_anchor("Living Room"_s, v3f(10, 1, 10));
-        world.add_boundary("KitchenWall"_s, v3f(5, 1, 5), v3f(4, .25, .5));
-        world.create_octree();
+    World_Handle core_allocate_world() {
+        return Default_Allocator->allocate(sizeof(World));
     }
 
-    void core_do_octree_test() {
+    void core_destroy_world(World_Handle world_handle) {
+        World *world = (World *) world_handle;
+        world->destroy();
+        Default_Allocator->deallocate(world);
+    }
+
+    
+    
+    /* ----------------------------------------------- Testing ------------------------------------------------ */
+
+    World_Handle core_do_simple_test() {
+        tmZone("do_simple_test", TM_SYSTEM_COLOR);
+
+        World *world = (World *) core_allocate_world();
+        world->create(v3f(100, 10, 100));
+        world->add_anchor("Kitchen"_s, v3f(10, 1, 1));
+        world->add_anchor("Living Room"_s, v3f(10, 1, 10));
+        world->add_boundary("KitchenWall"_s, v3f(5, 1, 5), v3f(4, .25, .5));
+        world->create_octree();
+
+        return (World_Handle) world;
+    }
+
+    World_Handle core_do_octree_test() {
         tmZone("do_octree_test", TM_SYSTEM_COLOR);
         
         const s64 count    = 10000;
@@ -25,9 +41,9 @@ extern "C" {
         const f32 length   = 100;
         const f32 max_size = 5;
 
-        World world;
-        world.create(v3f(width, height, length));
-        world.reserve_objects(0, count);
+        World *world = (World *) core_allocate_world();
+        world->create(v3f(width, height, length));
+        world->reserve_objects(0, count);
         
         {
             tmZone("create_random_objects", TM_SYSTEM_COLOR);
@@ -37,14 +53,27 @@ extern "C" {
                 v3f position = v3f(get_random_f32_uniform(-width  + size.x, width  - size.x),
                                    get_random_f32_uniform(-height + size.y, height - size.y),
                                    get_random_f32_uniform(-length + size.z, length - size.z));
-                world.add_boundary("Boundary"_s, position, size);
+                world->add_boundary("Boundary"_s, position, size);
             }
         }
         
-        world.create_octree();
+        world->create_octree();
+        return world;
     }
     
 
+
+    /* ---------------------------------------------- Debug Draw ---------------------------------------------- */
+
+    Debug_Draw_Data core_debug_draw_world(World_Handle world, Debug_Draw_Options options) {
+        return debug_draw_world((World *) world, options);
+    }
+
+    void core_free_debug_draw_data(Debug_Draw_Data *data) {
+        free_debug_draw_data(data);
+    }
+    
+    
 
     /* ---------------------------------------------- Profiling ---------------------------------------------- */
 

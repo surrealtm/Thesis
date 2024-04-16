@@ -1,6 +1,7 @@
-#include "core.h"
 #include "timing.h"
 #include "os_specific.h"
+
+#include "core.h"
 
 
 
