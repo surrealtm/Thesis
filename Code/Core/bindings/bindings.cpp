@@ -2,6 +2,22 @@
 #include "../src/core.h"
 #include "../src/random.h"
 
+static
+void create_random_anchors(World *world, s64 count) {
+    world->reserve_objects(count, 0);
+
+    const f32 width  = world->half_size.x;
+    const f32 height = world->half_size.y;
+    const f32 length = world->half_size.z;
+
+    for(s64 i = 0; i < count; ++i) {
+        v3f position = v3f(get_random_f32_uniform(-width, width),
+                    get_random_f32_uniform(-height, height),
+                    get_random_f32_uniform(-length, length));
+        world->add_anchor("Anchor"_s, position);
+    }
+}
+
 extern "C" {
     /* --------------------------------------------- General API --------------------------------------------- */
 
@@ -28,43 +44,100 @@ extern "C" {
         world->create(v3f(100, 10, 100));
         world->add_anchor("Kitchen"_s, v3f(-5, -3, -5));
         world->add_anchor("Living Room"_s, v3f(5, -3, -5));
-        auto wall = world->add_boundary("KitchenWall"_s, v3f(0, -3, -6.25), v3f(.5, .25, 5), local_axes_from_rotation(v3f(0, 0, 0)));
-        world->add_boundary_clipping_plane(wall, 0);
+        auto kitchen_wall = world->add_boundary("KitchenWall"_s, v3f(0, -3, -6.25), v3f(.5, .25, 5), local_axes_from_rotation(v3f(0, 0, 0)));
+        world->add_boundary_clipping_plane(kitchen_wall, 0);
+        auto outer_wall = world->add_boundary("OuterWall"_s, v3f(0, -3, -12.5), v3f(10, .25, .5), local_axes_from_rotation(v3f(0, 0, 0)));
+        world->add_boundary_clipping_plane(outer_wall, 2);
 
         world->create_octree();
-
+        world->calculate_volumes();
+        
         return (World_Handle) world;
     }
 
     World_Handle core_do_octree_test() {
         tmZone("do_octree_test", TM_SYSTEM_COLOR);
         
-        const s64 count    = 10000;
-        const f32 width    = 100;
-        const f32 height   = 40;
-        const f32 length   = 100;
-
-        const f32 min_size = .01f;
-        const f32 max_size = 1.f;
-
         World *world = (World *) core_allocate_world();
-        world->create(v3f(width, height, length));
-        world->reserve_objects(0, count);
+        world->create(v3f(100, 40, 100));
         
         {
-            tmZone("create_random_objects", TM_SYSTEM_COLOR);
+            tmZone("create_random_boundaries", TM_SYSTEM_COLOR);
+
+            const s64 count = 10000;
+
+            const f32 width  = world->half_size.x;
+            const f32 height = world->half_size.y;
+            const f32 length = world->half_size.z;
+            
+            const f32 min_size = 0.01f;
+            const f32 max_size = 1.f;
+
+            world->reserve_objects(0, count);
 
             for(s64 i = 0; i < count; ++i) {
                 v3f size     = v3f(get_random_f32_uniform(min_size, max_size), get_random_f32_uniform(min_size, max_size), get_random_f32_uniform(min_size, max_size));
                 v3f position = v3f(get_random_f32_uniform(-width  + size.x, width  - size.x),
-                                   get_random_f32_uniform(-height + size.y, height - size.y),
-                                   get_random_f32_uniform(-length + size.z, length - size.z));
+                                    get_random_f32_uniform(-height + size.y, height - size.y),
+                                    get_random_f32_uniform(-length + size.z, length - size.z));
                 v3f rotation = v3f(0, 0, 0);
                 world->add_boundary("Boundary"_s, position, size, local_axes_from_rotation(rotation));
             }
         }
         
         world->create_octree();
+        return world;
+    }
+
+    World_Handle core_do_large_volumes_test() {
+        tmZone("do_large_volumes_test", TM_SYSTEM_COLOR);
+        
+        World *world = (World *) core_allocate_world();
+        world->create(v3f(100, 40, 100));
+        
+        {
+            tmZone("create_random_boundaries", TM_SYSTEM_COLOR);
+
+            const s64 count = 1000;
+
+            const f32 width  = world->half_size.x;
+            const f32 height = world->half_size.y;
+            const f32 length = world->half_size.z;
+            
+            const f32 min_size = 5.f;
+            const f32 max_size = 15.f;
+
+            world->reserve_objects(0, count);
+
+            for(s64 i = 0; i < count; ++i) {
+                int small_dimension = get_random_u32(0, 3);
+                
+                v3f size;
+
+                switch(small_dimension) {
+                case 0: size = v3f(.1f, get_random_f32_uniform(min_size, max_size), get_random_f32_uniform(min_size, max_size)); break;
+                case 1: size = v3f(get_random_f32_uniform(min_size, max_size), .1f, get_random_f32_uniform(min_size, max_size)); break;
+                case 2: size = v3f(get_random_f32_uniform(min_size, max_size), get_random_f32_uniform(min_size, max_size), .1f); break;
+                }
+
+                v3f position = v3f(get_random_f32_uniform(-width  + size.x, width  - size.x),
+                                    get_random_f32_uniform(-height + size.y, height - size.y),
+                                    get_random_f32_uniform(-length + size.z, length - size.z));
+                v3f rotation = v3f(0, 0, 0);
+
+                auto *boundary = world->add_boundary("Boundary"_s, position, size, local_axes_from_rotation(rotation));
+                world->add_boundary_clipping_plane(boundary, small_dimension);
+            }
+        }
+
+        {
+            tmZone("create_random_anchors", TM_SYSTEM_COLOR);
+            create_random_anchors(world, 100);
+        }
+
+        world->create_octree();
+        world->calculate_volumes();
+
         return world;
     }
     
@@ -116,9 +189,10 @@ BOOL WINAPI DllMain(HINSTANCE hinstance, DWORD reason, LPVOID reserved) {
     //
     // Set up some things regarding the core library.
     //
-    tmSetColor(TM_OCTREE_COLOR,  46, 184, 230);
-    tmSetColor(TM_WORLD_COLOR,   95, 230,  46);
     tmSetColor(TM_SYSTEM_COLOR, 209, 202, 197);
+    tmSetColor(TM_WORLD_COLOR,   95, 230,  46);
+    tmSetColor(TM_OCTREE_COLOR,  46, 184, 230);
+    tmSetColor(TM_VOLUME_COLOR, 215,  15, 219);
     return true;
 }
 #endif

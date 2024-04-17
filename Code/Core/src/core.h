@@ -6,10 +6,12 @@
 #include "math/math.h"
 
 
-#define TM_OCTREE_COLOR 0
+#define TM_SYSTEM_COLOR 0
 #define TM_WORLD_COLOR  1
-#define TM_SYSTEM_COLOR 2
+#define TM_OCTREE_COLOR 2
+#define TM_VOLUME_COLOR 3
 
+struct Boundary;
 
 /* ----------------------------------------------- 3D Geometry ----------------------------------------------- */
 
@@ -29,8 +31,17 @@ struct AABB {
 };
 
 struct Volume {
+    v3f anchor_point; // The position of the anchor. Somewhat wasteful... Might just include this entire struct in the Anchor?
     Resizable_Array<Triangle> triangles;
     AABB aabb;
+    b8 aabb_dirty;
+
+    void recalculate_aabb();
+    void maybe_recalculate_aabb();
+    void add_triangles_for_clipping_plane(Clipping_Plane *plane);
+    void clip_vertex_against_plane(v3f *vertex, Clipping_Plane *plane, f32 normal_sign);
+    void clip_against_plane(Clipping_Plane *plane);
+    void clip_against_boundary(Boundary *boundary);
 };
 
 struct Local_Axes {
@@ -142,6 +153,10 @@ struct World {
     void add_boundary_clipping_plane(Boundary *boundary, v3f n, v3f u, v3f v);
 
     f32 get_shortest_distance_to_root_clip(v3f position, v3f direction);
+
+    // Creates a volume which spans the whole root area.
+    Volume make_root_volume();
     
     void create_octree();
+    void calculate_volumes();
 };

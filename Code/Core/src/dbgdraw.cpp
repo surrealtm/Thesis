@@ -43,6 +43,7 @@ const Dbg_Draw_Color dbg_label_color          = { 255, 255, 255, 255 };
 const Dbg_Draw_Color dbg_anchor_color         = { 255, 100, 100, 255 };
 const Dbg_Draw_Color dbg_boundary_color       = { 100, 100, 100, 255 };
 const Dbg_Draw_Color dbg_clipping_plane_color = { 255,  60,  50, 100 };
+const Dbg_Draw_Color dbg_volume_color         = { 215,  15, 219, 200 };
 
 Allocator *dbg_alloc = Default_Allocator;
 
@@ -146,6 +147,14 @@ Debug_Draw_Data debug_draw_world(World *world, Debug_Draw_Options options) {
 			}
         }
     }
+
+	if(options & DEBUG_DRAW_Volume_Faces) {
+		for(auto *anchor : world->anchors) {
+			for(auto *triangle : anchor->volume.triangles) {
+				_internal.triangles.add({ triangle->p0, triangle->p1, triangle->p2, dbg_volume_color.r, dbg_volume_color.g, dbg_volume_color.b, dbg_volume_color.a });
+			}
+		}
+	}
 
 	Debug_Draw_Data data = { 0 };
 	data.lines          = _internal.lines.data;
