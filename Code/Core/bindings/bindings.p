@@ -92,14 +92,14 @@ Timing_Timeline_Entry :: struct {
     start_in_nanoseconds, end_in_nanoseconds: s64; // Relative to the start of the timing data
     depth: s64; // The vertical depth of the entry, representing the call stack depth
     r, g, b: u8;
-};
+}
 
 Timing_Summary_Entry :: struct {
     name: string;
     inclusive_time_in_nanoseconds: s64;
     exclusive_time_in_nanoseconds: s64;
     count: s64;
-};
+}
 
 Timing_Data :: struct {
     timeline: *Timing_Timeline_Entry;
@@ -108,7 +108,8 @@ Timing_Data :: struct {
     summary_count: s64;
 
     total_time_in_nanoseconds: s64;
-};
+    total_overhead_time_in_nanoseconds: s64;
+}
 
 core_begin_profiling     :: #foreign ();
 core_stop_profiling      :: #foreign ();

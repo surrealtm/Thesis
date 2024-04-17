@@ -237,6 +237,13 @@ profiling_panel :: (viewer: *Viewer) {
             ui_set_width(*viewer.ui, .Percentage_Of_Parent, 1, 0);
             ui_spacer(*viewer.ui);
 
+            overhead_time, overhead_time_unit := get_best_time_resolution(viewer.profiling_data.total_overhead_time_in_nanoseconds);
+            ui_set_width(*viewer.ui, .Label_Size, 0, 1);
+            ui_label(*viewer.ui, true, "Overhead time: %*%", overhead_time, time_resolution_suffix(overhead_time_unit));
+
+            ui_set_width(*viewer.ui, .Percentage_Of_Parent, 1, 0);
+            ui_spacer(*viewer.ui);
+
             if ui_button(*viewer.ui, "Reset") {
                 reset_timeline = true;
             }
