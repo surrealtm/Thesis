@@ -18,7 +18,8 @@ struct Triangle {
 };
 
 struct Clipping_Plane {
-    v3f p; // The center of this plane, lying on this plane.
+    v3f p; // The center of this plane.
+    v3f n; // The unit normal of this plane, for intersection testing.
     v3f u; // The scaled u vector, indicating the size and orientation of the plane.
     v3f v; // The scaled v vector, indicating the size and orientation of the plane.
 };
@@ -32,7 +33,14 @@ struct Volume {
     AABB aabb;
 };
 
+struct Local_Axes {
+    v3f _[3];
+
+    v3f &operator[](s64 index) { assert(index >= 0 && index <= 3); return this->_[index]; }
+};
+
 AABB aabb_from_position_and_size(v3f center, v3f half_sizes);
+Local_Axes local_axes_from_rotation(v3f euler_radians);
 
 
 
@@ -48,6 +56,7 @@ struct Boundary {
     string name;
     v3f position;
     v3f size;
+    Local_Axes local_axes; // The three coordinate axis in the local transform (meaning: rotated) of this boundary.
     AABB aabb;
     Resizable_Array<Clipping_Plane> clipping_planes; // Having this be a full-on dynamic array is pretty wasteful, since boundaries should only ever have between 1 and 3 clipping planes...  @@Speed.
 };
@@ -127,7 +136,12 @@ struct World {
     void reserve_objects(s64 anchors, s64 boundaries);
     
     void add_anchor(string name, v3f position);
-    void add_boundary(string name, v3f position, v3f axis);
+    Boundary *add_boundary(string name, v3f position, v3f size, Local_Axes local_axes);
 
+    void add_boundary_clipping_plane(Boundary *boundary, u8 axis_index);
+    void add_boundary_clipping_plane(Boundary *boundary, v3f n, v3f u, v3f v);
+
+    f32 get_shortest_distance_to_root_clip(v3f position, v3f direction);
+    
     void create_octree();
 };

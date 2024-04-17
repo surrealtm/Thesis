@@ -51,6 +51,9 @@
     <ClCompile Include="src\dbgdraw.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\Foundation\src\math\intersect.cpp">
+      <Filter>Foundation</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Foundation\src\fileio.h">
@@ -94,6 +97,9 @@
     </ClInclude>
     <ClInclude Include="src\dbgdraw.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Foundation\src\math\intersect.h">
+      <Filter>Foundation</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

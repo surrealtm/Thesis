@@ -55,6 +55,9 @@ TESTS: []Viewer_Test : {
         .{ "octree", core_do_octree_test },
 };
 
+STARTUP_TEST :: 0; // -1 means no startup test, else it is the index into the TESTS array.
+// #assert(STARTUP_TEST >= -1 && STARTUP_TEST < TESTS.COUNT); // @Cleanup: This assert here makes the program not compile... Seems the type checker is broken.
+
 Viewer :: struct {
     // Memory Management.
     frame_arena: Memory_Arena;
@@ -134,16 +137,16 @@ one_viewer_frame :: (viewer: *Viewer) {
     window_ensure_frame_time(frame_start, frame_end, REQUESTED_FPS);
 }
 
-run_test :: (viewer: *Viewer, test_proc: () -> World_Handle, test_name: string) {
+run_test :: (viewer: *Viewer, test_index: s64) {
     destroy_test_data(viewer);
 
     core_begin_profiling();
-    viewer.world_handle = test_proc();
+    viewer.world_handle = TESTS[test_index].proc();
     core_stop_profiling();
     
     viewer.profiling_data  = core_get_profiling_data();
     viewer.debug_draw_data = core_debug_draw_world(viewer.world_handle, viewer.debug_draw_options);
-    viewer.test_name       = test_name;
+    viewer.test_name       = TESTS[test_index].name;
 
     set_window_name(*viewer.window, sprint(*viewer.frame_allocator, "Viewer: %", viewer.test_name));
 }
@@ -175,6 +178,8 @@ main :: () -> s32 {
     gfx_create_ui(*viewer.gfx, *viewer.ui, UI_Watermelon_Theme);
     create_renderer(*viewer.renderer, *viewer.window, *viewer.gfx, Default_Allocator);
 
+    if STARTUP_TEST != -1 run_test(*viewer, STARTUP_TEST);
+    
     while !viewer.window.should_close {
         one_viewer_frame(*viewer);
     }

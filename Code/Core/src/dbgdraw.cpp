@@ -120,7 +120,6 @@ Debug_Draw_Data debug_draw_world(World *world, Debug_Draw_Options options) {
 	}
 
 	if(options & DEBUG_DRAW_Anchors) {
-
 		for(auto *anchor: world->anchors) {
 			_internal.spheres.add({ anchor->position, dbg_anchor_radius, dbg_anchor_color.r, dbg_anchor_color.g, dbg_anchor_color.b });
 
@@ -129,7 +128,6 @@ Debug_Draw_Data debug_draw_world(World *world, Debug_Draw_Options options) {
 	}
 
 	if(options & DEBUG_DRAW_Boundaries) {
-		
 		for(auto *boundary : world->boundaries) {
 			_internal.cuboids.add({ boundary->position, boundary->size, dbg_boundary_color.r, dbg_boundary_color.g, dbg_boundary_color.b });
 
@@ -141,7 +139,13 @@ Debug_Draw_Data debug_draw_world(World *world, Debug_Draw_Options options) {
 		for(auto *root_plane : world->root_clipping_planes) {
 			debug_draw_clipping_plane(_internal, root_plane);
 		}
-	}
+
+        for(auto *boundary : world->boundaries) {
+            for(auto *plane : boundary->clipping_planes) {
+                debug_draw_clipping_plane(_internal, plane);
+			}
+        }
+    }
 
 	Debug_Draw_Data data = { 0 };
 	data.lines          = _internal.lines.data;

@@ -11,6 +11,11 @@ AABB aabb_from_position_and_size(v3f center, v3f half_sizes) {
     return { center - half_sizes, center + half_sizes };
 }
 
+Local_Axes local_axes_from_rotation(v3f euler_radians) {
+    // @Incomplete: This doesn't actually rotate the axes!
+    return { v3f(1, 0, 0), v3f(0, 1, 0), v3f(0, 0, 1) };
+}
+
 
 
 /* -------------------------------------------------- Octree -------------------------------------------------- */
@@ -76,25 +81,44 @@ Octree *Octree::get_octree_for_aabb(AABB const &aabb, Allocator *allocator) {
 void World::create(v3f half_size) {
     tmFunction(TM_WORLD_COLOR);
 
+    //
+    // Set up memory management.
+    //
     this->arena.create(16 * ONE_MEGABYTE);
     this->pool.create(&this->arena);
     this->pool_allocator = this->pool.allocator();
     this->allocator = &this->pool_allocator;
 
+    //
+    // Set up the basic objects.
+    //
     this->half_size = half_size;
-
     this->anchors.allocator    = this->allocator;
     this->boundaries.allocator = this->allocator;
     this->root.create(this->allocator, v3f(0), this->half_size);
+
+    //
+    // Create the clipping planes.
+    //
+    {
+        tmZone("create_clipping_planes", TM_WORLD_COLOR);
+
+        this->root_clipping_planes.add({ v3f(-this->half_size.x, 0, 0), v3f(+1, 0, 0), v3f(0, this->half_size.y, 0), v3f(0, 0, this->half_size.z) });
+        this->root_clipping_planes.add({ v3f(+this->half_size.x, 0, 0), v3f(-1, 0, 0), v3f(0, this->half_size.y, 0), v3f(0, 0, this->half_size.z) });
+        this->root_clipping_planes.add({ v3f(0, -this->half_size.y, 0), v3f(0, +1, 0), v3f(this->half_size.x, 0, 0), v3f(0, 0, this->half_size.z) });
+        this->root_clipping_planes.add({ v3f(0, +this->half_size.y, 0), v3f(0, -1, 0), v3f(this->half_size.x, 0, 0), v3f(0, 0, this->half_size.z) });
+        this->root_clipping_planes.add({ v3f(0, 0, -this->half_size.z), v3f(0, 0, +1), v3f(this->half_size.x, 0, 0), v3f(0, this->half_size.y, 0) });
+        this->root_clipping_planes.add({ v3f(0, 0, +this->half_size.z), v3f(0, 0, -1), v3f(this->half_size.x, 0, 0), v3f(0, this->half_size.y, 0) });
+    }
 }
 
 void World::destroy() {
     tmFunction(TM_WORLD_COLOR);
-
     this->arena.destroy();
 }
 
 void World::reserve_objects(s64 anchors, s64 boundaries) {
+    tmFunction(TM_WORLD_COLOR);
     this->anchors.reserve(anchors);
     this->boundaries.reserve(boundaries);
 }
@@ -107,32 +131,64 @@ void World::add_anchor(string name, v3f position) {
     anchor->position = position;
 }
 
-void World::add_boundary(string name, v3f position, v3f size) {
+Boundary *World::add_boundary(string name, v3f position, v3f size, Local_Axes local_axes) {
     tmFunction(TM_WORLD_COLOR);
 
-    Boundary *boundary = this->boundaries.push();
-    boundary->name     = copy_string(this->allocator, name); // @Cleanup: This seems to be veryy fucking slow...
-    boundary->position = position;
-    boundary->size     = size;
-    boundary->aabb     = aabb_from_position_and_size(position, size);
+    Boundary *boundary   = this->boundaries.push();
+    boundary->name       = copy_string(this->allocator, name); // @Cleanup: This seems to be veryy fucking slow...
+    boundary->position   = position;
+    boundary->size       = size;
+    boundary->aabb       = aabb_from_position_and_size(position, size);
+    boundary->local_axes = local_axes;
+    boundary->clipping_planes.allocator = this->allocator;
+
+    return boundary;
+}
+
+void World::add_boundary_clipping_plane(Boundary *boundary, u8 axis_index) {
+    tmFunction(TM_WORLD_COLOR);
+
+    assert(axis_index < 3);
+
+    v3f u = boundary->local_axes[(axis_index + 1) % 3];
+    v3f v = boundary->local_axes[(axis_index + 2) % 3];
+
+    f32 pu = this->get_shortest_distance_to_root_clip(boundary->position,  u);
+    f32 nu = this->get_shortest_distance_to_root_clip(boundary->position, -u);
+    
+    f32 pv = this->get_shortest_distance_to_root_clip(boundary->position,  v);
+    f32 nv = this->get_shortest_distance_to_root_clip(boundary->position, -v);
+
+    f32 su = (pu + nu) / 2;
+    f32 sv = (pv + nv) / 2;
+
+    f32 ou = (pu - nu) / 2;
+    f32 ov = (pv - nv) / 2;
+    
+    boundary->clipping_planes.add({ boundary->position + u * ou + v * ov, boundary->local_axes[axis_index], u * su, v * sv });
+}
+
+void World::add_boundary_clipping_plane(Boundary *boundary, v3f n, v3f u, v3f v) {
+    tmFunction(TM_WORLD_COLOR);
+    boundary->clipping_planes.add({ boundary->position, n, u, v });
+}
+
+f32 World::get_shortest_distance_to_root_clip(v3f position, v3f direction) {
+    tmFunction(TM_WORLD_COLOR);
+
+    f32 least_distance = MAX_F32;
+    
+    for(auto *plane : this->root_clipping_planes) {
+        f32 distance_to_plane;
+        b8 intersection = ray_plane_intersection(plane->p, plane->n, position, direction, distance_to_plane);
+        if(intersection && distance_to_plane < least_distance) least_distance = distance_to_plane;
+    }
+    
+    return least_distance;
 }
 
 void World::create_octree() {
     tmFunction(TM_WORLD_COLOR);
-
-    //
-    // Create the clipping planes.
-    //
-    {
-        tmZone("create_clipping_planes", TM_WORLD_COLOR);
-
-        this->root_clipping_planes.add({ v3f(-this->half_size.x, 0, 0), v3f(0, this->half_size.y, 0), v3f(0, 0, this->half_size.z) });
-        this->root_clipping_planes.add({ v3f(+this->half_size.x, 0, 0), v3f(0, this->half_size.y, 0), v3f(0, 0, this->half_size.z) });
-        this->root_clipping_planes.add({ v3f(0, -this->half_size.y, 0), v3f(this->half_size.x, 0, 0), v3f(0, 0, this->half_size.z) });
-        this->root_clipping_planes.add({ v3f(0, +this->half_size.y, 0), v3f(this->half_size.x, 0, 0), v3f(0, 0, this->half_size.z) });
-        this->root_clipping_planes.add({ v3f(0, 0, -this->half_size.z), v3f(this->half_size.x, 0, 0), v3f(0, this->half_size.y, 0) });
-        this->root_clipping_planes.add({ v3f(0, 0, +this->half_size.z), v3f(this->half_size.x, 0, 0), v3f(0, this->half_size.y, 0) });
-    }
     
     //
     // Insert all boundaris.

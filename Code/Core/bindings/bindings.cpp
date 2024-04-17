@@ -28,7 +28,9 @@ extern "C" {
         world->create(v3f(100, 10, 100));
         world->add_anchor("Kitchen"_s, v3f(-5, -3, -5));
         world->add_anchor("Living Room"_s, v3f(5, -3, -5));
-        world->add_boundary("KitchenWall"_s, v3f(0, -3, -6.25), v3f(.5, .25, 5));
+        auto wall = world->add_boundary("KitchenWall"_s, v3f(0, -3, -6.25), v3f(.5, .25, 5), local_axes_from_rotation(v3f(0, 0, 0)));
+        world->add_boundary_clipping_plane(wall, 0);
+
         world->create_octree();
 
         return (World_Handle) world;
@@ -57,7 +59,8 @@ extern "C" {
                 v3f position = v3f(get_random_f32_uniform(-width  + size.x, width  - size.x),
                                    get_random_f32_uniform(-height + size.y, height - size.y),
                                    get_random_f32_uniform(-length + size.z, length - size.z));
-                world->add_boundary("Boundary"_s, position, size);
+                v3f rotation = v3f(0, 0, 0);
+                world->add_boundary("Boundary"_s, position, size, local_axes_from_rotation(rotation));
             }
         }
         

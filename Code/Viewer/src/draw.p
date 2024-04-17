@@ -193,32 +193,40 @@ update_camera :: (renderer: *Renderer) {
     {
         yaw := turns_to_radians(renderer.camera.rotation.y);
         speed := 15 * renderer.window.frame_time;
-
+        velocity := v3f.{ 0, 0, 0 };
+        
         if renderer.window.key_held[.Shift] speed *= 2;
         
         if renderer.window.key_held[.W] {
-            renderer.camera.position.x += sinf(yaw) * speed;
-            renderer.camera.position.z -= cosf(yaw) * speed;
+            velocity.x += sinf(yaw);
+            velocity.z -= cosf(yaw);
         }
 
         if renderer.window.key_held[.S] {
-            renderer.camera.position.x -= sinf(yaw) * speed;
-            renderer.camera.position.z += cosf(yaw) * speed;
+            velocity.x -= sinf(yaw);
+            velocity.z += cosf(yaw);
         }
 
         if renderer.window.key_held[.A] {
-            renderer.camera.position.x -= cosf(yaw) * speed;
-            renderer.camera.position.z -= sinf(yaw) * speed;
+            velocity.x -= cosf(yaw);
+            velocity.z -= sinf(yaw);
         }
 
         if renderer.window.key_held[.D] {
-            renderer.camera.position.x += cosf(yaw) * speed;
-            renderer.camera.position.z += sinf(yaw) * speed;
+            velocity.x += cosf(yaw);
+            velocity.z += sinf(yaw);
         }
 
-        if renderer.window.key_held[.X] renderer.camera.position.y += speed;
+        if renderer.window.key_held[.X] velocity.y += 1;
 
-        if renderer.window.key_held[.Y] renderer.camera.position.y -= speed;
+        if renderer.window.key_held[.Y] velocity.y -= 1;
+
+        if v3f_length_squared(velocity) > F32_EPSILON {
+            velocity = v3f_mul_f(v3f_normalize(velocity), speed);
+            renderer.camera.position.x += velocity.x;
+            renderer.camera.position.y += velocity.y;
+            renderer.camera.position.z += velocity.z;
+        }
         
         if renderer.window.button_held[.Middle] {
             renderer.camera.rotation.x += xx renderer.window.raw_mouse_delta_y * 0.0002;
@@ -436,6 +444,7 @@ draw_debug_draw_data :: (renderer: *Renderer, data: *Debug_Draw_Data, background
     flush_lines(renderer);
 
     /* Render the (potentially) transparent triangles last. */
+    // @Cleanup: These oughta be sort by distance to camera...
     for i := 0; i < data.triangle_count; ++i {
         draw_triangle(renderer, data.triangles[i].p0, data.triangles[i].p1, data.triangles[i].p2, .{ data.triangles[i].r, data.triangles[i].g, data.triangles[i].b, data.triangles[i].a });
     }

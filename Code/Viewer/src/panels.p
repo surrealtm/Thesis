@@ -6,7 +6,7 @@ select_test_panel :: (viewer: *Viewer) {
         ui_push_width(*viewer.ui, .Pixels, 256, 1);
         for i := 0; i < TESTS.count; ++i {
             if ui_button(*viewer.ui, TESTS[i].name) {
-                run_test(viewer, TESTS[i].proc, TESTS[i].name);
+                run_test(viewer, i);
                 viewer.select_test_panel_state = .Closed;
             }
         }
