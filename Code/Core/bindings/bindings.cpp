@@ -6,7 +6,9 @@ extern "C" {
     /* --------------------------------------------- General API --------------------------------------------- */
 
     World_Handle core_allocate_world() {
-        return Default_Allocator->allocate(sizeof(World));
+        World *world = (World *) Default_Allocator->allocate(sizeof(World));
+        *world = World(); // Default-initialize the world.
+        return (World_Handle) world;
     }
 
     void core_destroy_world(World_Handle world_handle) {
@@ -24,9 +26,9 @@ extern "C" {
 
         World *world = (World *) core_allocate_world();
         world->create(v3f(100, 10, 100));
-        world->add_anchor("Kitchen"_s, v3f(10, 1, 1));
-        world->add_anchor("Living Room"_s, v3f(10, 1, 10));
-        world->add_boundary("KitchenWall"_s, v3f(6.25, 1, 6.25), v3f(5, .25, .5));
+        world->add_anchor("Kitchen"_s, v3f(-5, -3, -5));
+        world->add_anchor("Living Room"_s, v3f(5, -3, -5));
+        world->add_boundary("KitchenWall"_s, v3f(0, -3, -6.25), v3f(.5, .25, 5));
         world->create_octree();
 
         return (World_Handle) world;

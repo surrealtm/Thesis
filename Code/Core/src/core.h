@@ -17,6 +17,12 @@ struct Triangle {
     v3f p0, p1, p2;
 };
 
+struct Clipping_Plane {
+    v3f p; // The center of this plane, lying on this plane.
+    v3f u; // The scaled u vector, indicating the size and orientation of the plane.
+    v3f v; // The scaled v vector, indicating the size and orientation of the plane.
+};
+
 struct AABB {
     v3f min, max;
 };
@@ -41,8 +47,9 @@ struct Anchor {
 struct Boundary {
     string name;
     v3f position;
-    v3f axis;
+    v3f size;
     AABB aabb;
+    Resizable_Array<Clipping_Plane> clipping_planes; // Having this be a full-on dynamic array is pretty wasteful, since boundaries should only ever have between 1 and 3 clipping planes...  @@Speed.
 };
 
 
@@ -97,7 +104,7 @@ struct World {
     Allocator pool_allocator;
     Allocator *allocator; // Usually a pointer to the pool_allocator, but can be swapped for testing...
     
-    v3f size; // This size is used to initialize the octree. It must be known in advance for the algorithm to be fast.
+    v3f half_size; // This size is used to initialize the octree. It must be known in advance for the algorithm to be fast.
 
     // The world owns all objects that are part of this problem. These objects
     // are stored here and can then be referenced in other parts of the algorithm.
@@ -107,11 +114,14 @@ struct World {
     Resizable_Array<Anchor> anchors;
     Resizable_Array<Boundary> boundaries;
 
+    // The clipping planes of the octree, since no volume should ever go past the dimensions of the world.
+    Resizable_Array<Clipping_Plane> root_clipping_planes;
+
     // This octree contains pointers to anchors, boundaries and volumes, to make spatial lookup
     // for objects a lot faster.
     Octree root;
 
-    void create(v3f size);
+    void create(v3f half_size);
     void destroy();
 
     void reserve_objects(s64 anchors, s64 boundaries);

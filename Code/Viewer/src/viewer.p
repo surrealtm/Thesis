@@ -24,7 +24,17 @@
 // I think this is pretty cool.
 //
 copy_latest_dll :: #no_export () {
-    input_file  := sprint(Default_Allocator, "%..\\..\\Core\\x64\\ReleaseDll\\Core.dll", compiler_get_output_folder_path());
+    use_debug_dll := compiler_command_line_option_present("debug_dll");
+
+    dll_subpath: string = ---;
+    
+    if use_debug_dll {
+        dll_subpath = "DebugDll\\Core.dll";
+    } else {
+        dll_subpath = "ReleaseDll\\Core.dll";
+    }
+
+    input_file  := sprint(Default_Allocator, "%..\\..\\Core\\x64\\%", compiler_get_output_folder_path(), dll_subpath);
     output_file := sprint(Default_Allocator, "%Core.dll", compiler_get_output_folder_path());
     if !copy_file(output_file, input_file, true) {
         print("Failed to copy DLL from '%' to '%'.\n", input_file, output_file);
@@ -72,7 +82,7 @@ Viewer :: struct {
     profiling_data: Timing_Data;
 
     profiling_show_summary: bool;    
-    debug_draw_options: Debug_Draw_Options = .Octree | .Anchors | .Boundaries;
+    debug_draw_options: Debug_Draw_Options = .Octree | .Anchors | .Boundaries | .Clipping_Planes;
 }
 
 

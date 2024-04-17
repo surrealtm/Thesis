@@ -1,4 +1,5 @@
-LINE_BATCH_COUNT :: 512;
+LINE_BATCH_COUNT     :: 512;
+TRIANGLE_BATCH_COUNT :: 512;
 SAMPLES :: 8;
 
 Camera :: struct {
@@ -23,14 +24,19 @@ Renderer :: struct {
 
     hud_font: Font;
     
-    lit_shader: Shader;
+    lit_shader:       Shader;
     wireframe_shader: Shader;
-
+    triangle_shader:  Shader;
+    
     frame_buffer: Frame_Buffer; // Used for multisampling the 3D rendering.
     
     cube_buffer: Vertex_Buffer;
     sphere_buffer: Vertex_Buffer;
 
+    triangle_buffer: Vertex_Buffer;
+    triangle_vertices: []f32; // Position, Color
+    triangle_count: s64;
+    
     line_buffer: Vertex_Buffer;
     line_vertices: []f32; // Position, Endpoint, Extension
     line_colors: []f32;
@@ -49,6 +55,7 @@ create_renderer :: (renderer: *Renderer, window: *Window, gfx: *GFX, allocator: 
     {
         create_shader_from_string(*renderer.lit_shader, lit_shader_code, "lit_shader");
         create_shader_from_string(*renderer.wireframe_shader, wireframe_shader_code, "wireframe_shader");
+        create_shader_from_string(*renderer.triangle_shader, triangle_shader_code, "triangle_shader");
         dump_gl_errors("Shaders");
     }
         
@@ -108,6 +115,20 @@ create_renderer :: (renderer: *Renderer, window: *Window, gfx: *GFX, allocator: 
         deallocate_array(Default_Allocator, *normals);
         deallocate_array(Default_Allocator, *vertices);
     }
+
+    //
+    // Set up the triangle buffer.
+    //
+    {
+        create_vertex_buffer(*renderer.triangle_buffer);
+        add_vertex_attribute_buffer(*renderer.triangle_buffer, null, TRIANGLE_BATCH_COUNT * 3 * 7, 7);
+        allocate_vertex_attribute(*renderer.triangle_buffer, 3, 7, 0); // Position
+        allocate_vertex_attribute(*renderer.triangle_buffer, 4, 7, 3); // Color
+        set_vertex_buffer_name(*renderer.triangle_buffer, "triangle_buffer");
+        dump_gl_errors("Triangle Buffer");
+
+        renderer.triangle_vertices = allocate_array(allocator, TRIANGLE_BATCH_COUNT * 3 * 7, f32);
+    }
     
     //
     // Set up the line buffer.
@@ -138,11 +159,14 @@ create_renderer :: (renderer: *Renderer, window: *Window, gfx: *GFX, allocator: 
 destroy_renderer :: (renderer: *Renderer, allocator: *Allocator) {
     deallocate_array(allocator, *renderer.line_vertices);
     deallocate_array(allocator, *renderer.line_colors);
+    deallocate_array(allocator, *renderer.triangle_vertices);
     destroy_vertex_buffer(*renderer.cube_buffer);
     destroy_vertex_buffer(*renderer.sphere_buffer);
+    destroy_vertex_buffer(*renderer.triangle_buffer);
     destroy_vertex_buffer(*renderer.line_buffer);
     destroy_shader(*renderer.lit_shader);
     destroy_shader(*renderer.wireframe_shader);
+    destroy_shader(*renderer.triangle_shader);
     destroy_frame_buffer(*renderer.frame_buffer);
     destroy_font(*renderer.hud_font, destroy_gl_texture_2d, null);
 }
@@ -168,9 +192,9 @@ update_camera :: (renderer: *Renderer) {
     //
     {
         yaw := turns_to_radians(renderer.camera.rotation.y);
-        speed := 30 * renderer.window.frame_time;
+        speed := 15 * renderer.window.frame_time;
 
-        if renderer.window.key_held[.Shift] speed /= 2;
+        if renderer.window.key_held[.Shift] speed *= 2;
         
         if renderer.window.key_held[.W] {
             renderer.camera.position.x += sinf(yaw) * speed;
@@ -296,6 +320,47 @@ draw_line :: (renderer: *Renderer, p0: v3f, p1: v3f, thickness: f32, color: GFX_
     ++renderer.line_count;
 }
 
+flush_triangles :: (renderer: *Renderer) {
+    if renderer.triangle_count == 0 return;
+
+    set_cull_test(.Disabled);
+    set_depth_test(.Default);
+    
+    set_shader(*renderer.triangle_shader);
+    set_shader_uniform_m4f(*renderer.triangle_shader, "u_projection", renderer.camera.projection._m[0].data);
+    set_shader_uniform_m4f(*renderer.triangle_shader, "u_view", renderer.camera.view._m[0].data);
+
+    set_vertex_buffer(*renderer.triangle_buffer);
+    update_vertex_data(*renderer.triangle_buffer, 0, renderer.triangle_vertices, renderer.triangle_count * 3 * 7);
+    draw_vertex_buffer(*renderer.triangle_buffer);
+
+    renderer.triangle_count = 0;
+}
+
+add_triangle_corner :: (renderer: *Renderer, index: s64, point: v3f, color: [4]f32) {
+    idx := renderer.triangle_count * 3 * 7 + index * 7;
+
+    renderer.triangle_vertices[idx + 0] = point.x;
+    renderer.triangle_vertices[idx + 1] = point.y;
+    renderer.triangle_vertices[idx + 2] = point.z;
+    renderer.triangle_vertices[idx + 3] = color[0];
+    renderer.triangle_vertices[idx + 4] = color[1];
+    renderer.triangle_vertices[idx + 5] = color[2];
+    renderer.triangle_vertices[idx + 6] = color[3];
+}
+
+draw_triangle :: (renderer: *Renderer, p0: v3f, p1: v3f, p2: v3f, color: GFX_Color) {
+    if renderer.triangle_count == TRIANGLE_BATCH_COUNT flush_triangles(renderer);
+
+    color_array: [4]f32 = { xx color.r / 255., xx color.g / 255., xx color.b / 255., xx color.a / 255. };
+    
+    add_triangle_corner(renderer, 0, p0, color_array);
+    add_triangle_corner(renderer, 1, p1, color_array);
+    add_triangle_corner(renderer, 2, p2, color_array);
+    
+    ++renderer.triangle_count;
+}
+
 draw_sphere :: (renderer: *Renderer, center: v3f, size: v3f, color: GFX_Color) {
     transformation := make_transformation_matrix_with_v3f_rotation(center, .{ 0, 0, 0 }, size);
 
@@ -351,15 +416,11 @@ draw_3d_hud_text :: (renderer: *Renderer, center: v3f, text: string, color: GFX_
 /* --------------------------------------------- Higher Level API --------------------------------------------- */
 
 draw_debug_draw_data :: (renderer: *Renderer, data: *Debug_Draw_Data, background_color: GFX_Color) {
-    prepare_3d(renderer, background_color);
     update_camera(renderer);
 
-    for i := 0; i < data.line_count; ++i {
-        draw_line(renderer, data.lines[i].p0, data.lines[i].p1, data.lines[i].thickness, .{ data.lines[i].r, data.lines[i].g, data.lines[i].b, 255 });
-    }
-    
-    flush_lines(renderer);
+    prepare_3d(renderer, background_color);
 
+    /* Render all solid objects. */
     for i := 0; i < data.cuboid_count; ++i {
         draw_cuboid(renderer, data.cuboids[i].position, data.cuboids[i].size, .{ data.cuboids[i].r, data.cuboids[i].g, data.cuboids[i].b, 255 });
     }
@@ -368,8 +429,22 @@ draw_debug_draw_data :: (renderer: *Renderer, data: *Debug_Draw_Data, background
         draw_sphere(renderer, data.spheres[i].position, .{ data.spheres[i].radius, data.spheres[i].radius, data.spheres[i].radius }, .{ data.spheres[i].r, data.spheres[i].g, data.spheres[i].b, 255 });
     }
 
+    /* Render all lines. */
+    for i := 0; i < data.line_count; ++i {
+        draw_line(renderer, data.lines[i].p0, data.lines[i].p1, data.lines[i].thickness, .{ data.lines[i].r, data.lines[i].g, data.lines[i].b, 255 });
+    }
+    flush_lines(renderer);
+
+    /* Render the (potentially) transparent triangles last. */
+    for i := 0; i < data.triangle_count; ++i {
+        draw_triangle(renderer, data.triangles[i].p0, data.triangles[i].p1, data.triangles[i].p2, .{ data.triangles[i].r, data.triangles[i].g, data.triangles[i].b, data.triangles[i].a });
+    }
+    flush_triangles(renderer);
+
+    /* Resolve multisampled hdr. */
     finish_3d(renderer);
-    
+
+    /* Draw all hud text. */
     for i := 0; i < data.text_count; ++i {
         draw_3d_hud_text(renderer, data.texts[i].position, data.texts[i].text, .{ data.texts[i].r, data.texts[i].g, data.texts[i].b, 255 });
     }
@@ -406,6 +481,31 @@ uniform vec3 u_light_direction;
 void main(void) {
     float diffuse = max(dot(pass_normal, u_light_direction), 0.2);
     out_color = vec4(u_color.rgb * diffuse, u_color.a);
+}
+";
+
+triangle_shader_code :: "
+@Vertex(330 core)
+layout(location = 0) in vec3 in_position;
+layout(location = 1) in vec4 in_color;
+
+out vec4 pass_color;
+
+uniform mat4 u_projection;
+uniform mat4 u_view;
+
+void main(void) {
+    gl_Position = u_projection * u_view * vec4(in_position, 1.0);
+    pass_color = in_color;
+}
+
+@Fragment(140)
+in vec4 pass_color;
+
+out vec4 out_color;
+
+void main(void) {
+    out_color = pass_color;
 }
 ";
 

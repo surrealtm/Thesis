@@ -21,18 +21,26 @@ core_do_octree_test :: #foreign () -> World_Handle;
 /* ------------------------------------------------ Debug Draw ------------------------------------------------ */
 
 Debug_Draw_Options :: enum {
-    Nothing    :: 0x0;
-    Octree     :: 0x1;
-    Anchors    :: 0x2;
-    Boundaries :: 0x4;
-    Labels     :: 0x1000;
-    Everything :: 0xffffffff;
+    Nothing           :: 0x0;
+    Octree            :: 0x1;
+    Anchors           :: 0x2;
+    Boundaries        :: 0x4;
+    Clipping_Planes   :: 0x8;
+    Volume_Faces      :: 0x10;
+    Volume_Wireframes :: 0x20;
+    Labels            :: 0x1000;
+    Everything        :: 0xffffffff;
 }
 
 Debug_Draw_Line :: struct {
     p0, p1: v3f;
     thickness: f32;
     r, g, b: u8;
+}
+
+Debug_Draw_Triangle :: struct {
+    p0, p1, p2: v3f;
+    r, g, b, a: u8;
 }
 
 Debug_Draw_Text :: struct {
@@ -57,6 +65,9 @@ Debug_Draw_Data :: struct {
     lines: *Debug_Draw_Line;
     line_count: s64;
 
+    triangles: *Debug_Draw_Triangle;
+    triangle_count: s64;
+    
     texts: *Debug_Draw_Text;
     text_count: s64;
 

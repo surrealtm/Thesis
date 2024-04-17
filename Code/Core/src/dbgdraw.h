@@ -7,18 +7,26 @@
 struct World;
 
 enum Debug_Draw_Options {
-    DEBUG_DRAW_Nothing    = 0x0,
-    DEBUG_DRAW_Octree     = 0x1,
-    DEBUG_DRAW_Anchors    = 0x2,
-    DEBUG_DRAW_Boundaries = 0x4,
-    DEBUG_DRAW_Labels     = 0x1000, // Draw hud texts for all anchors and boundaries.
-    DEBUG_DRAW_Everything = 0xffffffff,
+    DEBUG_DRAW_Nothing           = 0x0,
+    DEBUG_DRAW_Octree            = 0x1,
+    DEBUG_DRAW_Anchors           = 0x2,
+    DEBUG_DRAW_Boundaries        = 0x4,
+    DEBUG_DRAW_Clipping_Planes   = 0x8,
+    DEBUG_DRAW_Volume_Faces      = 0x10,
+    DEBUG_DRAW_Volume_Wireframes = 0x20,
+    DEBUG_DRAW_Labels            = 0x1000, // Draw hud texts for all anchors and boundaries.
+    DEBUG_DRAW_Everything        = 0xffffffff,
 };
 
 struct Debug_Draw_Line {
     v3f p0, p1;
     f32 thickness;
     u8 r, g, b;
+};
+
+struct Debug_Draw_Triangle {
+    v3f p0, p1, p2;
+    u8 r, g, b, a;
 };
 
 struct Debug_Draw_Text {
@@ -43,6 +51,9 @@ struct Debug_Draw_Data {
     Debug_Draw_Line *lines;
     s64 line_count;
 
+    Debug_Draw_Triangle *triangles;
+    s64 triangle_count;
+    
     Debug_Draw_Text *texts;
     s64 text_count;
 

@@ -73,7 +73,7 @@ Octree *Octree::get_octree_for_aabb(AABB const &aabb, Allocator *allocator) {
 
 /* -------------------------------------------------- World -------------------------------------------------- */
 
-void World::create(v3f size) {
+void World::create(v3f half_size) {
     tmFunction(TM_WORLD_COLOR);
 
     this->arena.create(16 * ONE_MEGABYTE);
@@ -81,11 +81,11 @@ void World::create(v3f size) {
     this->pool_allocator = this->pool.allocator();
     this->allocator = &this->pool_allocator;
 
-    this->size = size;
+    this->half_size = half_size;
 
     this->anchors.allocator    = this->allocator;
     this->boundaries.allocator = this->allocator;
-    this->root.create(this->allocator, v3f(0), this->size);
+    this->root.create(this->allocator, v3f(0), this->half_size);
 }
 
 void World::destroy() {
@@ -107,18 +107,32 @@ void World::add_anchor(string name, v3f position) {
     anchor->position = position;
 }
 
-void World::add_boundary(string name, v3f position, v3f axis) {
+void World::add_boundary(string name, v3f position, v3f size) {
     tmFunction(TM_WORLD_COLOR);
 
     Boundary *boundary = this->boundaries.push();
     boundary->name     = copy_string(this->allocator, name); // @Cleanup: This seems to be veryy fucking slow...
     boundary->position = position;
-    boundary->axis     = axis;
-    boundary->aabb     = aabb_from_position_and_size(position, axis);
+    boundary->size     = size;
+    boundary->aabb     = aabb_from_position_and_size(position, size);
 }
 
 void World::create_octree() {
     tmFunction(TM_WORLD_COLOR);
+
+    //
+    // Create the clipping planes.
+    //
+    {
+        tmZone("create_clipping_planes", TM_WORLD_COLOR);
+
+        this->root_clipping_planes.add({ v3f(-this->half_size.x, 0, 0), v3f(0, this->half_size.y, 0), v3f(0, 0, this->half_size.z) });
+        this->root_clipping_planes.add({ v3f(+this->half_size.x, 0, 0), v3f(0, this->half_size.y, 0), v3f(0, 0, this->half_size.z) });
+        this->root_clipping_planes.add({ v3f(0, -this->half_size.y, 0), v3f(this->half_size.x, 0, 0), v3f(0, 0, this->half_size.z) });
+        this->root_clipping_planes.add({ v3f(0, +this->half_size.y, 0), v3f(this->half_size.x, 0, 0), v3f(0, 0, this->half_size.z) });
+        this->root_clipping_planes.add({ v3f(0, 0, -this->half_size.z), v3f(this->half_size.x, 0, 0), v3f(0, this->half_size.y, 0) });
+        this->root_clipping_planes.add({ v3f(0, 0, +this->half_size.z), v3f(this->half_size.x, 0, 0), v3f(0, this->half_size.y, 0) });
+    }
     
     //
     // Insert all boundaris.
