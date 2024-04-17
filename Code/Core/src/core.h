@@ -39,7 +39,7 @@ struct Volume {
     void recalculate_aabb();
     void maybe_recalculate_aabb();
     void add_triangles_for_clipping_plane(Clipping_Plane *plane);
-    void clip_vertex_against_plane(v3f *vertex, Clipping_Plane *plane, f32 normal_sign);
+    void clip_vertex_against_plane(v3f *vertex, Clipping_Plane *plane);
     void clip_against_plane(Clipping_Plane *plane);
     void clip_against_boundary(Boundary *boundary);
 };
@@ -66,10 +66,13 @@ struct Anchor {
 struct Boundary {
     string name;
     v3f position;
-    v3f size;
     Local_Axes local_axes; // The three coordinate axis in the local transform (meaning: rotated) of this boundary.
     AABB aabb;
     Resizable_Array<Clipping_Plane> clipping_planes; // Having this be a full-on dynamic array is pretty wasteful, since boundaries should only ever have between 1 and 3 clipping planes...  @@Speed.
+
+    // Only for drawing.
+    v3f dbg_size;
+    v3f dbg_rotation; // Euler-radians.
 };
 
 
@@ -147,11 +150,12 @@ struct World {
     void reserve_objects(s64 anchors, s64 boundaries);
     
     void add_anchor(string name, v3f position);
-    Boundary *add_boundary(string name, v3f position, v3f size, Local_Axes local_axes);
+    Boundary *add_boundary(string name, v3f position, v3f size, v3f rotation);
 
-    void add_boundary_clipping_plane(Boundary *boundary, u8 axis_index);
-    void add_boundary_clipping_plane(Boundary *boundary, v3f n, v3f u, v3f v);
-
+    void add_boundary_clipping_plane_checked(Boundary *boundary, v3f p, v3f n, v3f u, v3f v);
+    void add_boundary_clipping_plane_unchecked(Boundary *boundary, v3f p, v3f n, v3f u, v3f v); // This assumes correct u and v vectors!
+    void add_boundary_clipping_planes(Boundary *boundary, u8 axis_index);
+    
     f32 get_shortest_distance_to_root_clip(v3f position, v3f direction);
 
     // Creates a volume which spans the whole root area.

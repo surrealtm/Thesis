@@ -13,7 +13,7 @@ core_destroy_world :: #foreign (world: World_Handle);
 
 /* ------------------------------------------------- Testing ------------------------------------------------- */
 
-core_do_simple_test :: #foreign () -> World_Handle;
+core_do_house_test :: #foreign () -> World_Handle;
 core_do_octree_test :: #foreign () -> World_Handle;
 core_do_large_volumes_test :: #foreign () -> World_Handle;
 
@@ -53,6 +53,7 @@ Debug_Draw_Text :: struct {
 Debug_Draw_Cuboid :: struct {
     position: v3f;
     size: v3f;
+    rotation: v3f;
     r, g, b: u8;
 }
 

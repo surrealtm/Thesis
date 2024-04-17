@@ -333,6 +333,7 @@ flush_triangles :: (renderer: *Renderer) {
 
     set_cull_test(.Disabled);
     set_depth_test(.Default);
+    set_blending(.Default);
     
     set_shader(*renderer.triangle_shader);
     set_shader_uniform_m4f(*renderer.triangle_shader, "u_projection", renderer.camera.projection._m[0].data);
@@ -386,8 +387,8 @@ draw_sphere :: (renderer: *Renderer, center: v3f, size: v3f, color: GFX_Color) {
     draw_vertex_buffer(*renderer.sphere_buffer);
 }
 
-draw_cuboid :: (renderer: *Renderer, center: v3f, size: v3f, color: GFX_Color) {
-    transformation := make_transformation_matrix_with_v3f_rotation(center, .{ 0, 0, 0 }, size);
+draw_cuboid :: (renderer: *Renderer, center: v3f, size: v3f, rotation: v3f, color: GFX_Color) {
+    transformation := make_transformation_matrix_with_v3f_rotation(center, rotation, size);
 
     set_cull_test(.Backfaces);
     set_depth_test(.Default);
@@ -430,7 +431,7 @@ draw_debug_draw_data :: (renderer: *Renderer, data: *Debug_Draw_Data, background
 
     /* Render all solid objects. */
     for i := 0; i < data.cuboid_count; ++i {
-        draw_cuboid(renderer, data.cuboids[i].position, data.cuboids[i].size, .{ data.cuboids[i].r, data.cuboids[i].g, data.cuboids[i].b, 255 });
+        draw_cuboid(renderer, data.cuboids[i].position, data.cuboids[i].size, data.cuboids[i].rotation, .{ data.cuboids[i].r, data.cuboids[i].g, data.cuboids[i].b, 255 });
     }
 
     for i := 0; i < data.sphere_count; ++i {

@@ -51,8 +51,8 @@ Viewer_Test :: struct {
 }
 
 TESTS: []Viewer_Test : {
-        .{ "simple", core_do_simple_test },
-        .{ "octree", core_do_octree_test },
+        .{ "house",         core_do_house_test },
+        .{ "octree",        core_do_octree_test },
         .{ "large_volumes", core_do_large_volumes_test },
 };
 
@@ -86,7 +86,7 @@ Viewer :: struct {
     profiling_data: Timing_Data;
 
     profiling_show_summary: bool;    
-    debug_draw_options: Debug_Draw_Options = .Octree | .Anchors | .Boundaries | .Clipping_Planes | .Volume_Faces;
+    debug_draw_options: Debug_Draw_Options = .Octree | .Anchors | .Boundaries | .Volume_Faces | .Labels;
 }
 
 

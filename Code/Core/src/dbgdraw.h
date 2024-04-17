@@ -38,6 +38,7 @@ struct Debug_Draw_Text {
 struct Debug_Draw_Cuboid {
     v3f position;
     v3f size;
+    v3f rotation;
     u8 r, g, b;
 };
 

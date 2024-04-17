@@ -22,7 +22,7 @@ extern "C" {
 
     /* ----------------------------------------------- Testing ----------------------------------------------- */
     
-    EXPORT World_Handle core_do_simple_test();
+    EXPORT World_Handle core_do_house_test();
     EXPORT World_Handle core_do_octree_test();
     EXPORT World_Handle core_do_large_volumes_test();
 
