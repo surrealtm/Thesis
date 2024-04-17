@@ -14,6 +14,7 @@
 /* ---------------------------------------------- Viewer source ---------------------------------------------- */
 
 #load "profiling_panel.p";
+#load "panels.p";
 #load "draw.p";
 
 //
@@ -34,6 +35,16 @@ copy_latest_dll :: #no_export () {
 
 REQUESTED_FPS: f64 : 60;
 
+Viewer_Test :: struct {
+    name: string;
+    proc: () -> World_Handle;
+}
+
+TESTS: []Viewer_Test : {
+        .{ "simple", core_do_simple_test },
+        .{ "octree", core_do_octree_test },
+};
+
 Viewer :: struct {
     // Memory Management.
     frame_arena: Memory_Arena;
@@ -48,18 +59,30 @@ Viewer :: struct {
     // UI stuff.
     profiling_panel_state := UI_Window_State.Closed;
     profiling_panel_position := UI_Vector2.{ .5, .1 };
-
+    select_test_panel_state := UI_Window_State.Closed;
+    select_test_panel_position := UI_Vector2.{ .5, .2 };
+    debug_draw_options_panel_state := UI_Window_State.Closed;
+    debug_draw_options_panel_position := UI_Vector2.{ .5, .2 };
+    
     // Core data.
-    test_string: string;
+    test_name: string;
+
+    world_handle: World_Handle;
     debug_draw_data: Debug_Draw_Data;    
     profiling_data: Timing_Data;
+
     profiling_show_summary: bool;    
+    debug_draw_options: Debug_Draw_Options = .Octree | .Anchors | .Boundaries;
 }
 
 
 menu_bar :: (viewer: *Viewer) {
     ui_push_width(*viewer.ui, .Pixels, 80, 1);
+    ui_push_height(*viewer.ui, .Pixels, 20, 1);
     ui_toggle_button_with_pointer(*viewer.ui, "Profiler", xx *viewer.profiling_panel_state);
+    ui_toggle_button_with_pointer(*viewer.ui, "Test...", xx *viewer.select_test_panel_state);
+    ui_toggle_button_with_pointer(*viewer.ui, "Views", xx *viewer.debug_draw_options_panel_state);
+    ui_pop_height(*viewer.ui);
     ui_pop_width(*viewer.ui);
 }
 
@@ -85,8 +108,10 @@ one_viewer_frame :: (viewer: *Viewer) {
     // UI.
     //
     menu_bar(viewer);
-    profiling_ui(viewer);
-
+    profiling_panel(viewer);
+    select_test_panel(viewer);
+    debug_draw_options_panel(viewer);
+    
     //
     // Finish the frame.
     //
@@ -99,23 +124,29 @@ one_viewer_frame :: (viewer: *Viewer) {
     window_ensure_frame_time(frame_start, frame_end, REQUESTED_FPS);
 }
 
-viewer_run_test :: (viewer: *Viewer, test_proc: () -> World_Handle, test_string: string) {
-    viewer_destroy_test_data(viewer);
+run_test :: (viewer: *Viewer, test_proc: () -> World_Handle, test_name: string) {
+    destroy_test_data(viewer);
 
     core_begin_profiling();
-    world := test_proc();
+    viewer.world_handle = test_proc();
     core_stop_profiling();
-
-    draw_options: Debug_Draw_Options : .Octree | .Anchors | .Boundaries;
     
     viewer.profiling_data  = core_get_profiling_data();
-    viewer.debug_draw_data = core_debug_draw_world(world, draw_options);
-    viewer.test_string     = test_string;
+    viewer.debug_draw_data = core_debug_draw_world(viewer.world_handle, viewer.debug_draw_options);
+    viewer.test_name       = test_name;
 
-    set_window_name(*viewer.window, sprint(*viewer.frame_allocator, "Viewer: %", viewer.test_string));
+    set_window_name(*viewer.window, sprint(*viewer.frame_allocator, "Viewer: %", viewer.test_name));
 }
 
-viewer_destroy_test_data :: (viewer: *Viewer) {
+rebuild_debug_draw_data :: (viewer: *Viewer) {
+    if viewer.world_handle == null return;
+
+    core_free_debug_draw_data(*viewer.debug_draw_data);
+    viewer.debug_draw_data = core_debug_draw_world(viewer.world_handle, viewer.debug_draw_options);    
+}
+
+destroy_test_data :: (viewer: *Viewer) {
+    if viewer.world_handle core_destroy_world(viewer.world_handle);
     core_free_profiling_data(*viewer.profiling_data);
     core_free_debug_draw_data(*viewer.debug_draw_data);
 }
@@ -131,28 +162,20 @@ main :: () -> s32 {
     show_window(*viewer.window);
 
     create_gfx(*viewer.gfx, *viewer.window, Default_Allocator);
-    dump_gl_errors("GFX");
-
-    create_renderer(*viewer.renderer, *viewer.window, *viewer.gfx, Default_Allocator);
-    dump_gl_errors("Renderer");
-    
     gfx_create_ui(*viewer.gfx, *viewer.ui, UI_Watermelon_Theme);
+    create_renderer(*viewer.renderer, *viewer.window, *viewer.gfx, Default_Allocator);
 
-    dump_gl_errors("Setup");
-    
-    viewer_run_test(*viewer, core_do_octree_test, "octree_test");
-//    viewer_run_test(*viewer, core_do_simple_test, "simple_test");
-    
     while !viewer.window.should_close {
         one_viewer_frame(*viewer);
     }
         
-    viewer_destroy_test_data(*viewer);
+    destroy_test_data(*viewer);
     
     gfx_destroy_ui(*viewer.gfx, *viewer.ui);
     destroy_renderer(*viewer.renderer, Default_Allocator);
     destroy_gfx(*viewer.gfx);
     destroy_window(*viewer.window);
+    destroy_memory_arena(*viewer.frame_arena);
     return 0;
 }
 

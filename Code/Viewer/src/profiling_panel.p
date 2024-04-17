@@ -206,10 +206,10 @@ profiling_mode_string :: (show_summary: bool) -> string {
     return "Timeline";
 }
 
-profiling_ui :: (viewer: *Viewer) {
+profiling_panel :: (viewer: *Viewer) {
     if viewer.profiling_panel_state == .Closed return;
 
-    name := sprint(*viewer.frame_allocator, "Profiling : %", viewer.test_string);
+    name := sprint(*viewer.frame_allocator, "Profiling : %", viewer.test_name);
     viewer.profiling_panel_position, viewer.profiling_panel_state = ui_push_window(*viewer.ui, name, viewer.profiling_panel_position, .Draggable | .Collapsable | .Closeable);
     if viewer.profiling_panel_state == .Open {
         width : f32 : 1000;
