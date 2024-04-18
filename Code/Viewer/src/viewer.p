@@ -71,12 +71,14 @@ Viewer :: struct {
     renderer: Renderer;
 
     // UI stuff.
-    profiling_panel_state := UI_Window_State.Closed;
-    profiling_panel_position := UI_Vector2.{ .5, .1 };
     select_test_panel_state := UI_Window_State.Closed;
     select_test_panel_position := UI_Vector2.{ .5, .2 };
     debug_draw_options_panel_state := UI_Window_State.Closed;
     debug_draw_options_panel_position := UI_Vector2.{ .5, .2 };
+    profiling_panel_state := UI_Window_State.Closed;
+    profiling_panel_position := UI_Vector2.{ .5, .1 };
+    memory_panel_state := UI_Window_State.Closed;
+    memory_panel_position := UI_Vector2.{ .5, .1 };
     
     // Core data.
     test_name: string;
@@ -84,7 +86,8 @@ Viewer :: struct {
     world_handle: World_Handle;
     debug_draw_data: Debug_Draw_Data;    
     profiling_data: Timing_Data;
-
+    memory_information: Memory_Information;
+    
     profiling_show_summary: bool;    
     debug_draw_options: Debug_Draw_Options = .Octree | .Anchors | .Boundaries | .Volume_Faces | .Labels;
 }
@@ -93,9 +96,10 @@ Viewer :: struct {
 menu_bar :: (viewer: *Viewer) {
     ui_push_width(*viewer.ui, .Pixels, 80, 1);
     ui_push_height(*viewer.ui, .Pixels, 20, 1);
-    ui_toggle_button_with_pointer(*viewer.ui, "Profiler", xx *viewer.profiling_panel_state);
     ui_toggle_button_with_pointer(*viewer.ui, "Test...", xx *viewer.select_test_panel_state);
     ui_toggle_button_with_pointer(*viewer.ui, "Views", xx *viewer.debug_draw_options_panel_state);
+    ui_toggle_button_with_pointer(*viewer.ui, "Profiler", xx *viewer.profiling_panel_state);
+    ui_toggle_button_with_pointer(*viewer.ui, "Memory", xx *viewer.memory_panel_state);
     ui_pop_height(*viewer.ui);
     ui_pop_width(*viewer.ui);
 }
@@ -123,6 +127,7 @@ one_viewer_frame :: (viewer: *Viewer) {
     //
     menu_bar(viewer);
     profiling_panel(viewer);
+    memory_panel(viewer);
     select_test_panel(viewer);
     debug_draw_options_panel(viewer);
     
@@ -145,10 +150,11 @@ run_test :: (viewer: *Viewer, test_index: s64) {
     viewer.world_handle = TESTS[test_index].proc();
     core_stop_profiling();
     
-    viewer.profiling_data  = core_get_profiling_data();
     viewer.debug_draw_data = core_debug_draw_world(viewer.world_handle, viewer.debug_draw_options);
+    viewer.profiling_data  = core_get_profiling_data();
+    viewer.memory_information = core_get_memory_information(viewer.world_handle);
     viewer.test_name       = TESTS[test_index].name;
-
+    
     set_window_name(*viewer.window, sprint(*viewer.frame_allocator, "Viewer: %", viewer.test_name));
 }
 

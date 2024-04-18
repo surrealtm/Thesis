@@ -13,6 +13,22 @@
 extern "C" {
     typedef void* World_Handle;
 
+    typedef struct Memory_Allocator_Information {
+        string name;
+        s64 allocation_count;
+        s64 deallocation_count;
+        s64 working_set_size; // In bytes
+        s64 peak_working_set_size; // In bytes
+    } Memory_Allocator_Information;
+    
+    typedef struct Memory_Information {
+        s64 os_working_set_size; // In bytes
+        Memory_Allocator_Information *allocators;
+        s64 allocator_count;
+    } Memory_Information;
+
+
+    
     /* --------------------------------------------- General API --------------------------------------------- */
 
     EXPORT World_Handle core_allocate_world();
@@ -42,4 +58,7 @@ extern "C" {
     EXPORT void core_print_profiling();
     EXPORT Timing_Data core_get_profiling_data();
     EXPORT void core_free_profiling_data(Timing_Data *data);
+
+    EXPORT Memory_Information core_get_memory_information(World_Handle world_handle);
+    EXPORT void core_free_memory_information(Memory_Information *info);
 }

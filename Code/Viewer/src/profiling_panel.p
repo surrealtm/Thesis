@@ -259,7 +259,6 @@ profiling_panel :: (viewer: *Viewer) {
         // Do the actual informational widget.
         //
         {
-           
             if viewer.profiling_show_summary {
                 ui_set_width(*viewer.ui, .Pixels, width, 1);
                 ui_push_fixed_container(*viewer.ui, .Horizontal);

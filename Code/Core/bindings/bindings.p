@@ -117,3 +117,21 @@ core_stop_profiling      :: #foreign ();
 core_print_profiling     :: #foreign ();
 core_get_profiling_data  :: #foreign () -> Timing_Data;
 core_free_profiling_data :: #foreign (data: *Timing_Data);
+
+
+Memory_Allocator_Information :: struct {
+    name: string;
+    allocation_count: s64;
+    deallocation_count: s64;
+    working_set_size: s64;
+    peak_working_set_size: s64;
+}
+
+Memory_Information :: struct {
+    os_working_set_size: s64;
+    allocators: *Memory_Allocator_Information;
+    allocator_count: s64;
+}
+
+core_get_memory_information :: #foreign (world_handle: World_Handle) -> Memory_Information;
+core_free_memory_information :: #foreign (info: *Memory_Information);

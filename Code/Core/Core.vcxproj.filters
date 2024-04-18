@@ -54,6 +54,9 @@
     <ClCompile Include="..\Foundation\src\math\intersect.cpp">
       <Filter>Foundation</Filter>
     </ClCompile>
+    <ClCompile Include="..\Foundation\src\threads.cpp">
+      <Filter>Foundation</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Foundation\src\fileio.h">
@@ -99,6 +102,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\Foundation\src\math\intersect.h">
+      <Filter>Foundation</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Foundation\src\threads.h">
       <Filter>Foundation</Filter>
     </ClInclude>
   </ItemGroup>

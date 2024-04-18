@@ -1,6 +1,9 @@
 #include "bindings.h"
 #include "../src/core.h"
 #include "../src/random.h"
+#include "../src/os_specific.h"
+
+#include <malloc.h>
 
 static
 void create_random_anchors(World *world, s64 count) {
@@ -16,6 +19,17 @@ void create_random_anchors(World *world, s64 count) {
                     get_random_f32_uniform(-length, length));
         world->add_anchor("Anchor"_s, position);
     }
+}
+
+static
+Memory_Allocator_Information memory_allocator_information(string name, Allocator *allocator) {
+    Memory_Allocator_Information information = { 0 };
+    information.name = name;
+    information.allocation_count      = allocator->stats.allocations;
+    information.deallocation_count    = allocator->stats.deallocations;
+    information.working_set_size      = allocator->stats.working_set;
+    information.peak_working_set_size = allocator->stats.peak_working_set;
+    return information;
 }
 
 extern "C" {
@@ -196,13 +210,32 @@ extern "C" {
     void core_free_profiling_data(Timing_Data *data) {
         tmFreeData(data);
     }
+
+
+    Memory_Information core_get_memory_information(World_Handle world_handle) {
+        World *world = (World *) world_handle;
+        
+        Memory_Information info = { 0 };
+        info.os_working_set_size = os_get_working_set_size();
+        info.allocator_count = 2;
+        info.allocators = (Memory_Allocator_Information *) malloc(sizeof(Memory_Allocator_Information) * info.allocator_count);
+        info.allocators[0] = memory_allocator_information("Heap"_s, Default_Allocator);
+        info.allocators[1] = memory_allocator_information("World"_s, world->allocator);
+        return info;
+    }
+
+    void core_free_memory_information(Memory_Information *info) {
+        free(info->allocators);
+        info->allocators = null;
+        info->allocator_count = 0;
+        info->os_working_set_size = 0;
+    }
 }
 
 
 #if FOUNDATION_WIN32
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
-
 
 BOOL WINAPI DllMain(HINSTANCE hinstance, DWORD reason, LPVOID reserved) {
     //
