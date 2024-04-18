@@ -201,6 +201,78 @@ extern "C" {
         return world;
     }
 
+    World_Handle core_do_circle_test() {
+        tmFunction(TM_SYSTEM_COLOR);
+
+        World *world = (World *) core_allocate_world();
+        world->create(v3f(50, 10, 50));
+
+        const s64 steps = 12;
+        const f32 radius = 10;
+        const f32 circumference = 2 * FPI * radius;
+        const f32 space_per_step = 0.5f;
+        
+        for(s64 i = 0; i < steps; ++i) {
+            f32 theta = i / (f32) steps * 2 * FPI;
+            v3f position = v3f(sinf(theta) * radius, 0, cosf(theta) * radius);
+            v3f rotation = v3f(0, i / (f32) steps, 0);
+            v3f size     = v3f(circumference / steps / 2 * (1.f - space_per_step), .5, .5);
+
+            Boundary *b = world->add_boundary("Boundary"_s, position, size, rotation);
+            world->add_boundary_clipping_planes(b, AXIS_Z);
+        }
+
+        world->add_anchor("Inside"_s, v3f(0, 0, 0));
+        world->add_anchor("Outside"_s, v3f(0, 0, -10));
+
+        world->create_octree();
+        world->calculate_volumes();
+        
+        return world;
+    }
+
+    World_Handle core_do_u_shape_test() {
+        tmFunction(TM_SYSTEM_COLOR);
+
+        World *world = (World *) core_allocate_world();
+        world->create(v3f(50, 10, 50));
+
+        Boundary *b0 = world->add_boundary("Boundary"_s, v3f(0, 0, -10), v3f(10, .5, .5), v3f(0));
+        world->add_boundary_clipping_planes(b0, AXIS_Z);
+
+        Boundary *b1 = world->add_boundary("Boundary"_s, v3f(10, 0, 0), v3f(.5, .5, 10), v3f(0));
+        world->add_boundary_clipping_planes(b1, AXIS_X);
+        
+        Boundary *b2 = world->add_boundary("Boundary"_s, v3f(-10, 0, 0), v3f(.5, .5, 10), v3f(0));
+        world->add_boundary_clipping_planes(b2, AXIS_X);
+        
+        world->add_anchor("Inside"_s, v3f(0, 0, 0));
+        world->add_anchor("Outside"_s, v3f(0, 0, -20));
+        
+        world->create_octree();
+        world->calculate_volumes();
+        
+        return world;
+    }
+    
+    World_Handle core_do_center_dash_test() {
+        tmFunction(TM_SYSTEM_COLOR);
+
+        World *world = (World *) core_allocate_world();
+        world->create(v3f(50, 10, 50));
+
+        Boundary *boundary = world->add_boundary("Boundary"_s, v3f(0, 0, 0), v3f(5, 5, 5), v3f(0));
+        world->add_boundary_clipping_planes(boundary, AXIS_X);
+        world->add_boundary_clipping_planes(boundary, AXIS_Z);
+
+        world->add_anchor("Anchor"_s, v3f(0, 0, -10));
+        
+        world->create_octree();
+        world->calculate_volumes();
+        
+        return world;
+    }
+
 
 
     /* ---------------------------------------------- Debug Draw ---------------------------------------------- */

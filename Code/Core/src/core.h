@@ -80,7 +80,7 @@ struct Boundary {
     // Only for debug drawing.
     string dbg_name;
     v3f dbg_size;
-    v3f dbg_rotation; // Euler-radians.
+    v3f dbg_rotation; // Euler-turns.
 };
 
 

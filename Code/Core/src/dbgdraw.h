@@ -11,9 +11,9 @@ enum Debug_Draw_Options {
     DEBUG_DRAW_Octree            = 0x1,
     DEBUG_DRAW_Anchors           = 0x2,
     DEBUG_DRAW_Boundaries        = 0x4,
-    DEBUG_DRAW_Clipping_Planes   = 0x8,
+    DEBUG_DRAW_Clipping_Planes   = 0x8, // @Cleanup: Maybe add faces and wireframes for this too?
     DEBUG_DRAW_Volume_Faces      = 0x10,
-    DEBUG_DRAW_Volume_Wireframes = 0x20,
+    DEBUG_DRAW_Volume_Wireframes = 0x20, // @Incomplete
     DEBUG_DRAW_Labels            = 0x1000, // Draw hud texts for all anchors and boundaries.
     DEBUG_DRAW_Everything        = 0xffffffff,
 };
@@ -38,7 +38,7 @@ struct Debug_Draw_Text {
 struct Debug_Draw_Cuboid {
     v3f position;
     v3f size;
-    v3f rotation;
+    v3f rotation; // In turns.
     u8 r, g, b;
 };
 

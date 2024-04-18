@@ -55,6 +55,9 @@ TESTS: []Viewer_Test : {
         .{ "octree",        core_do_octree_test },
         .{ "large_volumes", core_do_large_volumes_test },
         .{ "cutout",        core_do_cutout_test },
+        .{ "circle",        core_do_circle_test },
+        .{ "u_shape",       core_do_u_shape_test },
+        .{ "center_dash",   core_do_center_dash_test },
 };
 
 STARTUP_TEST :: 0; // -1 means no startup test, else it is the index into the TESTS array.
