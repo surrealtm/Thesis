@@ -3,3 +3,6 @@
 
 # RADDBG
 *.raddbg*
+
+# RemedybDB
+*.rdbg

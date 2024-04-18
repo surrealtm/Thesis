@@ -16,6 +16,7 @@ core_destroy_world :: #foreign (world: World_Handle);
 core_do_house_test :: #foreign () -> World_Handle;
 core_do_octree_test :: #foreign () -> World_Handle;
 core_do_large_volumes_test :: #foreign () -> World_Handle;
+core_do_cutout_test :: #foreign () -> World_Handle;
 
 
 

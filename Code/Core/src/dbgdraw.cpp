@@ -124,7 +124,7 @@ Debug_Draw_Data debug_draw_world(World *world, Debug_Draw_Options options) {
 		for(auto *anchor: world->anchors) {
 			_internal.spheres.add({ anchor->position, dbg_anchor_radius, dbg_anchor_color.r, dbg_anchor_color.g, dbg_anchor_color.b });
 
-			if(labels) _internal.texts.add({ anchor->position, anchor->name, dbg_label_color.r, dbg_label_color.g, dbg_label_color.b });
+			if(labels) _internal.texts.add({ anchor->position, anchor->dbg_name, dbg_label_color.r, dbg_label_color.g, dbg_label_color.b });
 		}			
 	}
 
@@ -132,7 +132,7 @@ Debug_Draw_Data debug_draw_world(World *world, Debug_Draw_Options options) {
 		for(auto *boundary : world->boundaries) {
 			_internal.cuboids.add({ boundary->position, boundary->dbg_size, boundary->dbg_rotation, dbg_boundary_color.r, dbg_boundary_color.g, dbg_boundary_color.b });
 
-            if(labels) _internal.texts.add({ boundary->position, boundary->name, dbg_label_color.r, dbg_label_color.g, dbg_label_color.b });
+            if(labels) _internal.texts.add({ boundary->position, boundary->dbg_name, dbg_label_color.r, dbg_label_color.g, dbg_label_color.b });
         }
 	}
 

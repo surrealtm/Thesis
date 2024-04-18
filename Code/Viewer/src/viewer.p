@@ -54,6 +54,7 @@ TESTS: []Viewer_Test : {
         .{ "house",         core_do_house_test },
         .{ "octree",        core_do_octree_test },
         .{ "large_volumes", core_do_large_volumes_test },
+        .{ "cutout",        core_do_cutout_test },
 };
 
 STARTUP_TEST :: 0; // -1 means no startup test, else it is the index into the TESTS array.
@@ -183,7 +184,7 @@ main :: () -> s32 {
 
     create_gfx(*viewer.gfx, *viewer.window, Default_Allocator);
     gfx_create_ui(*viewer.gfx, *viewer.ui, UI_Watermelon_Theme);
-    create_renderer(*viewer.renderer, *viewer.window, *viewer.gfx, Default_Allocator);
+    create_renderer(*viewer.renderer, *viewer.window, *viewer.gfx, Default_Allocator, *viewer.frame_allocator);
 
     if STARTUP_TEST != -1 run_test(*viewer, STARTUP_TEST);
     

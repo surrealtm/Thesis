@@ -15,6 +15,13 @@ struct Boundary;
 
 /* ----------------------------------------------- 3D Geometry ----------------------------------------------- */
 
+enum Axis {
+    AXIS_X = 0,
+    AXIS_Y = 1,
+    AXIS_Z = 2,
+    AXIS_COUNT = 3,
+};
+
 struct Triangle {
     v3f p0, p1, p2;
 };
@@ -45,9 +52,8 @@ struct Volume {
 };
 
 struct Local_Axes {
-    v3f _[3];
-
-    v3f &operator[](s64 index) { assert(index >= 0 && index <= 3); return this->_[index]; }
+    v3f _[AXIS_COUNT];
+    v3f &operator[](s64 index) { assert(index >= 0 && index <= AXIS_COUNT); return this->_[index]; }
 };
 
 AABB aabb_from_position_and_size(v3f center, v3f half_sizes);
@@ -58,19 +64,21 @@ Local_Axes local_axes_from_rotation(v3f euler_radians);
 /* ------------------------------------------------- Objects ------------------------------------------------- */
 
 struct Anchor {
-    string name;
     v3f position;
     Volume volume; // This volume is essentially the output of the algorithm.
+
+    // Only for debug drawing.
+    string dbg_name;
 };
 
 struct Boundary {
-    string name;
     v3f position;
     Local_Axes local_axes; // The three coordinate axis in the local transform (meaning: rotated) of this boundary.
     AABB aabb;
     Resizable_Array<Clipping_Plane> clipping_planes; // Having this be a full-on dynamic array is pretty wasteful, since boundaries should only ever have between 1 and 3 clipping planes...  @@Speed.
 
-    // Only for drawing.
+    // Only for debug drawing.
+    string dbg_name;
     v3f dbg_size;
     v3f dbg_rotation; // Euler-radians.
 };
@@ -154,7 +162,7 @@ struct World {
 
     void add_boundary_clipping_plane_checked(Boundary *boundary, v3f p, v3f n, v3f u, v3f v);
     void add_boundary_clipping_plane_unchecked(Boundary *boundary, v3f p, v3f n, v3f u, v3f v); // This assumes correct u and v vectors!
-    void add_boundary_clipping_planes(Boundary *boundary, u8 axis_index);
+    void add_boundary_clipping_planes(Boundary *boundary, Axis normal_axis);
     
     f32 get_shortest_distance_to_root_clip(v3f position, v3f direction);
 

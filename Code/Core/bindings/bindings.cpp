@@ -62,25 +62,25 @@ extern "C" {
         world->add_anchor("Garden"_s, v3f(0, -3, -30));
         
         auto hallway_wall = world->add_boundary("HallwayWall"_s, v3f(-2, -3, +6), v3f(8, .25, .5), v3f(0, 0, 0));
-        world->add_boundary_clipping_planes(hallway_wall, 2);
+        world->add_boundary_clipping_planes(hallway_wall, AXIS_Z);
 
         auto kitchen_wall0 = world->add_boundary("KitchenWall0"_s, v3f(0, -3, -7), v3f(.5, .25, 3), v3f(0, 0, 0));
-        world->add_boundary_clipping_planes(kitchen_wall0, 0);
+        world->add_boundary_clipping_planes(kitchen_wall0, AXIS_X);
         
         auto kitchen_wall1 = world->add_boundary("KitchenWall1"_s, v3f(-7, -3, 0), v3f(3, .25, .5), v3f(0, 0, 0));
-        world->add_boundary_clipping_planes(kitchen_wall1, 2);
+        world->add_boundary_clipping_planes(kitchen_wall1, AXIS_Z);
         
         auto outer_wall_north = world->add_boundary("OuterWallNorth"_s, v3f(0, -3, -10), v3f(10, .25, .5), v3f(0, 0, 0));
-        world->add_boundary_clipping_planes(outer_wall_north, 2);
+        world->add_boundary_clipping_planes(outer_wall_north, AXIS_Z);
 
         auto outer_wall_south = world->add_boundary("OuterWallSouth"_s, v3f(0, -3, +10), v3f(10, .25, .5), v3f(0, 0, 0));
-        world->add_boundary_clipping_planes(outer_wall_south, 2);
+        world->add_boundary_clipping_planes(outer_wall_south, AXIS_Z);
 
         auto outer_wall_east = world->add_boundary("OuterWallEast"_s, v3f(+10, -3, 0), v3f(.5, .25, 10), v3f(0, 0, 0));
-        world->add_boundary_clipping_planes(outer_wall_east, 0);
+        world->add_boundary_clipping_planes(outer_wall_east, AXIS_X);
 
         auto outer_wall_west = world->add_boundary("OuterWallWest"_s, v3f(-10, -3, 0), v3f(.5, .25, 10), v3f(0, 0, 0));
-        world->add_boundary_clipping_planes(outer_wall_west, 0);
+        world->add_boundary_clipping_planes(outer_wall_west, AXIS_X);
 
         world->create_octree();
         world->calculate_volumes();
@@ -159,7 +159,7 @@ extern "C" {
                 v3f rotation = v3f(0, 0, 0);
 
                 auto *boundary = world->add_boundary("Boundary"_s, position, size, rotation);
-                world->add_boundary_clipping_planes(boundary, small_dimension);
+                world->add_boundary_clipping_planes(boundary, (Axis) small_dimension);
             }
         }
 
@@ -174,6 +174,33 @@ extern "C" {
         return world;
     }
     
+    World_Handle core_do_cutout_test() {
+        tmFunction(TM_SYSTEM_COLOR);
+
+        World *world = (World *) core_allocate_world();
+        world->create(v3f(50, 10, 50));
+
+        Boundary *b0 = world->add_boundary("Boundary"_s, v3f(0, 0, -5), v3f(5, .5, .5), v3f(0, 0, 0));
+        world->add_boundary_clipping_planes(b0, AXIS_Z);
+        
+        Boundary *b1 = world->add_boundary("Boundary"_s, v3f(0, 0, +5), v3f(5, .5, .5), v3f(0, 0, 0));
+        world->add_boundary_clipping_planes(b1, AXIS_Z);
+
+        Boundary *b2 = world->add_boundary("Boundary"_s, v3f(-5, 0, 0), v3f(.5, .5, 5), v3f(0, 0, 0));
+        world->add_boundary_clipping_planes(b2, AXIS_X);
+        
+        Boundary *b3 = world->add_boundary("Boundary"_s, v3f(+5, 0, 0), v3f(.5, .5, 5), v3f(0, 0, 0));
+        world->add_boundary_clipping_planes(b3, AXIS_X);
+
+        world->add_anchor("Inside"_s, v3f(0, 0, 0));
+        world->add_anchor("Outside"_s, v3f(0, 0, -10));
+
+        world->create_octree();
+        world->calculate_volumes();
+
+        return world;
+    }
+
 
 
     /* ---------------------------------------------- Debug Draw ---------------------------------------------- */

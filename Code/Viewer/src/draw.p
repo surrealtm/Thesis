@@ -10,15 +10,23 @@ Camera :: struct {
 
     position: v3f;
     rotation: v3f;
-
+    forward:  v3f;
+    
     projection: m4f;
     view: m4f;
+}
+
+Internal_Triangle :: struct {
+    dot_to_camera: f32;
+    p0, p1, p2: v3f;
+    r, g, b, a: f32;
 }
 
 Renderer :: struct {
     window: *Window;
     gfx: *GFX;
-
+    frame_allocator: *Allocator;
+    
     camera: Camera;
     light_direction: v3f;
 
@@ -41,12 +49,16 @@ Renderer :: struct {
     line_vertices: []f32; // Position, Endpoint, Extension
     line_colors: []f32;
     line_count: s64;
+
+
+    sorted_triangles: []Internal_Triangle;
 }
 
-create_renderer :: (renderer: *Renderer, window: *Window, gfx: *GFX, allocator: *Allocator) {
+create_renderer :: (renderer: *Renderer, window: *Window, gfx: *GFX, global_allocator: *Allocator, frame_allocator: *Allocator) {
     renderer.window = window;
     renderer.gfx    = gfx;
     renderer.light_direction = v3f_normalize(.{ 1, 2, 3 });
+    renderer.frame_allocator = frame_allocator;
     create_font_from_file(*renderer.hud_font, "C:/Windows/Fonts/segoeui.ttf", 20, false, create_gl_texture_2d, null);
     
     //
@@ -127,7 +139,7 @@ create_renderer :: (renderer: *Renderer, window: *Window, gfx: *GFX, allocator: 
         set_vertex_buffer_name(*renderer.triangle_buffer, "triangle_buffer");
         dump_gl_errors("Triangle Buffer");
 
-        renderer.triangle_vertices = allocate_array(allocator, TRIANGLE_BATCH_COUNT * 3 * 7, f32);
+        renderer.triangle_vertices = allocate_array(global_allocator, TRIANGLE_BATCH_COUNT * 3 * 7, f32);
     }
     
     //
@@ -142,8 +154,8 @@ create_renderer :: (renderer: *Renderer, window: *Window, gfx: *GFX, allocator: 
         allocate_vertex_data(*renderer.line_buffer, LINE_BATCH_COUNT * 6 * 4, 4);
         set_vertex_buffer_name(*renderer.line_buffer, "line_buffer");
 
-        renderer.line_vertices = allocate_array(allocator, LINE_BATCH_COUNT * 6 * 7, f32);
-        renderer.line_colors = allocate_array(allocator, LINE_BATCH_COUNT * 6 * 4, f32);
+        renderer.line_vertices = allocate_array(global_allocator, LINE_BATCH_COUNT * 6 * 7, f32);
+        renderer.line_colors = allocate_array(global_allocator, LINE_BATCH_COUNT * 6 * 4, f32);
         dump_gl_errors("Line Buffer");
     }
 
@@ -234,9 +246,15 @@ update_camera :: (renderer: *Renderer) {
         }
     }
 
+    //
+    // Update the camera matrices.
+    //
+
     renderer.camera.aspect     = xx renderer.window.width / xx renderer.window.height;
     renderer.camera.projection = make_perspective_projection_matrix(renderer.camera.fov, renderer.camera.aspect, renderer.camera.near, renderer.camera.far);
     renderer.camera.view       = make_view_matrix(renderer.camera.position, renderer.camera.rotation);
+
+    renderer.camera.forward = .{ -renderer.camera.view._m[0][2], -renderer.camera.view._m[1][2], -renderer.camera.view._m[2][2] };
 }
 
 
@@ -278,7 +296,7 @@ flush_lines :: (renderer: *Renderer) {
     update_vertex_data(*renderer.line_buffer, 0, renderer.line_vertices, renderer.line_count * 6 * 7);
     update_vertex_data(*renderer.line_buffer, 1, renderer.line_colors, renderer.line_count * 6 * 4);
     draw_vertex_buffer(*renderer.line_buffer);
-
+    
     renderer.line_count = 0;
 }
 
@@ -348,7 +366,7 @@ flush_triangles :: (renderer: *Renderer) {
 
 add_triangle_corner :: (renderer: *Renderer, index: s64, point: v3f, color: [4]f32) {
     idx := renderer.triangle_count * 3 * 7 + index * 7;
-
+    
     renderer.triangle_vertices[idx + 0] = point.x;
     renderer.triangle_vertices[idx + 1] = point.y;
     renderer.triangle_vertices[idx + 2] = point.z;
@@ -361,11 +379,18 @@ add_triangle_corner :: (renderer: *Renderer, index: s64, point: v3f, color: [4]f
 draw_triangle :: (renderer: *Renderer, p0: v3f, p1: v3f, p2: v3f, color: GFX_Color) {
     if renderer.triangle_count == TRIANGLE_BATCH_COUNT flush_triangles(renderer);
 
-    color_array: [4]f32 = { xx color.r / 255., xx color.g / 255., xx color.b / 255., xx color.a / 255. };
+    triangle: Internal_Triangle = .{ ---, p0, p1, p2, xx color.r / 255., xx color.g / 255., xx color.b / 255., xx color.a / 255. };
+    draw_internal_triangle(renderer, *triangle);
+}
+
+draw_internal_triangle :: (renderer: *Renderer, triangle: *Internal_Triangle) {
+    if renderer.triangle_count == TRIANGLE_BATCH_COUNT flush_triangles(renderer);
+
+    color_array: [4]f32 = { triangle.r, triangle.g, triangle.b, triangle.a };
     
-    add_triangle_corner(renderer, 0, p0, color_array);
-    add_triangle_corner(renderer, 1, p1, color_array);
-    add_triangle_corner(renderer, 2, p2, color_array);
+    add_triangle_corner(renderer, 0, triangle.p0, color_array);
+    add_triangle_corner(renderer, 1, triangle.p1, color_array);
+    add_triangle_corner(renderer, 2, triangle.p2, color_array);
     
     ++renderer.triangle_count;
 }
@@ -444,10 +469,23 @@ draw_debug_draw_data :: (renderer: *Renderer, data: *Debug_Draw_Data, background
     }
     flush_lines(renderer);
 
-    /* Render the (potentially) transparent triangles last. */
-    // @Cleanup: These oughta be sort by distance to camera...
+    /* Render the (potentially) transparent triangles last. Since these triangles can be transparent, we need
+       to sort them so that the one furthest away is rendered first, and the nearest is rendered last. */
+    renderer.sorted_triangles = allocate_array(renderer.frame_allocator, data.triangle_count, Internal_Triangle);
+    
     for i := 0; i < data.triangle_count; ++i {
-        draw_triangle(renderer, data.triangles[i].p0, data.triangles[i].p1, data.triangles[i].p2, .{ data.triangles[i].r, data.triangles[i].g, data.triangles[i].b, data.triangles[i].a });
+        triangle := *data.triangles[i];
+
+        triangle_center := v3f.{ (triangle.p0.x + triangle.p1.x + triangle.p2.x) / 3, (triangle.p0.y + triangle.p1.y + triangle.p2.y) / 3, (triangle.p0.z + triangle.p1.z + triangle.p2.z) / 3 };
+        distance_to_camera := v3f_length_squared(.{ renderer.camera.position.x - triangle_center.x, renderer.camera.position.y - triangle_center.y, renderer.camera.position.z - triangle_center.z });
+
+        renderer.sorted_triangles[i] = .{ distance_to_camera, triangle.p0, triangle.p1, triangle.p2, xx triangle.r / 255., xx triangle.g / 255., xx triangle.b / 255., xx triangle.a / 255. };
+    }
+
+    sort(renderer.sorted_triangles, compare_internal_triangle);
+
+    for i := 0; i < renderer.sorted_triangles.count; ++i {
+        draw_internal_triangle(renderer, *renderer.sorted_triangles[i]);
     }
     flush_triangles(renderer);
 
@@ -667,4 +705,22 @@ get_sphere_vertices :: (radius: f32, segments: s64) -> []f32, []f32 {
     }
     
     return vertices, normals;
+}
+
+compare_internal_triangle :: (lhs: *Internal_Triangle, rhs: *Internal_Triangle) -> int {
+    if lhs.dot_to_camera < rhs.dot_to_camera return 1;
+    if lhs.dot_to_camera > rhs.dot_to_camera return -1;
+    return 0;
+}
+
+ray_double_sided_plane_intersection :: (ray_origin: v3f, ray_direction: v3f, plane_point: v3f, plane_normal: v3f) -> bool, f32 {
+    denom := abs(v3f_dot_v3f(plane_normal, ray_direction));
+    if denom > F32_EPSILON {
+        p0l0 := v3f.{ plane_point.x - ray_origin.x, plane_point.y - ray_origin.y, plane_point.z - ray_origin.z };
+        distance := abs(v3f_dot_v3f(p0l0, plane_normal) / denom);
+        return true, distance;
+    }
+
+    return false, MIN_F32;
+
 }

@@ -41,6 +41,7 @@ extern "C" {
     EXPORT World_Handle core_do_house_test();
     EXPORT World_Handle core_do_octree_test();
     EXPORT World_Handle core_do_large_volumes_test();
+    EXPORT World_Handle core_do_cutout_test();
 
     
 

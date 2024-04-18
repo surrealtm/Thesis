@@ -212,8 +212,9 @@ void World::add_anchor(string name, v3f position) {
     tmFunction(TM_WORLD_COLOR);
 
     Anchor *anchor   = this->anchors.push();
-    anchor->name     = copy_string(this->allocator, name);
     anchor->position = position;
+    
+    anchor->dbg_name = copy_string(this->allocator, name);
 }
 
 Boundary *World::add_boundary(string name, v3f position, v3f size, v3f rotation) {
@@ -222,27 +223,28 @@ Boundary *World::add_boundary(string name, v3f position, v3f size, v3f rotation)
     Local_Axes local_axes = local_axes_from_rotation(rotation);
 
     Boundary *boundary      = this->boundaries.push();
-    boundary->name          = copy_string(this->allocator, name); // @Cleanup: This seems to be veryy fucking slow...
     boundary->position      = position;
-    boundary->dbg_rotation  = rotation;
-    boundary->dbg_size      = size;
     boundary->aabb          = aabb_from_position_and_size(position, size);
     boundary->local_axes[0] = local_axes[0] * size;
     boundary->local_axes[1] = local_axes[1] * size;
     boundary->local_axes[2] = local_axes[2] * size;
     boundary->clipping_planes.allocator = this->allocator;
-
+    
+    boundary->dbg_name      = copy_string(this->allocator, name); // @Cleanup: This seems to be veryy fucking slow...
+    boundary->dbg_rotation  = rotation;
+    boundary->dbg_size      = size;
+    
     return boundary;
 }
 
-void World::add_boundary_clipping_planes(Boundary *boundary, u8 axis_index) {
+void World::add_boundary_clipping_planes(Boundary *boundary, Axis normal_axis) {
     tmFunction(TM_WORLD_COLOR);
 
-    assert(axis_index < 3);
+    assert(axis_index >= 0 && axis_index < AXIS_COUNT);
 
-    v3f a = boundary->local_axes[axis_index];
-    v3f u = boundary->local_axes[(axis_index + 1) % 3];
-    v3f v = boundary->local_axes[(axis_index + 2) % 3];
+    v3f a = boundary->local_axes[normal_axis];
+    v3f u = boundary->local_axes[(normal_axis + 1) % 3];
+    v3f v = boundary->local_axes[(normal_axis + 2) % 3];
     v3f n = v3_normalize(a);
     
     //
