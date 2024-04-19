@@ -93,7 +93,7 @@ Viewer :: struct {
     memory_information: Memory_Information;
     
     profiling_show_summary: bool;    
-    debug_draw_options: Debug_Draw_Options = .Octree | .Anchors | .Boundaries | .Volume_Faces | .Labels;
+    debug_draw_options: Debug_Draw_Options = .Octree | .Anchors | .Boundaries | .Clipping_Plane_Faces | .Clipping_Plane_Wireframes | .Volume_Wireframes | .Labels;
 }
 
 
@@ -127,7 +127,7 @@ one_viewer_frame :: (viewer: *Viewer) {
     draw_debug_draw_data(*viewer.renderer, *viewer.debug_draw_data, background_color);
 
     //
-    // UI.
+    // Create the UI.
     //
     menu_bar(viewer);
     profiling_panel(viewer);
@@ -135,10 +135,21 @@ one_viewer_frame :: (viewer: *Viewer) {
     select_test_panel(viewer);
     debug_draw_options_panel(viewer);
     
+
     //
-    // Finish the frame.
+    // Draw the UI.
     //
     gfx_finish_ui(*viewer.gfx, *viewer.ui);
+
+    {
+        frame_info := sprint(*viewer.frame_allocator, "FPS: %, Time: %ms", cast(s64) (1 / viewer.window.frame_time), cast(s64) (viewer.window.frame_time * 1000));
+        gfx_draw_text_without_background(*viewer.gfx, *viewer.gfx.ui_font, frame_info, .{ xx viewer.window.width - 5, xx viewer.gfx.ui_font.line_height }, .Right, .{ 255, 255, 255, 255 });
+        gfx_flush_text(*viewer.gfx);
+    }
+
+    //
+    // Finish the frame.
+    //    
     gfx_finish_frame(*viewer.gfx);
 
     reset_allocator(*viewer.frame_allocator);
@@ -186,7 +197,7 @@ main :: () -> s32 {
     show_window(*viewer.window);
 
     create_gfx(*viewer.gfx, *viewer.window, Default_Allocator);
-    gfx_create_ui(*viewer.gfx, *viewer.ui, UI_Watermelon_Theme);
+    gfx_create_ui(*viewer.gfx, *viewer.ui, UI_Watermelon_Theme, 16);
     create_renderer(*viewer.renderer, *viewer.window, *viewer.gfx, Default_Allocator, *viewer.frame_allocator);
 
     if STARTUP_TEST != -1 run_test(*viewer, STARTUP_TEST);

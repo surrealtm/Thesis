@@ -56,6 +56,26 @@ debug_draw_options_panel :: (viewer: *Viewer) {
         ui_divider(*viewer.ui, false);
         
         if ui_button(*viewer.ui, "Nothing") new_options = .Nothing;
+
+        ui_divider(*viewer.ui, true);
+
+        if ui_button(*viewer.ui, "Export Flags") {
+            builder: String_Builder;
+            builder.allocator = *viewer.frame_allocator;
+
+            if new_options & .Octree                      append_string(*builder, " | .Octree");
+            if new_options & .Anchors                     append_string(*builder, " | .Anchors");
+            if new_options & .Boundaries                  append_string(*builder, " | .Boundaries");
+            if new_options & .Clipping_Plane_Faces        append_string(*builder, " | .Clipping_Plane_Faces");
+            if new_options & .Clipping_Plane_Wireframes   append_string(*builder, " | .Clipping_Plane_Wireframes");
+            if new_options & .Volume_Faces                append_string(*builder, " | .Volume_Faces");
+            if new_options & .Volume_Wireframes           append_string(*builder, " | .Volume_Wireframes");
+            if new_options & .Labels                      append_string(*builder, " | .Labels");
+
+            complete_string := finish_string_builder(*builder);
+            complete_string = substring_view(complete_string, 3, complete_string.count); // Cut out the leading ' | '
+            set_clipboard_data(complete_string);
+        }
         
         ui_pop_width(*viewer.ui);
 

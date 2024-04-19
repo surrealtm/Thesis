@@ -59,10 +59,11 @@ extern "C" {
 
     EXPORT void core_begin_profiling();
     EXPORT void core_stop_profiling();
-    EXPORT void core_print_profiling();
+    EXPORT void core_print_profiling(b8 include_timeline);
     EXPORT Timing_Data core_get_profiling_data();
     EXPORT void core_free_profiling_data(Timing_Data *data);
 
     EXPORT Memory_Information core_get_memory_information(World_Handle world_handle);
+    EXPORT void core_print_memory_information(World_Handle world_handle);
     EXPORT void core_free_memory_information(Memory_Information *info);
 }

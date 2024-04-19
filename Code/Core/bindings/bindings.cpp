@@ -297,8 +297,11 @@ extern "C" {
         tmFinish();
     }
 
-    void core_print_profiling() {
-        tmPrintToConsole(TIMING_OUTPUT_Summary | TIMING_OUTPUT_Timeline, TIMING_OUTPUT_Sort_By_Exclusive);
+    void core_print_profiling(b8 include_timeline) {
+        Timing_Output_Mode output = TIMING_OUTPUT_Summary;
+        if(include_timeline) output |= TIMING_OUTPUT_Timeline;
+
+        tmPrintToConsole(output, TIMING_OUTPUT_Sort_By_Exclusive);
     }
 
     Timing_Data core_get_profiling_data() {
@@ -317,10 +320,53 @@ extern "C" {
         Memory_Information info = { 0 };
         info.os_working_set_size = os_get_working_set_size();
         info.allocator_count = 2;
-        info.allocators = (Memory_Allocator_Information *) malloc(sizeof(Memory_Allocator_Information) * info.allocator_count);
+        info.allocators = (Memory_Allocator_Information *) malloc(sizeof(Memory_Allocator_Information) * info.allocator_count); // Avoid this allocation to count towards the heap...
         info.allocators[0] = memory_allocator_information("Heap"_s, Default_Allocator);
         info.allocators[1] = memory_allocator_information("World"_s, world->allocator);
         return info;
+    }
+
+    void core_print_memory_information(World_Handle world_handle) {
+        Memory_Information information = core_get_memory_information(world_handle);
+        
+        
+        printf("\n\n\n");
+        s32 half_length = (s32) (125 - cstring_length(" MEMORY INFORMATION ") + 1) / 2;
+        
+        {
+            for(s32 i = 0; i < half_length; ++i) printf("-");
+            printf(" MEMORY INFORMATION ");
+            for(s32 i = 0; i < half_length; ++i) printf("-");
+            printf("\n");
+        }
+
+        {
+            for(s64 i = 0; i < information.allocator_count; ++i) {
+                Memory_Allocator_Information *alloc = &information.allocators[i];
+                
+                f32 working_set, peak_working_set;
+                Memory_Unit working_set_unit, peak_working_set_unit;
+
+                working_set_unit = get_best_memory_unit(alloc->working_set_size, &working_set);
+                peak_working_set_unit = get_best_memory_unit(alloc->peak_working_set_size, &peak_working_set);
+
+                printf("  %.*s:%-*s %8" PRId64 " Allocations, %8" PRId64 " Deallocations,     %08f%s Working Set,     %08f%s Peak Working Set.\n", (u32) alloc->name.count, alloc->name.data, (u32) max(0, 10 - alloc->name.count), "", alloc->allocation_count, alloc->deallocation_count, working_set, memory_unit_suffix(working_set_unit), peak_working_set, memory_unit_suffix(peak_working_set_unit));
+            }
+
+
+            f32 os_working_set;
+            Memory_Unit os_working_set_unit = get_best_memory_unit(information.os_working_set_size, &os_working_set);
+            printf("OS Working Set: %08f%s\n", os_working_set, memory_unit_suffix(os_working_set_unit));
+        }
+
+        {
+            for(s32 i = 0; i < half_length; ++i) printf("-");
+            printf(" MEMORY INFORMATION ");
+            for(s32 i = 0; i < half_length; ++i) printf("-");
+            printf("\n");
+        }
+
+        core_free_memory_information(&information);
     }
 
     void core_free_memory_information(Memory_Information *info) {
