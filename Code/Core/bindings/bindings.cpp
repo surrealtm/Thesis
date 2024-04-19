@@ -51,7 +51,18 @@ extern "C" {
     
     /* ----------------------------------------------- Testing ------------------------------------------------ */
 
-    World_Handle core_do_house_test() {
+    void core_do_world_step(World_Handle world_handle, Debug_Draw_Data *draw_data, Debug_Draw_Options draw_options) {
+        World *world = (World *) world_handle;
+        world->calculate_volumes_step();
+
+        if(draw_data) {
+            core_free_debug_draw_data(draw_data);
+            *draw_data = core_debug_draw_world(world_handle, draw_options);
+        }
+    }
+
+
+    World_Handle core_do_house_test(b8 step_into) {
         tmZone("do_house_test", TM_SYSTEM_COLOR);
 
         World *world = (World *) core_allocate_world();
@@ -83,12 +94,16 @@ extern "C" {
         world->add_boundary_clipping_planes(outer_wall_west, AXIS_X);
 
         world->create_octree();
-        world->calculate_volumes();
+        if(step_into) {
+            world->begin_calculate_volumes_stepping();
+        } else {
+            world->calculate_volumes();
+        }
         
         return (World_Handle) world;
     }
 
-    World_Handle core_do_octree_test() {
+    World_Handle core_do_octree_test(b8 step_into) {
         tmZone("do_octree_test", TM_SYSTEM_COLOR);
         
         World *world = (World *) core_allocate_world();
@@ -122,7 +137,7 @@ extern "C" {
         return world;
     }
 
-    World_Handle core_do_large_volumes_test() {
+    World_Handle core_do_large_volumes_test(b8 step_into) {
         tmZone("do_large_volumes_test", TM_SYSTEM_COLOR);
         
         World *world = (World *) core_allocate_world();
@@ -169,12 +184,18 @@ extern "C" {
         }
 
         world->create_octree();
-        world->calculate_volumes();
+        
+        if(step_into) {
+            world->begin_calculate_volumes_stepping();
+        } else {
+            world->calculate_volumes();
+        }
+        
 
         return world;
     }
     
-    World_Handle core_do_cutout_test() {
+    World_Handle core_do_cutout_test(b8 step_into) {
         tmFunction(TM_SYSTEM_COLOR);
 
         World *world = (World *) core_allocate_world();
@@ -193,15 +214,20 @@ extern "C" {
         world->add_boundary_clipping_planes(b3, AXIS_X);
 
         world->add_anchor("Inside"_s, v3f(0, 0, 0));
-        //        world->add_anchor("Outside"_s, v3f(0, 0, -10));
+        world->add_anchor("Outside"_s, v3f(0, 0, -10));
 
         world->create_octree();
-        world->calculate_volumes();
-
+        
+        if(step_into) {
+            world->begin_calculate_volumes_stepping();
+        } else {
+            world->calculate_volumes();
+        }
+        
         return world;
     }
 
-    World_Handle core_do_circle_test() {
+    World_Handle core_do_circle_test(b8 step_into) {
         tmFunction(TM_SYSTEM_COLOR);
 
         World *world = (World *) core_allocate_world();
@@ -223,15 +249,20 @@ extern "C" {
         }
 
         world->add_anchor("Inside"_s, v3f(0, 0, 0));
-        world->add_anchor("Outside"_s, v3f(0, 0, -10));
+        world->add_anchor("Outside"_s, v3f(0, 0, -2 * radius));
 
         world->create_octree();
-        world->calculate_volumes();
+        
+        if(step_into) {
+            world->begin_calculate_volumes_stepping();
+        } else {
+            world->calculate_volumes();
+        }
         
         return world;
     }
 
-    World_Handle core_do_u_shape_test() {
+    World_Handle core_do_u_shape_test(b8 step_into) {
         tmFunction(TM_SYSTEM_COLOR);
 
         World *world = (World *) core_allocate_world();
@@ -250,25 +281,36 @@ extern "C" {
         world->add_anchor("Outside"_s, v3f(0, 0, -20));
         
         world->create_octree();
-        world->calculate_volumes();
+        
+        if(step_into) {
+            world->begin_calculate_volumes_stepping();
+        } else {
+            world->calculate_volumes();
+        }
         
         return world;
     }
     
-    World_Handle core_do_center_block_test() {
+    World_Handle core_do_center_block_test(b8 step_into) {
         tmFunction(TM_SYSTEM_COLOR);
 
         World *world = (World *) core_allocate_world();
         world->create(v3f(50, 10, 50));
 
-        Boundary *boundary = world->add_boundary("Boundary"_s, v3f(0, 0, 0), v3f(5, 5, 5), v3f(0.125, 0, 0.125));
-        world->add_boundary_clipping_planes(boundary, AXIS_X);
+        //Boundary *boundary = world->add_boundary("Boundary"_s, v3f(0, 0, 0), v3f(5, 5, 5), v3f(0.125, 0, 0.125));
+        Boundary *boundary = world->add_boundary("Center Block"_s, v3f(0, 0, 0), v3f(5, 5, 5), v3f(0, 0, 0));
+        //world->add_boundary_clipping_planes(boundary, AXIS_X);
         world->add_boundary_clipping_planes(boundary, AXIS_Z);
 
-        world->add_anchor("Anchor"_s, v3f(0, 0, -10));
+        world->add_anchor("Outside"_s, v3f(0, 0, -10));
         
         world->create_octree();
-        world->calculate_volumes();
+        
+        if(step_into) {
+            world->begin_calculate_volumes_stepping();
+        } else {
+            world->calculate_volumes();
+        }
         
         return world;
     }

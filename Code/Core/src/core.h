@@ -43,7 +43,7 @@ struct Local_Axes {
 };
 
 AABB aabb_from_position_and_size(v3f center, v3f half_sizes);
-Local_Axes local_axes_rotated(qtf quat);
+Local_Axes local_axes_rotated(qtf quat, v3f axis_scale);
 
 
 
@@ -63,8 +63,8 @@ struct Anchor {
 
 struct Boundary {
     v3f position;
-    v3f size; // Used for putting the clipping planes at the corners of this boundary.
-    Local_Axes local_axes; // The three coordinate axis in the local transform (meaning: rotated) of this boundary.
+    Local_Axes local_scaled_axes; // The three coordinate axis in the local transform (meaning: rotated) of this boundary.
+    Local_Axes local_unit_axes; // The three coordinate axis in the local transform (meaning: rotated) of this boundary.
     AABB aabb;
     Resizable_Array<Clipping_Plane> clipping_planes; // Having this be a full-on dynamic array is pretty wasteful, since boundaries should only ever have between 1 and 3 clipping planes...  @@Speed.
 
@@ -72,6 +72,7 @@ struct Boundary {
 
     // Only for debug drawing.
     string dbg_name;
+    v3f dbg_half_size; // Unrotated half sizes.
     qtf dbg_rotation;
 };
 
@@ -157,5 +158,16 @@ struct World {
     void make_root_volume(Resizable_Array<Triangle> *triangles);
     
     void create_octree();
+    void clip_all_boundaries();
     void calculate_volumes();
+
+
+
+    /* Debugging behaviour */
+
+    Resizable_Array<Anchor>::Iterator dbg_step_anchor_iterator;
+    Resizable_Array<Boundary>::Iterator dbg_step_boundary_iterator;
+
+    void begin_calculate_volumes_stepping();
+    void calculate_volumes_step();
 };

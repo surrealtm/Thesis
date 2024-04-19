@@ -2,7 +2,7 @@
 
 int main() {
     tmBegin();
-    World_Handle world = core_do_octree_test();
+    World_Handle world = core_do_octree_test(false);
     tmFinish();
 
     core_print_profiling(false);

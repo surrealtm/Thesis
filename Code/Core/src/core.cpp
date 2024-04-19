@@ -22,8 +22,8 @@ AABB aabb_from_position_and_size(v3f center, v3f half_sizes) {
     return { center - half_sizes, center + half_sizes };
 }
 
-Local_Axes local_axes_rotated(qtf quat) {
-    return { qt_rotate(quat, v3f(1, 0, 0)), qt_rotate(quat, v3f(0, 1, 0)), qt_rotate(quat, v3f(0, 0, 1)) };
+Local_Axes local_axes_rotated(qtf quat, v3f axis_scale) {
+    return { qt_rotate(quat, v3f(axis_scale.x, 0, 0)), qt_rotate(quat, v3f(0, axis_scale.y, 0)), qt_rotate(quat, v3f(0, 0, axis_scale.z)) };
 }
 
 
@@ -38,12 +38,17 @@ void add_triangles_for_clipping_plane(Resizable_Array<Triangle> * triangles, Cli
 
 void Anchor::clip_vertex(v3f *vertex, Triangle *triangle) {
     tmFunction(TM_ANCHOR_COLOR);
-    *vertex = project_point_onto_triangle(*vertex, triangle->p0, triangle->p1, triangle->p2);
+
+    f32 distance = point_plane_distance_signed(*vertex, triangle->p0, triangle->n);
+    
+    if(distance < 0) {
+        *vertex = *vertex - distance * triangle->n;
+    }
 }
 
 void Anchor::clip_against_plane(Clipping_Plane *plane) {
     for(auto *plane_triangle : plane->triangles) {
-        if(v3_dot_v3(plane_triangle->n, plane_triangle->p0 - this->position) > 0.f) continue; // Don't clip against back-facing planes.
+        if(v3_dot_v3(plane_triangle->n, this->position - plane_triangle->p0) < 0.f) continue; // Don't clip against back-facing planes.
 
         for(auto *volume_triangle : this->volume) {
             this->clip_vertex(&volume_triangle->p0, plane_triangle);
@@ -150,7 +155,7 @@ void World::create(v3f half_size) {
     // Create the clipping planes.
     //
     {
-        tmZone("create_clipping_planes", TM_WORLD_COLOR);
+        tmZone("create_root_clipping_planes", TM_WORLD_COLOR);
 
         this->root_clipping_planes.add({ this->allocator, v3f(-this->half_size.x, 0, 0), v3f(+1, 0, 0), v3f(0, this->half_size.y, 0), v3f(0, 0, this->half_size.z) });
         this->root_clipping_planes.add({ this->allocator, v3f(+this->half_size.x, 0, 0), v3f(-1, 0, 0), v3f(0, this->half_size.y, 0), v3f(0, 0, this->half_size.z) });
@@ -182,19 +187,20 @@ void World::add_anchor(string name, v3f position) {
     anchor->dbg_name = copy_string(this->allocator, name);
 }
 
-Boundary *World::add_boundary(string name, v3f position, v3f size, v3f rotation) {
+Boundary *World::add_boundary(string name, v3f position, v3f half_size, v3f rotation) {
     tmFunction(TM_WORLD_COLOR);
 
     qtf quaternion = qt_from_euler_turns(rotation);
 
-    Boundary *boundary   = this->boundaries.push();
-    boundary->position   = position;
-    boundary->size       = size;
-    boundary->aabb       = aabb_from_position_and_size(position, size);
-    boundary->local_axes = local_axes_rotated(quaternion);
+    Boundary *boundary          = this->boundaries.push();
+    boundary->position          = position;
+    boundary->aabb              = aabb_from_position_and_size(position, half_size);
+    boundary->local_scaled_axes = local_axes_rotated(quaternion, half_size);
+    boundary->local_unit_axes   = local_axes_rotated(quaternion, v3f(1));
     boundary->clipping_planes.allocator = this->allocator;
 
     boundary->dbg_name      = copy_string(this->allocator, name); // @Cleanup: This seems to be veryy fucking slow...
+    boundary->dbg_half_size = half_size;
     boundary->dbg_rotation  = quaternion;
 
     return boundary;
@@ -203,11 +209,12 @@ Boundary *World::add_boundary(string name, v3f position, v3f size, v3f rotation)
 void World::add_boundary_clipping_planes(Boundary *boundary, Axis normal_axis) {
     tmFunction(TM_WORLD_COLOR);
 
-    assert(axis_index >= 0 && axis_index < AXIS_COUNT);
+    assert(normal_axis >= 0 && normal_axis < AXIS_COUNT);
 
-    v3f a = boundary->local_axes[normal_axis];
-    v3f u = boundary->local_axes[(normal_axis + 1) % 3];
-    v3f v = boundary->local_axes[(normal_axis + 2) % 3];
+    v3f a = boundary->local_scaled_axes[normal_axis];
+    v3f n = boundary->local_unit_axes[normal_axis];
+    v3f u = boundary->local_unit_axes[(normal_axis + 1) % 3];
+    v3f v = boundary->local_unit_axes[(normal_axis + 2) % 3];
 
     //
     // A boundary owns an actual volume, which means that the clipping plane
@@ -217,16 +224,22 @@ void World::add_boundary_clipping_planes(Boundary *boundary, Axis normal_axis) {
     //
 
     f32 extension = max(max(this->half_size.x, this->half_size.y), this->half_size.z) * 2.0f; // This clipping plane should stretch across the entire world, before it might be clipped down.
-    boundary->add_clipping_plane(this->allocator, boundary->position + a * boundary->size,  a, u * extension, v * extension);
-    boundary->add_clipping_plane(this->allocator, boundary->position - a * boundary->size, -a, u * extension, v * extension);
+    boundary->add_clipping_plane(this->allocator, boundary->position + a,  n, u * extension, v * extension);
+    boundary->add_clipping_plane(this->allocator, boundary->position - a, -n, u * extension, v * extension);
 }
 
 void World::make_root_volume(Resizable_Array<Triangle> *triangles) {
     tmFunction(TM_WORLD_COLOR);
     
+    /*
+    // nocheckin
     for(auto *clipping_plane : this->root_clipping_planes) {
         add_triangles_for_clipping_plane(triangles, clipping_plane);
     }
+    */
+
+    auto *clipping_plane = &this->root_clipping_planes[2];
+    add_triangles_for_clipping_plane(triangles, clipping_plane);
 }
 
 void World::create_octree() {
@@ -252,34 +265,57 @@ void World::create_octree() {
     }
 }
 
+void World::clip_all_boundaries() {
+    tmFunction(TM_WORLD_COLOR);
+
+    for(auto *boundary : this->boundaries) {
+        for(auto *plane : boundary->clipping_planes) {
+            // @Incomplete.
+        }
+    }
+}
+
 void World::calculate_volumes() {
     tmFunction(TM_WORLD_COLOR);
 
-    //
-    // Clip all boundaries against each other.
-    //
-    {
-        tmZone("clip_all_boundaries", TM_WORLD_COLOR);
+    this->clip_all_boundaries();
+
+    for(auto *anchor : this->anchors) {
+        this->make_root_volume(&anchor->volume);
 
         for(auto *boundary : this->boundaries) {
-            for(auto *plane : boundary->clipping_planes) {
-                // @Incomplete.
-            }
+            anchor->clip_against_boundary(boundary);
         }
     }
+}
 
-    //
-    // Create a volume for each anchor, and clip it against every boundary.
-    //
-    {
-        tmZone("build_all_volumes", TM_WORLD_COLOR);
 
-        for(auto *anchor : this->anchors) {
-            this->make_root_volume(&anchor->volume);
 
-            for(auto *boundary : this->boundaries) {
-                anchor->clip_against_boundary(boundary);
-            }
-        }
+void World::begin_calculate_volumes_stepping() {
+    tmFunction(TM_WORLD_COLOR);
+
+    this->clip_all_boundaries();
+
+    this->dbg_step_anchor_iterator = this->anchors.begin();
+    this->dbg_step_boundary_iterator = this->boundaries.begin();
+}
+
+void World::calculate_volumes_step() {
+    tmFunction(TM_WORLD_COLOR);
+
+    if(this->dbg_step_anchor_iterator == this->anchors.end()) return;
+
+    Anchor *anchor = this->dbg_step_anchor_iterator.pointer;
+
+    if(this->dbg_step_boundary_iterator == this->boundaries.begin()) this->make_root_volume(&anchor->volume);
+
+    Boundary *boundary = this->dbg_step_boundary_iterator.pointer;
+    anchor->clip_against_boundary(boundary);
+
+    ++this->dbg_step_boundary_iterator;
+
+    if(this->dbg_step_boundary_iterator == this->boundaries.end()) {
+        this->dbg_step_boundary_iterator = this->boundaries.begin();
+        ++this->dbg_step_anchor_iterator;
     }
 }

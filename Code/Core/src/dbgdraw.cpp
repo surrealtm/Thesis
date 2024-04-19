@@ -135,7 +135,7 @@ Debug_Draw_Data debug_draw_world(World *world, Debug_Draw_Options options) {
 
 	if(options & DEBUG_DRAW_Boundaries) {
 		for(auto *boundary : world->boundaries) {
-			_internal.cuboids.add({ boundary->position, boundary->size, boundary->dbg_rotation, dbg_boundary_color.r, dbg_boundary_color.g, dbg_boundary_color.b });
+			_internal.cuboids.add({ boundary->position, boundary->dbg_half_size, boundary->dbg_rotation, dbg_boundary_color.r, dbg_boundary_color.g, dbg_boundary_color.b });
 
             if(labels) _internal.texts.add({ boundary->position, boundary->dbg_name, dbg_label_color.r, dbg_label_color.g, dbg_label_color.b });
         }

@@ -17,6 +17,8 @@
 #load "panels.p";
 #load "draw.p";
 
+USE_DEBUG_DLL_BY_DEFAULT :: false;
+
 //
 // The viewer program obviously requires the Core dll, which is built into the Core subdirectory somewhere.
 // To make sure we always have the latest version, copy the file during compilation of the viewer into
@@ -28,7 +30,7 @@ copy_latest_dll :: #no_export () {
 
     dll_subpath: string = ---;
     
-    if use_debug_dll {
+    if USE_DEBUG_DLL_BY_DEFAULT || use_debug_dll {
         dll_subpath = "DebugDll\\Core.dll";
     } else {
         dll_subpath = "ReleaseDll\\Core.dll";
@@ -47,7 +49,7 @@ REQUESTED_FPS: f64 : 60;
 
 Viewer_Test :: struct {
     name: string;
-    proc: () -> World_Handle;
+    proc: (step_into: bool) -> World_Handle;
 }
 
 TESTS: []Viewer_Test : {
@@ -60,7 +62,7 @@ TESTS: []Viewer_Test : {
         .{ "center_block",  core_do_center_block_test },
 };
 
-STARTUP_TEST :: 3; // -1 means no startup test, else it is the index into the TESTS array.
+STARTUP_TEST :: 6; // -1 means no startup test, else it is the index into the TESTS array.
 // #assert(STARTUP_TEST >= -1 && STARTUP_TEST < TESTS.COUNT); // @Cleanup: This assert here makes the program not compile... Seems the type checker is broken.
 
 Viewer :: struct {
@@ -86,24 +88,34 @@ Viewer :: struct {
     
     // Core data.
     test_name: string;
-
+    stepping_mode: bool = false;
+    
     world_handle: World_Handle;
     debug_draw_data: Debug_Draw_Data;    
     profiling_data: Timing_Data;
     memory_information: Memory_Information;
     
     profiling_show_summary: bool;    
-    debug_draw_options: Debug_Draw_Options = .Octree | .Anchors | .Boundaries | .Clipping_Plane_Faces | .Clipping_Plane_Wireframes | .Volume_Wireframes | .Labels;
+    debug_draw_options: Debug_Draw_Options = .Octree | .Anchors | .Boundaries | .Clipping_Plane_Wireframes | .Volume_Wireframes | .Labels;
 }
 
 
 menu_bar :: (viewer: *Viewer) {
     ui_push_width(*viewer.ui, .Pixels, 80, 1);
     ui_push_height(*viewer.ui, .Pixels, 20, 1);
+
     ui_toggle_button_with_pointer(*viewer.ui, "Test...", xx *viewer.select_test_panel_state);
     ui_toggle_button_with_pointer(*viewer.ui, "Views", xx *viewer.debug_draw_options_panel_state);
     ui_toggle_button_with_pointer(*viewer.ui, "Profiler", xx *viewer.profiling_panel_state);
     ui_toggle_button_with_pointer(*viewer.ui, "Memory", xx *viewer.memory_panel_state);
+
+    ui_set_width(*viewer.ui, .Percentage_Of_Parent, 1, 0);
+    ui_spacer(*viewer.ui);
+
+    if viewer.stepping_mode && ui_button(*viewer.ui, "Step") core_do_world_step(viewer.world_handle, *viewer.debug_draw_data, viewer.debug_draw_options);
+    
+    ui_toggle_button_with_pointer(*viewer.ui, "Step Mode", *viewer.stepping_mode);
+    
     ui_pop_height(*viewer.ui);
     ui_pop_width(*viewer.ui);
 
@@ -145,7 +157,7 @@ one_viewer_frame :: (viewer: *Viewer) {
 
     {
         frame_info := sprint(*viewer.frame_allocator, "FPS: %, Time: %ms", cast(s64) (1 / viewer.window.frame_time), cast(s64) (viewer.window.frame_time * 1000));
-        gfx_draw_text_without_background(*viewer.gfx, *viewer.gfx.ui_font, frame_info, .{ xx viewer.window.width - 5, xx viewer.gfx.ui_font.line_height }, .Right, .{ 255, 255, 255, 255 });
+        gfx_draw_text_without_background(*viewer.gfx, *viewer.gfx.ui_font, frame_info, .{ xx viewer.window.width - 5, xx viewer.window.height - 5 }, .Right, .{ 255, 255, 255, 255 });
         gfx_flush_text(*viewer.gfx);
     }
 
@@ -164,7 +176,7 @@ run_test :: (viewer: *Viewer, test_index: s64) {
     destroy_test_data(viewer);
 
     core_begin_profiling();
-    viewer.world_handle = TESTS[test_index].proc();
+    viewer.world_handle = TESTS[test_index].proc(viewer.stepping_mode);
     core_stop_profiling();
     
     viewer.debug_draw_data = core_debug_draw_world(viewer.world_handle, viewer.debug_draw_options);

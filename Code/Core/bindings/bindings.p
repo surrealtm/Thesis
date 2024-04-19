@@ -13,13 +13,15 @@ core_destroy_world :: #foreign (world: World_Handle);
 
 /* ------------------------------------------------- Testing ------------------------------------------------- */
 
-core_do_house_test         :: #foreign () -> World_Handle;
-core_do_octree_test        :: #foreign () -> World_Handle;
-core_do_large_volumes_test :: #foreign () -> World_Handle;
-core_do_cutout_test        :: #foreign () -> World_Handle;
-core_do_circle_test        :: #foreign () -> World_Handle;
-core_do_u_shape_test       :: #foreign () -> World_Handle;
-core_do_center_block_test  :: #foreign () -> World_Handle;
+core_do_world_step :: #foreign (world: World_Handle, draw_data: *Debug_Draw_Data, draw_options: Debug_Draw_Options);
+
+core_do_house_test         :: #foreign (step_into: bool) -> World_Handle;
+core_do_octree_test        :: #foreign (step_into: bool) -> World_Handle;
+core_do_large_volumes_test :: #foreign (step_into: bool) -> World_Handle;
+core_do_cutout_test        :: #foreign (step_into: bool) -> World_Handle;
+core_do_circle_test        :: #foreign (step_into: bool) -> World_Handle;
+core_do_u_shape_test       :: #foreign (step_into: bool) -> World_Handle;
+core_do_center_block_test  :: #foreign (step_into: bool) -> World_Handle;
 
 
 
