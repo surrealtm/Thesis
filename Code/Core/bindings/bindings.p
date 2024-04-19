@@ -26,15 +26,16 @@ core_do_center_dash_test   :: #foreign () -> World_Handle;
 /* ------------------------------------------------ Debug Draw ------------------------------------------------ */
 
 Debug_Draw_Options :: enum {
-    Nothing           :: 0x0;
-    Octree            :: 0x1;
-    Anchors           :: 0x2;
-    Boundaries        :: 0x4;
-    Clipping_Planes   :: 0x8;
-    Volume_Faces      :: 0x10;
-    Volume_Wireframes :: 0x20;
-    Labels            :: 0x1000;
-    Everything        :: 0xffffffff;
+    Nothing                   :: 0x0;
+    Octree                    :: 0x1;
+    Anchors                   :: 0x2;
+    Boundaries                :: 0x4;
+    Clipping_Plane_Faces      :: 0x8;
+    Clipping_Plane_Wireframes :: 0x10;
+    Volume_Faces              :: 0x20;
+    Volume_Wireframes         :: 0x40;
+    Labels                    :: 0x1000;
+    Everything                :: 0xffffffff;
 }
 
 Debug_Draw_Line :: struct {

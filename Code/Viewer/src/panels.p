@@ -43,7 +43,8 @@ debug_draw_options_panel :: (viewer: *Viewer) {
         new_options = debug_draw_option_box(viewer, new_options, "Octree", .Octree);
         new_options = debug_draw_option_box(viewer, new_options, "Anchors", .Anchors);
         new_options = debug_draw_option_box(viewer, new_options, "Boundaries", .Boundaries);
-        new_options = debug_draw_option_box(viewer, new_options, "Clipping Planes", .Clipping_Planes);
+        new_options = debug_draw_option_box(viewer, new_options, "Clipping Plane Faces", .Clipping_Plane_Faces);
+        new_options = debug_draw_option_box(viewer, new_options, "Clipping Plane Wireframes", .Clipping_Plane_Wireframes);
         new_options = debug_draw_option_box(viewer, new_options, "Volume Faces", .Volume_Faces);
         new_options = debug_draw_option_box(viewer, new_options, "Volume Wireframes", .Volume_Wireframes);
         new_options = debug_draw_option_box(viewer, new_options, "Labels", .Labels);

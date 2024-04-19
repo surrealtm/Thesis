@@ -38,12 +38,13 @@ static f32 dbg_octree_depth_thickness_map[] = {
 };
 
 const f32 dbg_anchor_radius = 0.5f;
+const f32 dbg_triangle_wireframe_thickness = 0.2f;
 
 const Dbg_Draw_Color dbg_label_color          = { 255, 255, 255, 255 };
 const Dbg_Draw_Color dbg_anchor_color         = { 255, 100, 100, 255 };
 const Dbg_Draw_Color dbg_boundary_color       = { 100, 100, 100, 255 };
 const Dbg_Draw_Color dbg_clipping_plane_color = { 255,  60,  50, 100 };
-const Dbg_Draw_Color dbg_volume_color         = { 215,  15, 219, 200 };
+const Dbg_Draw_Color dbg_volume_color         = { 215,  15, 219, 100 };
 
 Allocator *dbg_alloc = Default_Allocator;
 
@@ -96,14 +97,22 @@ void debug_draw_octree(Dbg_Internal_Draw_Data &_internal, Octree *node, Octree_C
 }
 
 static
-void debug_draw_clipping_plane(Dbg_Internal_Draw_Data &_internal, Clipping_Plane *plane) {
+void debug_draw_clipping_plane(Dbg_Internal_Draw_Data &_internal, Clipping_Plane *plane, b8 wireframe) {
 	v3f p0 = plane->p + plane->u + plane->v;
 	v3f p1 = plane->p + plane->u - plane->v;
 	v3f p2 = plane->p - plane->u + plane->v;
 	v3f p3 = plane->p - plane->u - plane->v;
 
-	_internal.triangles.add({ p0, p1, p3, dbg_clipping_plane_color.r, dbg_clipping_plane_color.g, dbg_clipping_plane_color.b, dbg_clipping_plane_color.a });
-	_internal.triangles.add({ p0, p2, p3, dbg_clipping_plane_color.r, dbg_clipping_plane_color.g, dbg_clipping_plane_color.b, dbg_clipping_plane_color.a });
+	if(wireframe) {
+		_internal.lines.add({ p0, p1, dbg_triangle_wireframe_thickness, dbg_clipping_plane_color.r, dbg_clipping_plane_color.g, dbg_clipping_plane_color.b });
+		_internal.lines.add({ p0, p2, dbg_triangle_wireframe_thickness, dbg_clipping_plane_color.r, dbg_clipping_plane_color.g, dbg_clipping_plane_color.b });
+		_internal.lines.add({ p1, p3, dbg_triangle_wireframe_thickness, dbg_clipping_plane_color.r, dbg_clipping_plane_color.g, dbg_clipping_plane_color.b });
+		_internal.lines.add({ p2, p3, dbg_triangle_wireframe_thickness, dbg_clipping_plane_color.r, dbg_clipping_plane_color.g, dbg_clipping_plane_color.b });
+		_internal.lines.add({ p1, p2, dbg_triangle_wireframe_thickness, dbg_clipping_plane_color.r, dbg_clipping_plane_color.g, dbg_clipping_plane_color.b });
+	} else {
+		_internal.triangles.add({ p0, p1, p3, dbg_clipping_plane_color.r, dbg_clipping_plane_color.g, dbg_clipping_plane_color.b, dbg_clipping_plane_color.a });
+		_internal.triangles.add({ p0, p2, p3, dbg_clipping_plane_color.r, dbg_clipping_plane_color.g, dbg_clipping_plane_color.b, dbg_clipping_plane_color.a });
+	}
 }
 
 Debug_Draw_Data debug_draw_world(World *world, Debug_Draw_Options options) {
@@ -136,7 +145,7 @@ Debug_Draw_Data debug_draw_world(World *world, Debug_Draw_Options options) {
         }
 	}
 
-	if(options & DEBUG_DRAW_Clipping_Planes) {
+	if(options & DEBUG_DRAW_Clipping_Plane_Faces) {
 		/*
 		// Root clipping planes cause more confusion than good right now I think.
 		for(auto *root_plane : world->root_clipping_planes) {
@@ -146,15 +155,40 @@ Debug_Draw_Data debug_draw_world(World *world, Debug_Draw_Options options) {
 
         for(auto *boundary : world->boundaries) {
             for(auto *plane : boundary->clipping_planes) {
-                debug_draw_clipping_plane(_internal, plane);
+                debug_draw_clipping_plane(_internal, plane, false);
 			}
         }
     }
+
+	if(options & DEBUG_DRAW_Clipping_Plane_Wireframes) {
+		/*
+		// Root clipping planes cause more confusion than good right now I think.
+		for(auto *root_plane : world->root_clipping_planes) {
+			debug_draw_clipping_plane(_internal, root_plane);
+		}
+		*/
+
+        for(auto *boundary : world->boundaries) {
+            for(auto *plane : boundary->clipping_planes) {
+                debug_draw_clipping_plane(_internal, plane, true);
+			}
+        }		
+	}
 
 	if(options & DEBUG_DRAW_Volume_Faces) {
 		for(auto *anchor : world->anchors) {
 			for(auto *triangle : anchor->volume.triangles) {
 				_internal.triangles.add({ triangle->p0, triangle->p1, triangle->p2, dbg_volume_color.r, dbg_volume_color.g, dbg_volume_color.b, dbg_volume_color.a });
+			}
+		}
+	}
+
+	if(options & DEBUG_DRAW_Volume_Wireframes) {
+		for(auto *anchor : world->anchors) {
+			for(auto * triangle : anchor->volume.triangles) {
+				_internal.lines.add({ triangle->p0, triangle->p1, dbg_triangle_wireframe_thickness, dbg_volume_color.r, dbg_volume_color.g, dbg_volume_color.b });
+				_internal.lines.add({ triangle->p1, triangle->p2, dbg_triangle_wireframe_thickness, dbg_volume_color.r, dbg_volume_color.g, dbg_volume_color.b });
+				_internal.lines.add({ triangle->p2, triangle->p0, dbg_triangle_wireframe_thickness, dbg_volume_color.r, dbg_volume_color.g, dbg_volume_color.b });
 			}
 		}
 	}
