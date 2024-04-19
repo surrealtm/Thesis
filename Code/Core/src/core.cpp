@@ -5,60 +5,19 @@
 
 
 
-/* -------------------------------------------------- Volume -------------------------------------------------- */
+/* ------------------------------------------------- Objects ------------------------------------------------- */
 
-void Volume::recalculate_aabb() {
-    tmFunction(TM_VOLUME_COLOR);
-
-    this->aabb.max = v3f(MIN_F32);
-    this->aabb.min = v3f(MAX_F32);
-
-    for(auto *triangle : this->triangles) {
-        this->aabb.max.x = max(this->aabb.max.x, triangle->p0.x);
-        this->aabb.max.y = max(this->aabb.max.y, triangle->p0.y);
-        this->aabb.max.z = max(this->aabb.max.z, triangle->p0.z);
-
-        this->aabb.max.x = max(this->aabb.max.x, triangle->p1.x);
-        this->aabb.max.y = max(this->aabb.max.y, triangle->p1.y);
-        this->aabb.max.z = max(this->aabb.max.z, triangle->p1.z);
-
-        this->aabb.max.x = max(this->aabb.max.x, triangle->p2.x);
-        this->aabb.max.y = max(this->aabb.max.y, triangle->p2.y);
-        this->aabb.max.z = max(this->aabb.max.z, triangle->p2.z);
-
-        this->aabb.min.x = min(this->aabb.min.x, triangle->p0.x);
-        this->aabb.min.y = min(this->aabb.min.y, triangle->p0.y);
-        this->aabb.min.z = min(this->aabb.min.z, triangle->p0.z);
-
-        this->aabb.min.x = min(this->aabb.min.x, triangle->p1.x);
-        this->aabb.min.y = min(this->aabb.min.y, triangle->p1.y);
-        this->aabb.min.z = min(this->aabb.min.z, triangle->p1.z);
-
-        this->aabb.min.x = min(this->aabb.min.x, triangle->p2.x);
-        this->aabb.min.y = min(this->aabb.min.y, triangle->p2.y);
-        this->aabb.min.z = min(this->aabb.min.z, triangle->p2.z);
-    }
-
-    this->aabb_dirty = false;
-}
-
-void Volume::maybe_recalculate_aabb() {
-    if(this->aabb_dirty) this->recalculate_aabb();
-}
-
-void Volume::add_triangles_for_clipping_plane(Clipping_Plane *plane) {
+void add_triangles_for_clipping_plane(Resizable_Array<Triangle> * triangles, Clipping_Plane *plane) {
     v3f p0 = plane->p + plane->u + plane->v;
     v3f p1 = plane->p + plane->u - plane->v;
     v3f p2 = plane->p - plane->u + plane->v;
     v3f p3 = plane->p - plane->u - plane->v;
     
-    this->triangles.add({ p0, p1, p3 });
-    this->triangles.add({ p0, p2, p3 });
-
-    this->aabb_dirty = true;
+    triangles->add({ p0, p1, p3 });
+    triangles->add({ p0, p2, p3 });
 }
 
-void Volume::clip_vertex_against_plane(v3f *vertex, Clipping_Plane *plane) {
+void Anchor::clip_vertex_against_plane(v3f *vertex, Clipping_Plane *plane) {
     f32 distance = point_plane_distance_signed(*vertex, plane->p, plane->n);
     if(distance > 0) {
         vertex->x += plane->n.x * distance;
@@ -67,22 +26,20 @@ void Volume::clip_vertex_against_plane(v3f *vertex, Clipping_Plane *plane) {
     }
 }
 
-void Volume::clip_against_plane(Clipping_Plane *plane) {
+void Anchor::clip_against_plane(Clipping_Plane *plane) {
     tmFunction(TM_VOLUME_COLOR);
 
     // Don't clip against back-facing planes.
-    if(v3_dot_v3(plane->n, plane->p - this->anchor_point) > 0.f) return;
+    if(v3_dot_v3(plane->n, plane->p - this->position) > 0.f) return;
     
-    for(auto *triangle : this->triangles) {
+    for(auto *triangle : this->volume) {
         this->clip_vertex_against_plane(&triangle->p0, plane);    
         this->clip_vertex_against_plane(&triangle->p1, plane);    
         this->clip_vertex_against_plane(&triangle->p2, plane);    
     }
-    
-    this->aabb_dirty = true;
 }
 
-void Volume::clip_against_boundary(Boundary *boundary) {
+void Anchor::clip_against_boundary(Boundary *boundary) {
     tmFunction(TM_VOLUME_COLOR);
 
     for(auto *plane : boundary->clipping_planes) this->clip_against_plane(plane);
@@ -96,8 +53,8 @@ AABB aabb_from_position_and_size(v3f center, v3f half_sizes) {
     return { center - half_sizes, center + half_sizes };
 }
 
-Local_Axes local_axes_from_rotation(qtf rotation) {
-    return { qt_rotate(rotation, v3f(1, 0, 0)), qt_rotate(rotation, v3f(0, 1, 0)), qt_rotate(rotation, v3f(0, 0, 1)) };
+Local_Axes local_axes_rotated(qtf quat) {
+    return { qt_rotate(quat, v3f(1, 0, 0)), qt_rotate(quat, v3f(0, 1, 0)), qt_rotate(quat, v3f(0, 0, 1)) };
 }
 
 
@@ -220,7 +177,7 @@ Boundary *World::add_boundary(string name, v3f position, v3f size, v3f rotation)
     tmFunction(TM_WORLD_COLOR);
 
     qtf quaternion = qt_from_euler_turns(rotation);
-    Local_Axes local_axes = local_axes_from_rotation(quaternion);
+    Local_Axes local_axes = local_axes_rotated(quaternion);
 
     Boundary *boundary      = this->boundaries.push();
     boundary->position      = position;
@@ -294,20 +251,17 @@ f32 World::get_shortest_distance_to_root_clip(v3f position, v3f direction) {
     return least_distance;
 }
 
-Volume World::make_root_volume() {
+Resizable_Array<Triangle> World::make_root_volume() {
     tmFunction(TM_WORLD_COLOR);
 
-    Volume volume;
-    volume.triangles.allocator = this->allocator;
-    volume.aabb_dirty = true;
+    Resizable_Array<Triangle> triangles;
+    triangles.allocator = this->allocator;
 
     for(auto *clipping_plane : this->root_clipping_planes) {
-        volume.add_triangles_for_clipping_plane(clipping_plane);
+        add_triangles_for_clipping_plane(&triangles, clipping_plane);
     }
-
-    volume.maybe_recalculate_aabb();
     
-    return volume;
+    return triangles;
 }
 
 void World::create_octree() {
@@ -357,10 +311,9 @@ void World::calculate_volumes() {
 
         for(auto *anchor : this->anchors) {
             anchor->volume = this->make_root_volume();
-            anchor->volume.anchor_point = anchor->position;
             
             for(auto *boundary : this->boundaries) {
-                anchor->volume.clip_against_boundary(boundary);
+                anchor->clip_against_boundary(boundary);
             }
         }
     }

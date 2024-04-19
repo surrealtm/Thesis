@@ -37,27 +37,13 @@ struct AABB {
     v3f min, max;
 };
 
-struct Volume {
-    v3f anchor_point; // The position of the anchor. Somewhat wasteful... Might just include this entire struct in the Anchor?
-    Resizable_Array<Triangle> triangles;
-    AABB aabb;
-    b8 aabb_dirty;
-
-    void recalculate_aabb();
-    void maybe_recalculate_aabb();
-    void add_triangles_for_clipping_plane(Clipping_Plane *plane);
-    void clip_vertex_against_plane(v3f *vertex, Clipping_Plane *plane);
-    void clip_against_plane(Clipping_Plane *plane);
-    void clip_against_boundary(Boundary *boundary);
-};
-
 struct Local_Axes {
     v3f _[AXIS_COUNT];
     v3f &operator[](s64 index) { assert(index >= 0 && index <= AXIS_COUNT); return this->_[index]; }
 };
 
 AABB aabb_from_position_and_size(v3f center, v3f half_sizes);
-Local_Axes local_axes_from_rotation(qtf rotation);
+Local_Axes local_axes_rotated(qtf quat);
 
 
 
@@ -65,10 +51,14 @@ Local_Axes local_axes_from_rotation(qtf rotation);
 
 struct Anchor {
     v3f position;
-    Volume volume; // This volume is essentially the output of the algorithm.
+    Resizable_Array<Triangle> volume;
 
     // Only for debug drawing.
     string dbg_name;
+
+    void clip_vertex_against_plane(v3f *vertex, Clipping_Plane *plane);
+    void clip_against_plane(Clipping_Plane *plane);
+    void clip_against_boundary(Boundary *boundary);
 };
 
 struct Boundary {
@@ -167,7 +157,7 @@ struct World {
     f32 get_shortest_distance_to_root_clip(v3f position, v3f direction);
 
     // Creates a volume which spans the whole root area.
-    Volume make_root_volume();
+    Resizable_Array<Triangle> make_root_volume();
     
     void create_octree();
     void calculate_volumes();

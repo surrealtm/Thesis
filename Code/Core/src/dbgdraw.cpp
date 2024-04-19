@@ -177,7 +177,7 @@ Debug_Draw_Data debug_draw_world(World *world, Debug_Draw_Options options) {
 
 	if(options & DEBUG_DRAW_Volume_Faces) {
 		for(auto *anchor : world->anchors) {
-			for(auto *triangle : anchor->volume.triangles) {
+			for(auto *triangle : anchor->volume) {
 				_internal.triangles.add({ triangle->p0, triangle->p1, triangle->p2, dbg_volume_color.r, dbg_volume_color.g, dbg_volume_color.b, dbg_volume_color.a });
 			}
 		}
@@ -185,7 +185,7 @@ Debug_Draw_Data debug_draw_world(World *world, Debug_Draw_Options options) {
 
 	if(options & DEBUG_DRAW_Volume_Wireframes) {
 		for(auto *anchor : world->anchors) {
-			for(auto * triangle : anchor->volume.triangles) {
+			for(auto * triangle : anchor->volume) {
 				_internal.lines.add({ triangle->p0, triangle->p1, dbg_triangle_wireframe_thickness, dbg_volume_color.r, dbg_volume_color.g, dbg_volume_color.b });
 				_internal.lines.add({ triangle->p1, triangle->p2, dbg_triangle_wireframe_thickness, dbg_volume_color.r, dbg_volume_color.g, dbg_volume_color.b });
 				_internal.lines.add({ triangle->p2, triangle->p0, dbg_triangle_wireframe_thickness, dbg_volume_color.r, dbg_volume_color.g, dbg_volume_color.b });
