@@ -261,7 +261,7 @@ extern "C" {
         World *world = (World *) core_allocate_world();
         world->create(v3f(50, 10, 50));
 
-        Boundary *boundary = world->add_boundary("Boundary"_s, v3f(0, 0, 0), v3f(5, 5, 5), v3f(0));
+        Boundary *boundary = world->add_boundary("Boundary"_s, v3f(0, 0, 0), v3f(5, 5, 5), v3f(0.125, 0, 0.125));
         world->add_boundary_clipping_planes(boundary, AXIS_X);
         world->add_boundary_clipping_planes(boundary, AXIS_Z);
 

@@ -96,9 +96,8 @@ AABB aabb_from_position_and_size(v3f center, v3f half_sizes) {
     return { center - half_sizes, center + half_sizes };
 }
 
-Local_Axes local_axes_from_rotation(v3f euler_radians) {
-    // @Incomplete: This doesn't actually rotate the axes!
-    return { v3f(1, 0, 0), v3f(0, 1, 0), v3f(0, 0, 1) };
+Local_Axes local_axes_from_rotation(qtf rotation) {
+    return { qt_rotate(rotation, v3f(1, 0, 0)), qt_rotate(rotation, v3f(0, 1, 0)), qt_rotate(rotation, v3f(0, 0, 1)) };
 }
 
 
@@ -220,7 +219,8 @@ void World::add_anchor(string name, v3f position) {
 Boundary *World::add_boundary(string name, v3f position, v3f size, v3f rotation) {
     tmFunction(TM_WORLD_COLOR);
 
-    Local_Axes local_axes = local_axes_from_rotation(rotation);
+    qtf quaternion = qt_from_euler_turns(rotation);
+    Local_Axes local_axes = local_axes_from_rotation(quaternion);
 
     Boundary *boundary      = this->boundaries.push();
     boundary->position      = position;
@@ -231,7 +231,7 @@ Boundary *World::add_boundary(string name, v3f position, v3f size, v3f rotation)
     boundary->clipping_planes.allocator = this->allocator;
     
     boundary->dbg_name      = copy_string(this->allocator, name); // @Cleanup: This seems to be veryy fucking slow...
-    boundary->dbg_rotation  = rotation;
+    boundary->dbg_rotation  = quaternion;
     boundary->dbg_size      = size;
     
     return boundary;
@@ -314,7 +314,7 @@ void World::create_octree() {
     tmFunction(TM_WORLD_COLOR);
     
     //
-    // Insert all boundaris.
+    // Insert all boundaries.
     //
     for(auto *boundary : this->boundaries) {
         Octree *octree = this->root.get_octree_for_aabb(boundary->aabb, this->allocator);

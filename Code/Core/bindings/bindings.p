@@ -57,7 +57,7 @@ Debug_Draw_Text :: struct {
 Debug_Draw_Cuboid :: struct {
     position: v3f;
     size: v3f;
-    rotation: v3f;
+    rotation: quatf;
     r, g, b: u8;
 }
 

@@ -3,6 +3,7 @@
 #include "foundation.h"
 #include "strings.h"
 #include "math/v3.h"
+#include "math/qt.h"
 
 struct World;
 
@@ -38,7 +39,7 @@ struct Debug_Draw_Text {
 struct Debug_Draw_Cuboid {
     v3f position;
     v3f size;
-    v3f rotation; // In turns.
+    qtf rotation;
     u8 r, g, b;
 };
 

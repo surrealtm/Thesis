@@ -299,6 +299,7 @@
     <ClInclude Include="..\Foundation\src\foundation.h" />
     <ClInclude Include="..\Foundation\src\math\intersect.h" />
     <ClInclude Include="..\Foundation\src\math\math.h" />
+    <ClInclude Include="..\Foundation\src\math\qt.h" />
     <ClInclude Include="..\Foundation\src\math\v2.h" />
     <ClInclude Include="..\Foundation\src\math\v3.h" />
     <ClInclude Include="..\Foundation\src\math\v4.h" />

@@ -60,7 +60,7 @@ TESTS: []Viewer_Test : {
         .{ "center_dash",   core_do_center_dash_test },
 };
 
-STARTUP_TEST :: 0; // -1 means no startup test, else it is the index into the TESTS array.
+STARTUP_TEST :: 6; // -1 means no startup test, else it is the index into the TESTS array.
 // #assert(STARTUP_TEST >= -1 && STARTUP_TEST < TESTS.COUNT); // @Cleanup: This assert here makes the program not compile... Seems the type checker is broken.
 
 Viewer :: struct {

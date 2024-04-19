@@ -412,8 +412,8 @@ draw_sphere :: (renderer: *Renderer, center: v3f, size: v3f, color: GFX_Color) {
     draw_vertex_buffer(*renderer.sphere_buffer);
 }
 
-draw_cuboid :: (renderer: *Renderer, center: v3f, size: v3f, rotation: v3f, color: GFX_Color) {
-    transformation := make_transformation_matrix_with_v3f_rotation(center, rotation, size);
+draw_cuboid :: (renderer: *Renderer, center: v3f, size: v3f, rotation: quatf, color: GFX_Color) {
+    transformation := make_transformation_matrix_with_quat_rotation(center, rotation, size);
 
     set_cull_test(.Backfaces);
     set_depth_test(.Default);
@@ -515,7 +515,7 @@ uniform mat4 u_transformation;
 
 void main(void) {
     gl_Position = u_projection * u_view * u_transformation * vec4(in_position, 1.0);
-    pass_normal = in_normal;
+    pass_normal = normalize(u_transformation * vec4(in_normal, 0.0)).xyz;
 }
 
 @Fragment(330 core)

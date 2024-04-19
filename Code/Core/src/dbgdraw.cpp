@@ -137,9 +137,12 @@ Debug_Draw_Data debug_draw_world(World *world, Debug_Draw_Options options) {
 	}
 
 	if(options & DEBUG_DRAW_Clipping_Planes) {
+		/*
+		// Root clipping planes cause more confusion than good right now I think.
 		for(auto *root_plane : world->root_clipping_planes) {
 			debug_draw_clipping_plane(_internal, root_plane);
 		}
+		*/
 
         for(auto *boundary : world->boundaries) {
             for(auto *plane : boundary->clipping_planes) {

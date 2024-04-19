@@ -107,5 +107,8 @@
     <ClInclude Include="..\Foundation\src\threads.h">
       <Filter>Foundation</Filter>
     </ClInclude>
+    <ClInclude Include="..\Foundation\src\math\qt.h">
+      <Filter>Foundation</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

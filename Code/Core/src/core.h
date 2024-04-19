@@ -57,7 +57,7 @@ struct Local_Axes {
 };
 
 AABB aabb_from_position_and_size(v3f center, v3f half_sizes);
-Local_Axes local_axes_from_rotation(v3f euler_radians);
+Local_Axes local_axes_from_rotation(qtf rotation);
 
 
 
@@ -80,7 +80,7 @@ struct Boundary {
     // Only for debug drawing.
     string dbg_name;
     v3f dbg_size;
-    v3f dbg_rotation; // Euler-turns.
+    qtf dbg_rotation;
 };
 
 
