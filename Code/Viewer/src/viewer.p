@@ -57,10 +57,10 @@ TESTS: []Viewer_Test : {
         .{ "cutout",        core_do_cutout_test },
         .{ "circle",        core_do_circle_test },
         .{ "u_shape",       core_do_u_shape_test },
-        .{ "center_dash",   core_do_center_dash_test },
+        .{ "center_block",  core_do_center_block_test },
 };
 
-STARTUP_TEST :: 6; // -1 means no startup test, else it is the index into the TESTS array.
+STARTUP_TEST :: 3; // -1 means no startup test, else it is the index into the TESTS array.
 // #assert(STARTUP_TEST >= -1 && STARTUP_TEST < TESTS.COUNT); // @Cleanup: This assert here makes the program not compile... Seems the type checker is broken.
 
 Viewer :: struct {
@@ -106,6 +106,8 @@ menu_bar :: (viewer: *Viewer) {
     ui_toggle_button_with_pointer(*viewer.ui, "Memory", xx *viewer.memory_panel_state);
     ui_pop_height(*viewer.ui);
     ui_pop_width(*viewer.ui);
+
+    if viewer.window.key_pressed[.Escape] viewer.select_test_panel_state = !viewer.select_test_panel_state;
 }
 
 one_viewer_frame :: (viewer: *Viewer) {

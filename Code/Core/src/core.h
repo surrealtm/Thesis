@@ -9,7 +9,7 @@
 #define TM_SYSTEM_COLOR 0
 #define TM_WORLD_COLOR  1
 #define TM_OCTREE_COLOR 2
-#define TM_VOLUME_COLOR 3
+#define TM_ANCHOR_COLOR 3
 
 struct Boundary;
 
@@ -24,13 +24,13 @@ enum Axis {
 
 struct Triangle {
     v3f p0, p1, p2;
+    v3f n;
 };
 
 struct Clipping_Plane {
-    v3f p; // The center of this plane.
-    v3f n; // The unit normal of this plane, for intersection testing.
-    v3f u; // The scaled u vector, indicating the size and orientation of the plane.
-    v3f v; // The scaled v vector, indicating the size and orientation of the plane.
+    Clipping_Plane(Allocator *allocator, v3f p, v3f n, v3f u, v3f v);
+
+    Resizable_Array<Triangle> triangles;
 };
 
 struct AABB {
@@ -56,20 +56,22 @@ struct Anchor {
     // Only for debug drawing.
     string dbg_name;
 
-    void clip_vertex_against_plane(v3f *vertex, Clipping_Plane *plane);
+    void clip_vertex(v3f *vertex, Triangle *triangle);
     void clip_against_plane(Clipping_Plane *plane);
     void clip_against_boundary(Boundary *boundary);
 };
 
 struct Boundary {
     v3f position;
+    v3f size; // Used for putting the clipping planes at the corners of this boundary.
     Local_Axes local_axes; // The three coordinate axis in the local transform (meaning: rotated) of this boundary.
     AABB aabb;
     Resizable_Array<Clipping_Plane> clipping_planes; // Having this be a full-on dynamic array is pretty wasteful, since boundaries should only ever have between 1 and 3 clipping planes...  @@Speed.
 
+    void add_clipping_plane(Allocator *allocator, v3f p, v3f n, v3f u, v3f v);
+
     // Only for debug drawing.
     string dbg_name;
-    v3f dbg_size;
     qtf dbg_rotation;
 };
 
@@ -149,15 +151,10 @@ struct World {
     
     void add_anchor(string name, v3f position);
     Boundary *add_boundary(string name, v3f position, v3f size, v3f rotation);
-
-    void add_boundary_clipping_plane_checked(Boundary *boundary, v3f p, v3f n, v3f u, v3f v);
-    void add_boundary_clipping_plane_unchecked(Boundary *boundary, v3f p, v3f n, v3f u, v3f v); // This assumes correct u and v vectors!
     void add_boundary_clipping_planes(Boundary *boundary, Axis normal_axis);
     
-    f32 get_shortest_distance_to_root_clip(v3f position, v3f direction);
-
     // Creates a volume which spans the whole root area.
-    Resizable_Array<Triangle> make_root_volume();
+    void make_root_volume(Resizable_Array<Triangle> *triangles);
     
     void create_octree();
     void calculate_volumes();

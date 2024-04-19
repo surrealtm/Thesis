@@ -44,7 +44,7 @@ extern "C" {
     EXPORT World_Handle core_do_cutout_test();
     EXPORT World_Handle core_do_circle_test();
     EXPORT World_Handle core_do_u_shape_test();
-    EXPORT World_Handle core_do_center_dash_test();
+    EXPORT World_Handle core_do_center_block_test();
     
     
 

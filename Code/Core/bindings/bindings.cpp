@@ -193,7 +193,7 @@ extern "C" {
         world->add_boundary_clipping_planes(b3, AXIS_X);
 
         world->add_anchor("Inside"_s, v3f(0, 0, 0));
-        world->add_anchor("Outside"_s, v3f(0, 0, -10));
+        //        world->add_anchor("Outside"_s, v3f(0, 0, -10));
 
         world->create_octree();
         world->calculate_volumes();
@@ -255,7 +255,7 @@ extern "C" {
         return world;
     }
     
-    World_Handle core_do_center_dash_test() {
+    World_Handle core_do_center_block_test() {
         tmFunction(TM_SYSTEM_COLOR);
 
         World *world = (World *) core_allocate_world();
@@ -389,7 +389,7 @@ BOOL WINAPI DllMain(HINSTANCE hinstance, DWORD reason, LPVOID reserved) {
     tmSetColor(TM_SYSTEM_COLOR, 209, 202, 197);
     tmSetColor(TM_WORLD_COLOR,   95, 230,  46);
     tmSetColor(TM_OCTREE_COLOR,  46, 184, 230);
-    tmSetColor(TM_VOLUME_COLOR, 215,  15, 219);
+    tmSetColor(TM_ANCHOR_COLOR, 215,  15, 219);
     return true;
 }
 #endif

@@ -98,20 +98,16 @@ void debug_draw_octree(Dbg_Internal_Draw_Data &_internal, Octree *node, Octree_C
 
 static
 void debug_draw_clipping_plane(Dbg_Internal_Draw_Data &_internal, Clipping_Plane *plane, b8 wireframe) {
-	v3f p0 = plane->p + plane->u + plane->v;
-	v3f p1 = plane->p + plane->u - plane->v;
-	v3f p2 = plane->p - plane->u + plane->v;
-	v3f p3 = plane->p - plane->u - plane->v;
-
 	if(wireframe) {
-		_internal.lines.add({ p0, p1, dbg_triangle_wireframe_thickness, dbg_clipping_plane_color.r, dbg_clipping_plane_color.g, dbg_clipping_plane_color.b });
-		_internal.lines.add({ p0, p2, dbg_triangle_wireframe_thickness, dbg_clipping_plane_color.r, dbg_clipping_plane_color.g, dbg_clipping_plane_color.b });
-		_internal.lines.add({ p1, p3, dbg_triangle_wireframe_thickness, dbg_clipping_plane_color.r, dbg_clipping_plane_color.g, dbg_clipping_plane_color.b });
-		_internal.lines.add({ p2, p3, dbg_triangle_wireframe_thickness, dbg_clipping_plane_color.r, dbg_clipping_plane_color.g, dbg_clipping_plane_color.b });
-		_internal.lines.add({ p1, p2, dbg_triangle_wireframe_thickness, dbg_clipping_plane_color.r, dbg_clipping_plane_color.g, dbg_clipping_plane_color.b });
+		for(auto *triangle : plane->triangles) {
+			_internal.lines.add({ triangle->p0, triangle->p1, dbg_triangle_wireframe_thickness, dbg_clipping_plane_color.r, dbg_clipping_plane_color.g, dbg_clipping_plane_color.b });
+			_internal.lines.add({ triangle->p1, triangle->p2, dbg_triangle_wireframe_thickness, dbg_clipping_plane_color.r, dbg_clipping_plane_color.g, dbg_clipping_plane_color.b });
+			_internal.lines.add({ triangle->p2, triangle->p0, dbg_triangle_wireframe_thickness, dbg_clipping_plane_color.r, dbg_clipping_plane_color.g, dbg_clipping_plane_color.b });
+		}
 	} else {
-		_internal.triangles.add({ p0, p1, p3, dbg_clipping_plane_color.r, dbg_clipping_plane_color.g, dbg_clipping_plane_color.b, dbg_clipping_plane_color.a });
-		_internal.triangles.add({ p0, p2, p3, dbg_clipping_plane_color.r, dbg_clipping_plane_color.g, dbg_clipping_plane_color.b, dbg_clipping_plane_color.a });
+		for(auto *triangle : plane->triangles) {
+			_internal.triangles.add({ triangle->p0, triangle->p1, triangle->p2, dbg_clipping_plane_color.r, dbg_clipping_plane_color.g, dbg_clipping_plane_color.b, dbg_clipping_plane_color.a });
+		}
 	}
 }
 
@@ -139,7 +135,7 @@ Debug_Draw_Data debug_draw_world(World *world, Debug_Draw_Options options) {
 
 	if(options & DEBUG_DRAW_Boundaries) {
 		for(auto *boundary : world->boundaries) {
-			_internal.cuboids.add({ boundary->position, boundary->dbg_size, boundary->dbg_rotation, dbg_boundary_color.r, dbg_boundary_color.g, dbg_boundary_color.b });
+			_internal.cuboids.add({ boundary->position, boundary->size, boundary->dbg_rotation, dbg_boundary_color.r, dbg_boundary_color.g, dbg_boundary_color.b });
 
             if(labels) _internal.texts.add({ boundary->position, boundary->dbg_name, dbg_label_color.r, dbg_label_color.g, dbg_label_color.b });
         }
