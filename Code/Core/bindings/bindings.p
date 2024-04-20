@@ -23,6 +23,8 @@ core_do_circle_test        :: #foreign (step_into: bool) -> World_Handle;
 core_do_u_shape_test       :: #foreign (step_into: bool) -> World_Handle;
 core_do_center_block_test  :: #foreign (step_into: bool) -> World_Handle;
 
+core_do_jobs_test :: #foreign (step_into: bool) -> World_Handle;
+
 
 
 /* ------------------------------------------------ Debug Draw ------------------------------------------------ */
@@ -110,13 +112,16 @@ Timing_Summary_Entry :: struct {
 }
 
 Timing_Data :: struct {
-    timeline: *Timing_Timeline_Entry;
-    timeline_count: s64;
+    timelines: **Timing_Timeline_Entry;
+    timelines_entry_count: *s64;
+    timelines_count: s64;
+    
     summary: *Timing_Summary_Entry;
     summary_count: s64;
 
     total_time_in_nanoseconds: s64;
     total_overhead_time_in_nanoseconds: s64;
+    total_overhead_space_in_bytes: s64;
 }
 
 core_begin_profiling     :: #foreign ();

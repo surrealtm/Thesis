@@ -57,6 +57,9 @@
     <ClCompile Include="..\Foundation\src\threads.cpp">
       <Filter>Foundation</Filter>
     </ClCompile>
+    <ClCompile Include="..\Foundation\src\jobs.cpp">
+      <Filter>Foundation</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Foundation\src\fileio.h">
@@ -108,6 +111,9 @@
       <Filter>Foundation</Filter>
     </ClInclude>
     <ClInclude Include="..\Foundation\src\math\qt.h">
+      <Filter>Foundation</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Foundation\src\jobs.h">
       <Filter>Foundation</Filter>
     </ClInclude>
   </ItemGroup>

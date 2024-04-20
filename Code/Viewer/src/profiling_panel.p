@@ -18,7 +18,7 @@ get_best_time_resolution :: (nanoseconds: f64) -> f64, Time_Resolution {
     adjusted_time: f64 = xx nanoseconds;
     
     resolution := Time_Resolution.Nanoseconds;
-    while adjusted_time >= 1000 {
+    while resolution > .Seconds && adjusted_time >= 1000 {
         adjusted_time /= 1000;
         --resolution;
     }
@@ -73,73 +73,8 @@ draw_profiling_timeline :: (*void, element: *UI_Element, data: *Profiling_UI_Dat
         (available_width / (total_time_in_nanoseconds / 1000.)),        // Microseconds
         (available_width / (total_time_in_nanoseconds / 1)),            // Nanoseconds
     };
-    
-    //
-    // Render the actual timeline.
-    //
-    low_x_clamp : f64 = xx (element.screen_position.x);
-    high_x_clamp: f64 = xx (element.screen_position.x + element.screen_size.x);
 
-    low_y_clamp : f64 = xx (element.screen_position.y);
-    high_y_clamp: f64 = xx (element.screen_position.y + element.screen_size.y);
-
-    for i := 0; i < viewer.profiling_data.timeline_count; ++i {
-        entry  := *viewer.profiling_data.timeline[i];
-
-        start_time, start_time_unit       := get_best_time_resolution(xx entry.start_in_nanoseconds);
-        end_time, end_time_unit           := get_best_time_resolution(xx entry.end_in_nanoseconds);
-        duration_time, duration_time_unit := get_best_time_resolution(xx (entry.end_in_nanoseconds - entry.start_in_nanoseconds));
         
-        entry_x0: f64 = round(x0 + start_time * width_per_time_unit[start_time_unit]);
-        entry_y0: f64 = round(y0 + (cast(f64) entry.depth + 2) * PROFILING_BAR_HEIGHT);
-
-        entry_x1: f64 = round(x0 + end_time * width_per_time_unit[end_time_unit]);
-        entry_y1: f64 = round(y0 + (cast(f64) entry.depth + 3) * PROFILING_BAR_HEIGHT);
-        
-        if (xx entry_x1 < element.screen_position.x) || (xx entry_x0 > element.screen_position.x + element.screen_size.x) continue;
-
-        entry_y0 = clamp(entry_y0, low_y_clamp, high_y_clamp);
-        entry_y1 = clamp(entry_y1, low_y_clamp, high_y_clamp);
-        
-        if duration_time * width_per_time_unit[duration_time_unit] > 2 {
-            entry_x0 = clamp(entry_x0, low_x_clamp, high_x_clamp);
-            entry_x1 = clamp(entry_x1, low_x_clamp, high_x_clamp);
-            
-            text   := v2f.{ xx (entry_x0),                xx (entry_y1 + xx gfx.ui_font.descender) };
-            center := v2f.{ xx (entry_x0 + entry_x1) / 2, xx (entry_y0 + entry_y1) / 2 };
-            size   := v2f.{ xx (entry_x1 - entry_x0),     xx (entry_y1 - entry_y0) };
-
-            bg_color: GFX_Color = .{ entry.r, entry.g, entry.b, 255 };
-            fg_color: GFX_Color = .{ 255, 255, 255, 255 };
-
-            string := sprint(*viewer.frame_allocator, "%, %*%", entry.name, duration_time, time_resolution_suffix(duration_time_unit));
-
-            string_size := gfx_calculate_ui_text_size(gfx, string);
-            if text.x < element.screen_position.x text.x = element.screen_position.x;
-
-            if text.x + string_size.x + 5 < center.x + size.x / 2    text.x += 5;
-
-            gfx_draw_quad(gfx, center, size, bg_color);
-            gfx_draw_outlined_quad(gfx, center, size, 2, .{ bg_color.r + 20, bg_color.g + 20, bg_color.b + 20, 255 });
-            gfx_flush_quads(gfx); // So that the text gets rendered on top of this...
-            
-            combine_scissors(gfx, .{ element.screen_position.x, element.screen_position.y }, .{ element.screen_position.x + element.screen_size.x, element.screen_position.y + element.screen_size.y }, .{ center.x - size.x / 2, center.y - size.y / 2 }, .{ center.x + size.x / 2, center.y + size.y / 2 });
-            gfx_draw_text_with_background(gfx, *gfx.ui_font, string, text, .Left, fg_color, bg_color);
-            gfx_flush_text(gfx); // Due to scissoring
-            gfx_clear_scissors(gfx);
-        } else {
-            entry_center := round((entry_x0 + entry_x1) / 2);
-            entry_x0 = clamp(entry_center - 1, low_x_clamp, high_x_clamp);
-            entry_x1 = clamp(entry_center + 1, low_x_clamp, high_x_clamp);
-
-            center := v2f.{ xx (entry_x0 + entry_x1) / 2, xx (entry_y0 + entry_y1) / 2 };
-            size   := v2f.{ xx (entry_x1 - entry_x0),     xx (entry_y1 - entry_y0) };
-
-            bg_color: GFX_Color = .{ 84, 95, 135, 255 };
-            gfx_draw_quad(gfx, center, size, bg_color);
-        }
-    }
-
     //
     // Add more vertical markers at specific time intervals.
     //
@@ -178,6 +113,104 @@ draw_profiling_timeline :: (*void, element: *UI_Element, data: *Profiling_UI_Dat
         for x := -fmod(screen_x0_offset, interval_width); x <= xx element.screen_size.x; x += interval_width {
             draw_profiling_marker(gfx, element, x + xx element.screen_position.x, 10);
         }
+
+        gfx_flush_quads(*viewer.gfx);
+    }
+    
+    //
+    // Render the actual timeline.
+    //
+    low_x_clamp : f64 = xx (element.screen_position.x);
+    high_x_clamp: f64 = xx (element.screen_position.x + element.screen_size.x);
+
+    low_y_clamp : f64 = xx (element.screen_position.y);
+    high_y_clamp: f64 = xx (element.screen_position.y + element.screen_size.y);
+
+    thread_x0 := x0;
+    thread_y0 := y0 + PROFILING_BAR_HEIGHT;
+
+    for i := 0; i < viewer.profiling_data.timelines_count; ++i {
+        deepest_thread_y := thread_y0;
+
+        //
+        // Draw a text describing this thread on the left border of the timeline.
+        //
+        {
+            fg_color: GFX_Color = .{ 255, 255, 255, 255 };
+            position: v2f = .{ xx (x0 - 5), xx (thread_y0 + PROFILING_BAR_HEIGHT - cast(f64) gfx.ui_font.ascender / 2.0) };
+            
+            string := sprint(*viewer.frame_allocator, "Thread %", i);
+            combine_scissors(gfx, .{ element.screen_position.x, element.screen_position.y }, .{ element.screen_position.x + element.screen_size.x, element.screen_position.y + element.screen_size.y }, .{ xx x0 - 100, element.screen_position.y }, .{ xx x0, element.screen_position.y + element.screen_size.y });
+            gfx_draw_text_without_background(gfx, *gfx.ui_font, string, position, .Right, fg_color);
+            gfx_flush_text(gfx); // Due to scissoring
+            gfx_clear_scissors(gfx);
+        }
+            
+        //
+        // Draw the actual timeline entries.
+        //
+        for j := 0; j < viewer.profiling_data.timelines_entry_count[i]; ++j {
+            entry  := *viewer.profiling_data.timelines[i][j];
+
+            start_time, start_time_unit       := get_best_time_resolution(xx entry.start_in_nanoseconds);
+            end_time, end_time_unit           := get_best_time_resolution(xx entry.end_in_nanoseconds);
+            duration_time, duration_time_unit := get_best_time_resolution(xx (entry.end_in_nanoseconds - entry.start_in_nanoseconds));
+            
+            if duration_time * width_per_time_unit[duration_time_unit] < 0.5 continue; // It is wayy to small to be useful...
+            
+            entry_x0: f64 = round(thread_x0 + start_time * width_per_time_unit[start_time_unit]);
+            entry_y0: f64 = round(thread_y0 + (cast(f64) entry.depth) * PROFILING_BAR_HEIGHT);
+
+            entry_x1: f64 = round(thread_x0 + end_time * width_per_time_unit[end_time_unit]);
+            entry_y1: f64 = round(thread_y0 + (cast(f64) entry.depth + 1) * PROFILING_BAR_HEIGHT);
+            
+            if entry_y1 > deepest_thread_y deepest_thread_y = entry_y1;
+
+            if (xx entry_x1 < element.screen_position.x) || (xx entry_x0 > element.screen_position.x + element.screen_size.x) continue;
+
+            entry_y0 = clamp(entry_y0, low_y_clamp, high_y_clamp);
+            entry_y1 = clamp(entry_y1, low_y_clamp, high_y_clamp);
+            
+            if duration_time * width_per_time_unit[duration_time_unit] > 2 {
+                entry_x0 = clamp(entry_x0, low_x_clamp, high_x_clamp);
+                entry_x1 = clamp(entry_x1, low_x_clamp, high_x_clamp);
+                
+                text   := v2f.{ xx (entry_x0),                xx (entry_y1 + xx gfx.ui_font.descender) };
+                center := v2f.{ xx (entry_x0 + entry_x1) / 2, xx (entry_y0 + entry_y1) / 2 };
+                size   := v2f.{ xx (entry_x1 - entry_x0),     xx (entry_y1 - entry_y0) };
+
+                bg_color: GFX_Color = .{ entry.r, entry.g, entry.b, 255 };
+                fg_color: GFX_Color = .{ 255, 255, 255, 255 };
+
+                string := sprint(*viewer.frame_allocator, "%, %*%", entry.name, duration_time, time_resolution_suffix(duration_time_unit));
+
+                string_size := gfx_calculate_ui_text_size(gfx, string);
+                if text.x < element.screen_position.x text.x = element.screen_position.x;
+
+                if text.x + string_size.x + 5 < center.x + size.x / 2    text.x += 5;
+
+                gfx_draw_quad(gfx, center, size, bg_color);
+                gfx_draw_outlined_quad(gfx, center, size, 2, .{ bg_color.r + 20, bg_color.g + 20, bg_color.b + 20, 255 });
+                gfx_flush_quads(gfx); // So that the text gets rendered on top of this...
+                
+                combine_scissors(gfx, .{ element.screen_position.x, element.screen_position.y }, .{ element.screen_position.x + element.screen_size.x, element.screen_position.y + element.screen_size.y }, .{ center.x - size.x / 2, center.y - size.y / 2 }, .{ center.x + size.x / 2, center.y + size.y / 2 });
+                gfx_draw_text_with_background(gfx, *gfx.ui_font, string, text, .Left, fg_color, bg_color);
+                gfx_flush_text(gfx); // Due to scissoring
+                gfx_clear_scissors(gfx);
+            } else {
+                entry_center := round((entry_x0 + entry_x1) / 2);
+                entry_x0 = clamp(entry_center - 1, low_x_clamp, high_x_clamp);
+                entry_x1 = clamp(entry_center + 1, low_x_clamp, high_x_clamp);
+
+                center := v2f.{ xx (entry_x0 + entry_x1) / 2, xx (entry_y0 + entry_y1) / 2 };
+                size   := v2f.{ xx (entry_x1 - entry_x0),     xx (entry_y1 - entry_y0) };
+
+                bg_color: GFX_Color = .{ 84, 95, 135, 255 };
+                gfx_draw_quad(gfx, center, size, bg_color);
+            }
+        }
+
+        thread_y0 = deepest_thread_y + 2 * PROFILING_BAR_HEIGHT;
     }
 
     //
@@ -220,11 +253,12 @@ update_profiling_timeline :: (input: UI_Input, element: *UI_Element, data: *Prof
     if interacted_with_widget && input.mouse_wheel_turns != 0 && data.viewer.window.key_held[.Shift] {
         data.target_center.y -= xx input.mouse_wheel_turns * element.screen_size.y / 5;
     }
-    
-    data.current_zoom     += (data.target_zoom   - data.current_zoom)       * data.viewer.window.frame_time * 10;
-    data.current_center.x += (data.target_center.x - data.current_center.x) * data.viewer.window.frame_time * 10;
-    data.current_center.y += (data.target_center.y - data.current_center.y) * data.viewer.window.frame_time * 10;
 
+    rate := clamp(data.viewer.window.frame_time * 10, 0, 1);
+    data.current_zoom     += (data.target_zoom   - data.current_zoom)       * rate;
+    data.current_center.x += (data.target_center.x - data.current_center.x) * rate;
+    data.current_center.y += (data.target_center.y - data.current_center.y) * rate;
+    
     if interacted_with_widget && data.viewer.window.button_pressed[.Left] reset_profiling_data(data, .{ element.screen_size.x, element.screen_size.y });
 }
 
@@ -269,7 +303,6 @@ profiling_panel :: (viewer: *Viewer) {
                 if ui_button(*viewer.ui, profiling_mode_string(true)) viewer.profiling_show_summary = true;
             }
             ui_pop_dropdown(*viewer.ui);
-            ui_pop_width(*viewer.ui);
 
             ui_set_width(*viewer.ui, .Percentage_Of_Parent, 1, 0);
             ui_spacer(*viewer.ui);
@@ -279,12 +312,20 @@ profiling_panel :: (viewer: *Viewer) {
             ui_label(*viewer.ui, true, "Overhead time: %*%", overhead_time, time_resolution_suffix(overhead_time_unit));
 
             ui_set_width(*viewer.ui, .Percentage_Of_Parent, 1, 0);
+            ui_spacer(*viewer.ui);           
+            
+            overhead_space, overhead_space_unit := get_best_memory_unit(viewer.profiling_data.total_overhead_space_in_bytes);
+            ui_set_width(*viewer.ui, .Label_Size, 0, 1);
+            ui_label(*viewer.ui, true, "Overhead space: %*%", overhead_space, memory_unit_suffix(overhead_space_unit));
+
+            ui_set_width(*viewer.ui, .Percentage_Of_Parent, 1, 0);
             ui_spacer(*viewer.ui);
 
             if ui_button(*viewer.ui, "Reset") {
                 reset_timeline = true;
             }
             
+            ui_pop_width(*viewer.ui);
             ui_pop_container(*viewer.ui);
         }
 

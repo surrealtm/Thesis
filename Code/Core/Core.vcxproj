@@ -282,6 +282,7 @@
   <ItemGroup>
     <ClCompile Include="..\Foundation\src\fileio.cpp" />
     <ClCompile Include="..\Foundation\src\foundation.cpp" />
+    <ClCompile Include="..\Foundation\src\jobs.cpp" />
     <ClCompile Include="..\Foundation\src\math\intersect.cpp" />
     <ClCompile Include="..\Foundation\src\memutils.cpp" />
     <ClCompile Include="..\Foundation\src\random.cpp" />
@@ -297,6 +298,7 @@
   <ItemGroup>
     <ClInclude Include="..\Foundation\src\fileio.h" />
     <ClInclude Include="..\Foundation\src\foundation.h" />
+    <ClInclude Include="..\Foundation\src\jobs.h" />
     <ClInclude Include="..\Foundation\src\math\intersect.h" />
     <ClInclude Include="..\Foundation\src\math\math.h" />
     <ClInclude Include="..\Foundation\src\math\qt.h" />

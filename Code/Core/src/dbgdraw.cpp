@@ -206,16 +206,21 @@ Debug_Draw_Data debug_draw_world(World *world, Debug_Draw_Options options) {
 void free_debug_draw_data(Debug_Draw_Data *data) {
 	dbg_alloc->deallocate(data->lines);
 	data->line_count = 0;
-
+    data->lines = null;
+    
 	dbg_alloc->deallocate(data->triangles);
 	data->triangle_count = 0;
-
+    data->triangles = null;
+    
 	dbg_alloc->deallocate(data->texts);
 	data->text_count = 0;
-
+    data->texts = null;
+    
 	dbg_alloc->deallocate(data->cuboids);
 	data->cuboid_count = 0;
-
+    data->cuboids = null;
+    
 	dbg_alloc->deallocate(data->spheres);
 	data->sphere_count = 0;
+    data->spheres = null;
 }

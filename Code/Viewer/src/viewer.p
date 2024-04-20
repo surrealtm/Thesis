@@ -64,9 +64,10 @@ TESTS: []Viewer_Test : {
         .{ "circle",        core_do_circle_test },
         .{ "u_shape",       core_do_u_shape_test },
         .{ "center_block",  core_do_center_block_test },
+        .{ "jobs",          core_do_jobs_test },
 };
 
-STARTUP_TEST :: 6; // -1 means no startup test, else it is the index into the TESTS array.
+STARTUP_TEST :: 7; // -1 means no startup test, else it is the index into the TESTS array.
 // #assert(STARTUP_TEST >= -1 && STARTUP_TEST < TESTS.COUNT); // @Cleanup: This assert here makes the program not compile... Seems the type checker is broken.
 
 Viewer :: struct {
@@ -116,7 +117,7 @@ menu_bar :: (viewer: *Viewer) {
     ui_set_width(*viewer.ui, .Percentage_Of_Parent, 1, 0);
     ui_spacer(*viewer.ui);
 
-    if viewer.stepping_mode && (ui_button(*viewer.ui, "Step") || viewer.window.key_pressed[.Space]) {
+    if viewer.stepping_mode && viewer.world_handle != null && (ui_button(*viewer.ui, "Step") || viewer.window.key_pressed[.Space]) {
         core_do_world_step(viewer.world_handle, *viewer.debug_draw_data, viewer.debug_draw_options);
     }
     
@@ -184,10 +185,13 @@ run_test :: (viewer: *Viewer, test_index: s64) {
     core_begin_profiling();
     viewer.world_handle = TESTS[test_index].proc(viewer.stepping_mode);
     core_stop_profiling();
+
+    if viewer.world_handle != null {
+        viewer.debug_draw_data    = core_debug_draw_world(viewer.world_handle, viewer.debug_draw_options);
+        viewer.memory_information = core_get_memory_information(viewer.world_handle);
+    }
     
-    viewer.debug_draw_data = core_debug_draw_world(viewer.world_handle, viewer.debug_draw_options);
     viewer.profiling_data  = core_get_profiling_data();
-    viewer.memory_information = core_get_memory_information(viewer.world_handle);
     viewer.test_name       = TESTS[test_index].name;
     
     set_window_name(*viewer.window, sprint(*viewer.frame_allocator, "Viewer: %", viewer.test_name));
@@ -201,7 +205,7 @@ rebuild_debug_draw_data :: (viewer: *Viewer) {
 }
 
 destroy_test_data :: (viewer: *Viewer) {
-    if viewer.world_handle core_destroy_world(viewer.world_handle);
+    core_destroy_world(viewer.world_handle);
     core_free_profiling_data(*viewer.profiling_data);
     core_free_debug_draw_data(*viewer.debug_draw_data);
 }

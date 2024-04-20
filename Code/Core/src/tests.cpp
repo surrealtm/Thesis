@@ -1,12 +1,8 @@
 #include "../bindings/bindings.h"
+#include "../src/jobs.h"
 
 int main() {
-    tmBegin();
-    World_Handle world = core_do_octree_test(false);
-    tmFinish();
-
-    core_print_profiling(false);
-    core_print_memory_information(world);
-
+    World_Handle world = core_do_jobs_test(false);
+    core_destroy_world(world);
     return 0;
 }
