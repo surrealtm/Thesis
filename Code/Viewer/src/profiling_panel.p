@@ -83,20 +83,24 @@ draw_profiling_timeline :: (*void, element: *UI_Element, data: *Profiling_UI_Dat
         
         {
             // Gray out the left part of the timeline, meaning before the timeline actually starts.
-            width: f64 = clamp(x0 - xx element.screen_position.x, 0, xx element.screen_size.x);
-            if width > 0 {
-                center := v2f.{ element.screen_position.x + xx width / 2, element.screen_position.y + element.screen_size.y / 2 };
-                size   := v2f.{ xx width, element.screen_size.y };
+            gray_x0: f64 = round(xx element.screen_position.x);
+            gray_x1: f64 = clamp(round(x0), xx element.screen_position.x, xx (element.screen_position.x + element.screen_size.x));
+            
+            if gray_x1 > gray_x0 {
+                center := v2f.{ xx (gray_x0 + gray_x1) / 2, element.screen_position.y + element.screen_size.y / 2 };
+                size   := v2f.{ xx (gray_x1 - gray_x0), element.screen_size.y };
                 gfx_draw_quad(gfx, center, size, grayed_color);
             }
         }
 
         {
             // Gray out the right part of the timeline, meaning before the timeline actually starts.
-            width: f64 = clamp(xx (element.screen_position.x + element.screen_size.x) - (x0 + w), 0, xx element.screen_size.x);
-            if width > 0 {
-                center := v2f.{ element.screen_position.x + element.screen_size.x - xx width / 2, element.screen_position.y + element.screen_size.y / 2 };
-                size   := v2f.{ xx width, element.screen_size.y };
+            gray_x0: f64 = clamp(round(x0 + w), xx element.screen_position.x, xx (element.screen_position.x + element.screen_size.x));
+            gray_x1: f64 = round(xx (element.screen_position.x + element.screen_size.x));
+            
+            if gray_x1 > gray_x0 {
+                center := v2f.{ xx (gray_x0 + gray_x1) / 2, element.screen_position.y + element.screen_size.y / 2 };
+                size   := v2f.{ xx (gray_x1 - gray_x0), element.screen_size.y };
                 gfx_draw_quad(gfx, center, size, grayed_color);
             }
         }
@@ -135,7 +139,7 @@ draw_profiling_timeline :: (*void, element: *UI_Element, data: *Profiling_UI_Dat
         //
         // Draw a text describing this thread on the left border of the timeline.
         //
-        {
+        if viewer.profiling_data.timelines_count > 1 {
             fg_color: GFX_Color = .{ 255, 255, 255, 255 };
             position: v2f = .{ xx (x0 - 5), xx (thread_y0 + PROFILING_BAR_HEIGHT - cast(f64) gfx.ui_font.ascender / 2.0) };
             
@@ -236,6 +240,7 @@ update_profiling_timeline :: (input: UI_Input, element: *UI_Element, data: *Prof
     
     if interacted_with_widget && data.viewer.window.button_held[.Right] {
         data.target_center.x -= xx data.viewer.window.mouse_delta_x;
+        data.target_center.y -= xx data.viewer.window.mouse_delta_y;
     }
     
     if interacted_with_widget && input.mouse_wheel_turns != 0 && !data.viewer.window.key_held[.Shift] {
@@ -342,7 +347,7 @@ profiling_panel :: (viewer: *Viewer) {
                 ui_push_fixed_container(*viewer.ui, .Horizontal);
                 ui_set_width(*viewer.ui, .Pixels, 5, 1);
                 ui_spacer(*viewer.ui);
-                ui_set_width(*viewer.ui, .Percentage_Of_Parent, .5, .8);
+                ui_set_width(*viewer.ui, .Percentage_Of_Parent, .4, .8);
                 ui_label(*viewer.ui, false, "Name");
                 ui_set_width(*viewer.ui, .Percentage_Of_Parent, .2, .8);
                 ui_label(*viewer.ui, false, "Inclusive");
@@ -350,6 +355,8 @@ profiling_panel :: (viewer: *Viewer) {
                 ui_label(*viewer.ui, false, "Exclusive");
                 ui_set_width(*viewer.ui, .Percentage_Of_Parent, .1, .8);
                 ui_label(*viewer.ui, false, "Count");
+                ui_set_width(*viewer.ui, .Percentage_Of_Parent, .1, .8);
+                ui_label(*viewer.ui, false, "MTPC");
                 ui_pop_container(*viewer.ui);
 
                 ui_set_width(*viewer.ui, .Pixels, width, 1);
@@ -363,10 +370,11 @@ profiling_panel :: (viewer: *Viewer) {
 
                     inclusive_time, inclusive_unit := get_best_time_resolution(cast(f64) entry.inclusive_time_in_nanoseconds);
                     exclusive_time, exclusive_unit := get_best_time_resolution(cast(f64) entry.exclusive_time_in_nanoseconds);
-                    
+                    mtpc_time, mtpc_unit := get_best_time_resolution(cast(f64) entry.inclusive_time_in_nanoseconds / cast(f64) entry.count);
+                                        
                     ui_set_width(*viewer.ui, .Pixels, 5, 1);
                     ui_spacer(*viewer.ui);
-                    ui_set_width(*viewer.ui, .Percentage_Of_Parent, .5, .8);
+                    ui_set_width(*viewer.ui, .Percentage_Of_Parent, .4, .8);
                     ui_label(*viewer.ui, false, "%", entry.name);
                     ui_set_width(*viewer.ui, .Percentage_Of_Parent, .2, .8);
                     ui_label(*viewer.ui, false, "%*%", inclusive_time, time_resolution_suffix(inclusive_unit));
@@ -374,6 +382,8 @@ profiling_panel :: (viewer: *Viewer) {
                     ui_label(*viewer.ui, false, "%*%", exclusive_time, time_resolution_suffix(exclusive_unit));
                     ui_set_width(*viewer.ui, .Percentage_Of_Parent, .1, .8);
                     ui_label(*viewer.ui, false, "%", entry.count);
+                    ui_set_width(*viewer.ui, .Percentage_Of_Parent, .1, .8);
+                    ui_label(*viewer.ui, false, "%*%", mtpc_time, time_resolution_suffix(mtpc_unit));
 
                     ui_pop_container(*viewer.ui);
                 }

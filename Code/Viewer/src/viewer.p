@@ -67,7 +67,7 @@ TESTS: []Viewer_Test : {
         .{ "jobs",          core_do_jobs_test },
 };
 
-STARTUP_TEST :: 7; // -1 means no startup test, else it is the index into the TESTS array.
+STARTUP_TEST :: 1; // -1 means no startup test, else it is the index into the TESTS array.
 // #assert(STARTUP_TEST >= -1 && STARTUP_TEST < TESTS.COUNT); // @Cleanup: This assert here makes the program not compile... Seems the type checker is broken.
 
 Viewer :: struct {
@@ -193,6 +193,8 @@ run_test :: (viewer: *Viewer, test_index: s64) {
     
     viewer.profiling_data  = core_get_profiling_data();
     viewer.test_name       = TESTS[test_index].name;
+
+    core_print_profiling(false);
     
     set_window_name(*viewer.window, sprint(*viewer.frame_allocator, "Viewer: %", viewer.test_name));
 }

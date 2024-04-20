@@ -126,7 +126,7 @@ Timing_Data :: struct {
 
 core_begin_profiling     :: #foreign ();
 core_stop_profiling      :: #foreign ();
-core_print_profiling     :: #foreign ();
+core_print_profiling     :: #foreign (include_timeline: bool);
 core_get_profiling_data  :: #foreign () -> Timing_Data;
 core_free_profiling_data :: #foreign (data: *Timing_Data);
 
