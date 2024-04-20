@@ -3,14 +3,16 @@ PROFILING_ZOOM_STEP : f32 : 1.2;
 
 Profiling_UI_Data :: struct {
     viewer: *Viewer;
+
     target_zoom:    f32;
     current_zoom:   f32;
     zoom_index:     f32;
-    target_center:  f32;
-    current_center: f32;
+
+    target_center:  v2f;
+    current_center: v2f;
 }
 
-get_best_time_resolution :: (nanoseconds: s64) -> f64, Time_Resolution {
+get_best_time_resolution :: (nanoseconds: f64) -> f64, Time_Resolution {
     if nanoseconds <= 0 return 0, .Nanoseconds;
 
     adjusted_time: f64 = xx nanoseconds;
@@ -35,14 +37,14 @@ get_profiling_view_port :: (element: *UI_Element, data: *Profiling_UI_Data, curr
     if current {
         w:  f64 = xx (element.screen_size.x * data.current_zoom);
         h:  f64 = xx (element.screen_size.y);
-        x0: f64 = xx (element.screen_position.x + element.screen_size.x / 2 - data.current_center);
-        y0: f64 = xx (element.screen_position.y); 
+        x0: f64 = xx (element.screen_position.x + element.screen_size.x / 2 - data.current_center.x);
+        y0: f64 = xx (element.screen_position.y + element.screen_size.y / 2 - data.current_center.y); 
         return w, h, x0, y0;
     } else {
         w:  f64 = xx (element.screen_size.x * data.target_zoom);
         h:  f64 = xx (element.screen_size.y);
-        x0: f64 = xx (element.screen_position.x + element.screen_size.x / 2 - data.target_center);
-        y0: f64 = xx (element.screen_position.y); 
+        x0: f64 = xx (element.screen_position.x + element.screen_size.x / 2 - data.target_center.x);
+        y0: f64 = xx (element.screen_position.y + element.screen_size.y / 2 - data.target_center.y); 
         return w, h, x0, y0;
     }
 }
@@ -78,12 +80,15 @@ draw_profiling_timeline :: (*void, element: *UI_Element, data: *Profiling_UI_Dat
     low_x_clamp : f64 = xx (element.screen_position.x);
     high_x_clamp: f64 = xx (element.screen_position.x + element.screen_size.x);
 
+    low_y_clamp : f64 = xx (element.screen_position.y);
+    high_y_clamp: f64 = xx (element.screen_position.y + element.screen_size.y);
+
     for i := 0; i < viewer.profiling_data.timeline_count; ++i {
         entry  := *viewer.profiling_data.timeline[i];
 
-        start_time, start_time_unit       := get_best_time_resolution(entry.start_in_nanoseconds);
-        end_time, end_time_unit           := get_best_time_resolution(entry.end_in_nanoseconds);
-        duration_time, duration_time_unit := get_best_time_resolution(entry.end_in_nanoseconds - entry.start_in_nanoseconds);
+        start_time, start_time_unit       := get_best_time_resolution(xx entry.start_in_nanoseconds);
+        end_time, end_time_unit           := get_best_time_resolution(xx entry.end_in_nanoseconds);
+        duration_time, duration_time_unit := get_best_time_resolution(xx (entry.end_in_nanoseconds - entry.start_in_nanoseconds));
         
         entry_x0: f64 = round(x0 + start_time * width_per_time_unit[start_time_unit]);
         entry_y0: f64 = round(y0 + (cast(f64) entry.depth + 2) * PROFILING_BAR_HEIGHT);
@@ -92,6 +97,9 @@ draw_profiling_timeline :: (*void, element: *UI_Element, data: *Profiling_UI_Dat
         entry_y1: f64 = round(y0 + (cast(f64) entry.depth + 3) * PROFILING_BAR_HEIGHT);
         
         if (xx entry_x1 < element.screen_position.x) || (xx entry_x0 > element.screen_position.x + element.screen_size.x) continue;
+
+        entry_y0 = clamp(entry_y0, low_y_clamp, high_y_clamp);
+        entry_y1 = clamp(entry_y1, low_y_clamp, high_y_clamp);
         
         if duration_time * width_per_time_unit[duration_time_unit] > 2 {
             entry_x0 = clamp(entry_x0, low_x_clamp, high_x_clamp);
@@ -135,11 +143,33 @@ draw_profiling_timeline :: (*void, element: *UI_Element, data: *Profiling_UI_Dat
     //
     // Add more vertical markers at specific time intervals.
     //
-    {        
+    {
+        grayed_color :: GFX_Color.{ 100, 100, 100, 100 };
+        
+        {
+            // Gray out the left part of the timeline, meaning before the timeline actually starts.
+            width: f64 = clamp(x0 - xx element.screen_position.x, 0, xx element.screen_size.x);
+            if width > 0 {
+                center := v2f.{ element.screen_position.x + xx width / 2, element.screen_position.y + element.screen_size.y / 2 };
+                size   := v2f.{ xx width, element.screen_size.y };
+                gfx_draw_quad(gfx, center, size, grayed_color);
+            }
+        }
+
+        {
+            // Gray out the right part of the timeline, meaning before the timeline actually starts.
+            width: f64 = clamp(xx (element.screen_position.x + element.screen_size.x) - (x0 + w), 0, xx element.screen_size.x);
+            if width > 0 {
+                center := v2f.{ element.screen_position.x + element.screen_size.x - xx width / 2, element.screen_position.y + element.screen_size.y / 2 };
+                size   := v2f.{ xx width, element.screen_size.y };
+                gfx_draw_quad(gfx, center, size, grayed_color);
+            }
+        }
+                      
         draw_profiling_marker(gfx, element, x0, element.screen_size.y);
         draw_profiling_marker(gfx, element, x0 + w, element.screen_size.y);
 
-        interval_time, interval_time_unit := get_best_time_resolution(xx viewer.profiling_data.total_time_in_nanoseconds / xx data.current_zoom);
+        interval_time, interval_time_unit := get_best_time_resolution(cast(f64) viewer.profiling_data.total_time_in_nanoseconds / cast(f64) data.current_zoom);
         interval_width := width_per_time_unit[interval_time_unit];
 
         if interval_time > 100 interval_width *= 10;
@@ -156,7 +186,7 @@ draw_profiling_timeline :: (*void, element: *UI_Element, data: *Profiling_UI_Dat
     {       
         fg_color := GFX_Color.{ 255, 255, 255, 255 };
         
-        displayed_time, displayed_time_unit := get_best_time_resolution(xx viewer.profiling_data.total_time_in_nanoseconds / xx data.current_zoom);
+        displayed_time, displayed_time_unit := get_best_time_resolution(cast(f64) viewer.profiling_data.total_time_in_nanoseconds / cast(f64) data.current_zoom);
         
         interval_string := sprint(*viewer.frame_allocator, "Shown Interval: %*% (%%%)", displayed_time, time_resolution_suffix(displayed_time_unit), cast(s64) roundf(100 / data.current_zoom));
         gfx_draw_text_without_background(gfx, *gfx.ui_font, interval_string, .{ element.screen_position.x + 5, element.screen_position.y + xx gfx.ui_font.line_height }, .Left, fg_color); // The UI element probably does not have an opaque background...
@@ -172,33 +202,40 @@ update_profiling_timeline :: (input: UI_Input, element: *UI_Element, data: *Prof
     previous_zoom := data.current_zoom;
     
     if interacted_with_widget && data.viewer.window.button_held[.Right] {
-        data.target_center -= xx data.viewer.window.mouse_delta_x;
+        data.target_center.x -= xx data.viewer.window.mouse_delta_x;
     }
     
-    if interacted_with_widget && input.mouse_wheel_turns != 0 {
+    if interacted_with_widget && input.mouse_wheel_turns != 0 && !data.viewer.window.key_held[.Shift] {
         pw, ph, px0, py0 := get_profiling_view_port(element, data, false);
 
-        data.zoom_index  = clamp(data.zoom_index + input.mouse_wheel_turns, 0, 50);
+        data.zoom_index  = clamp(data.zoom_index + input.mouse_wheel_turns, -5, 50);
         data.target_zoom = powf(PROFILING_ZOOM_STEP, data.zoom_index);
 
         nw, nh, nx0, ny0   := get_profiling_view_port(element, data, false);
         cursor_position    := clamp((xx data.viewer.window.mouse_x - px0), 0, pw);
         cursor_distance    := cursor_position / pw;
-        data.target_center += xx (cursor_distance * (nw - pw));
+        data.target_center.x += xx (cursor_distance * (nw - pw));
     }
 
-    data.current_zoom   += (data.target_zoom   - data.current_zoom)   * data.viewer.window.frame_time * 10;
-    data.current_center += (data.target_center - data.current_center) * data.viewer.window.frame_time * 10;
+    if interacted_with_widget && input.mouse_wheel_turns != 0 && data.viewer.window.key_held[.Shift] {
+        data.target_center.y -= xx input.mouse_wheel_turns * element.screen_size.y / 5;
+    }
+    
+    data.current_zoom     += (data.target_zoom   - data.current_zoom)       * data.viewer.window.frame_time * 10;
+    data.current_center.x += (data.target_center.x - data.current_center.x) * data.viewer.window.frame_time * 10;
+    data.current_center.y += (data.target_center.y - data.current_center.y) * data.viewer.window.frame_time * 10;
 
-    if interacted_with_widget && data.viewer.window.button_pressed[.Left] reset_profiling_data(data, element.screen_size.x);
+    if interacted_with_widget && data.viewer.window.button_pressed[.Left] reset_profiling_data(data, .{ element.screen_size.x, element.screen_size.y });
 }
 
-reset_profiling_data :: (data: *Profiling_UI_Data, element_width: f32) {
-    data.zoom_index     = 0;
-    data.target_zoom    = powf(PROFILING_ZOOM_STEP, data.zoom_index);
-    data.current_zoom   = data.target_zoom;
-    data.target_center  = element_width / 2;
-    data.current_center = data.target_center;
+reset_profiling_data :: (data: *Profiling_UI_Data, element_size: v2f) {
+    data.zoom_index       = 0;
+    data.target_zoom      = powf(PROFILING_ZOOM_STEP, data.zoom_index);
+    data.current_zoom     = data.target_zoom;
+    data.target_center.x  = element_size.x / 2;
+    data.current_center.x = data.target_center.x;
+    data.target_center.y  = element_size.y / 2;
+    data.current_center.y = data.target_center.y;
 }
 
 profiling_mode_string :: (show_summary: bool) -> string {
@@ -237,7 +274,7 @@ profiling_panel :: (viewer: *Viewer) {
             ui_set_width(*viewer.ui, .Percentage_Of_Parent, 1, 0);
             ui_spacer(*viewer.ui);
 
-            overhead_time, overhead_time_unit := get_best_time_resolution(viewer.profiling_data.total_overhead_time_in_nanoseconds);
+            overhead_time, overhead_time_unit := get_best_time_resolution(cast(f64) viewer.profiling_data.total_overhead_time_in_nanoseconds);
             ui_set_width(*viewer.ui, .Label_Size, 0, 1);
             ui_label(*viewer.ui, true, "Overhead time: %*%", overhead_time, time_resolution_suffix(overhead_time_unit));
 
@@ -283,8 +320,8 @@ profiling_panel :: (viewer: *Viewer) {
                     ui_set_height(*viewer.ui, .Pixels, 32, 1);
                     ui_push_fixed_container(*viewer.ui, .Horizontal);
 
-                    inclusive_time, inclusive_unit := get_best_time_resolution(entry.inclusive_time_in_nanoseconds);
-                    exclusive_time, exclusive_unit := get_best_time_resolution(entry.exclusive_time_in_nanoseconds);
+                    inclusive_time, inclusive_unit := get_best_time_resolution(cast(f64) entry.inclusive_time_in_nanoseconds);
+                    exclusive_time, exclusive_unit := get_best_time_resolution(cast(f64) entry.exclusive_time_in_nanoseconds);
                     
                     ui_set_width(*viewer.ui, .Pixels, 5, 1);
                     ui_spacer(*viewer.ui);
@@ -310,7 +347,7 @@ profiling_panel :: (viewer: *Viewer) {
 
                 if created_this_frame || reset_timeline {
                     data.viewer = viewer;
-                    reset_profiling_data(data, width);
+                    reset_profiling_data(data, .{ width, height });
                 }
             }
         }
