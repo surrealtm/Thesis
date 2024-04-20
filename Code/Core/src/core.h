@@ -42,6 +42,11 @@ struct Local_Axes {
     v3f &operator[](s64 index) { assert(index >= 0 && index <= AXIS_COUNT); return this->_[index]; }
 };
 
+struct Clip_Result {
+    s64 vertex_count;
+    v3f vertices[6];
+};
+
 AABB aabb_from_position_and_size(v3f center, v3f half_sizes);
 Local_Axes local_axes_rotated(qtf quat, v3f axis_scale);
 
@@ -56,9 +61,11 @@ struct Anchor {
     // Only for debug drawing.
     string dbg_name;
 
-    void clip_vertex(v3f *vertex, Triangle *triangle);
+    void clip_corner_against_triangle(v3f p0, v3f p1, v3f p2, Triangle *clipping_triangle, Clip_Result *result);
     void clip_against_plane(Clipping_Plane *plane);
     void clip_against_boundary(Boundary *boundary);
+
+    void dbg_print_volume();
 };
 
 struct Boundary {

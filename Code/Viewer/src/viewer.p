@@ -17,7 +17,13 @@
 #load "panels.p";
 #load "draw.p";
 
-USE_DEBUG_DLL_BY_DEFAULT :: false;
+USE_DEBUG_DLL :: false || #run compiler_command_line_option_present("debug_dll");
+
+#if USE_DEBUG_DLL {
+    #library "Core\\x64\\DebugDll\\Core.lib";
+} #else {
+    #library "Core\\x64\\ReleaseDll\\Core.lib";
+}
 
 //
 // The viewer program obviously requires the Core dll, which is built into the Core subdirectory somewhere.
@@ -26,11 +32,9 @@ USE_DEBUG_DLL_BY_DEFAULT :: false;
 // I think this is pretty cool.
 //
 copy_latest_dll :: #no_export () {
-    use_debug_dll := compiler_command_line_option_present("debug_dll");
-
     dll_subpath: string = ---;
     
-    if USE_DEBUG_DLL_BY_DEFAULT || use_debug_dll {
+    if USE_DEBUG_DLL {
         dll_subpath = "DebugDll\\Core.dll";
     } else {
         dll_subpath = "ReleaseDll\\Core.dll";
@@ -112,7 +116,9 @@ menu_bar :: (viewer: *Viewer) {
     ui_set_width(*viewer.ui, .Percentage_Of_Parent, 1, 0);
     ui_spacer(*viewer.ui);
 
-    if viewer.stepping_mode && ui_button(*viewer.ui, "Step") core_do_world_step(viewer.world_handle, *viewer.debug_draw_data, viewer.debug_draw_options);
+    if viewer.stepping_mode && (ui_button(*viewer.ui, "Step") || viewer.window.key_pressed[.Space]) {
+        core_do_world_step(viewer.world_handle, *viewer.debug_draw_data, viewer.debug_draw_options);
+    }
     
     ui_toggle_button_with_pointer(*viewer.ui, "Step Mode", *viewer.stepping_mode);
     
@@ -232,6 +238,6 @@ main :: () -> s32 {
 
 /*
  * The command to compile and run this application is:
- * prometheus Viewer/src/viewer.p -o:Viewer/run_tree/viewer.exe -l:Core/x64/ReleaseDll/Core.lib -run
+ * prometheus Viewer/src/viewer.p -o:Viewer/run_tree/viewer.exe -run
  *
  */
