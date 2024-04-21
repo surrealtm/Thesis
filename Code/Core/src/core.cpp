@@ -1,13 +1,16 @@
 #include "timing.h"
 #include "os_specific.h"
+#include "threads.h" // For thread_sleep. nocheckin
 
 #include "core.h"
-
-#include "threads.h" // For thread_sleep. nocheckin
 
 #define DEBUG_PRINT false // nocheckin
 
 /* ----------------------------------------------- 3D Geometry ----------------------------------------------- */
+
+void Triangle::calculate_normal() {
+    this->n = v3_normalize(v3_cross_v3(this->p0 - this->p1, this->p0 - this->p2));
+}
 
 Clipping_Plane::Clipping_Plane(Allocator *allocator, v3f p, v3f n, v3f u, v3f v) {
     v3f p0 = p - u - v;
@@ -44,15 +47,17 @@ void add_triangles_for_clipping_plane(Resizable_Array<Triangle> * triangles, Cli
     }
 }
 
-void Anchor::clip_corner_against_triangle(v3f p0, v3f p1, v3f p2, Triangle *clipping_triangle, Clip_Result *result) {
+b8 Anchor::clip_corner_against_triangle(v3f p0, v3f p1, v3f p2, v3f n, Triangle *clipping_triangle, Clip_Result *result) {
     f32 dot = v3_dot_v3(p0 - clipping_triangle->p0, clipping_triangle->n);
 
     if(dot >= -F32_EPSILON) { // Prevent the issue when dot is -0.0000...
         // We are on the good side of the triangle, so there's no need to clip anything here.
         result->vertices[result->vertex_count] = p0;
         ++result->vertex_count;
-        return;
+        return false;
     }
+    
+    b8 triangle_was_shifted = false;
     
     v3f flipped_normal = -clipping_triangle->n; // ray_plane_intersection only checks for collisions that go "into" the plane (meaning the opposite normal direction), we however want the opposite here. @@Speed.
 
@@ -79,11 +84,25 @@ void Anchor::clip_corner_against_triangle(v3f p0, v3f p1, v3f p2, Triangle *clip
     if(!(i1 || i2)) {
         // If we are on the bad side of the clipping plane, and neither edge actually intersects with
         // the plane (consider parallel triangles, shifted on the Y axis), then project the current
-        // corner onto the plane.
-        f32 distance = point_plane_distance_signed(p0, clipping_triangle->p0, clipping_triangle->n);
-        result->vertices[result->vertex_count] = p0 + -distance * clipping_triangle->n;
+        // corner onto the plane. 
+        
+        /*
+        // Note that we don't do the "usual" projection here, but instead we
+        // sort of "shift" the vertices to be on the plane.
+        f32 distance;
+        b8 intersection = ray_plane_intersection(p0, n, clipping_triangle->p0, clipping_triangle->n, &distance);
+        result->vertices[result->vertex_count] = p0 + distance * n;
         ++result->vertex_count;
+        */
+
+        f32 distance = point_plane_distance_signed(p0, clipping_triangle->p0, clipping_triangle->n);
+        result->vertices[result->vertex_count] = p0 - distance * clipping_triangle->n;
+        ++result->vertex_count;
+
+        triangle_was_shifted = true;
     }
+
+    return triangle_was_shifted;
 }
 
 b8 Anchor::clip_triangle_against_triangle(Triangle *clipping_triangle, Triangle *volume_triangle) {
@@ -137,9 +156,11 @@ b8 Anchor::clip_triangle_against_triangle(Triangle *clipping_triangle, Triangle 
     // |/
     // p2
 
-    this->clip_corner_against_triangle(volume_triangle->p0, volume_triangle->p2, volume_triangle->p1, clipping_triangle, &clip_result);
-    this->clip_corner_against_triangle(volume_triangle->p1, volume_triangle->p0, volume_triangle->p2, clipping_triangle, &clip_result);
-    this->clip_corner_against_triangle(volume_triangle->p2, volume_triangle->p1, volume_triangle->p0, clipping_triangle, &clip_result);
+    b8 triangle_was_shifted = false;
+
+    triangle_was_shifted |= this->clip_corner_against_triangle(volume_triangle->p0, volume_triangle->p2, volume_triangle->p1, volume_triangle->n, clipping_triangle, &clip_result);
+    triangle_was_shifted |= this->clip_corner_against_triangle(volume_triangle->p1, volume_triangle->p0, volume_triangle->p2, volume_triangle->n, clipping_triangle, &clip_result);
+    triangle_was_shifted |= this->clip_corner_against_triangle(volume_triangle->p2, volume_triangle->p1, volume_triangle->p0, volume_triangle->n, clipping_triangle, &clip_result);
             
     assert(clip_result.vertex_count >= 3 && clip_result.vertex_count <= 6);
             
@@ -152,10 +173,15 @@ b8 Anchor::clip_triangle_against_triangle(Triangle *clipping_triangle, Triangle 
     volume_triangle->p0 = clip_result.vertices[0];
     volume_triangle->p1 = clip_result.vertices[1];
     volume_triangle->p2 = clip_result.vertices[2];
+    volume_triangle->calculate_normal();
 
     // Add new triangles for the new vertices.
     for(s64 i = 3; i < clip_result.vertex_count; ++i) {
-        this->volume.add( { clip_result.vertices[0], clip_result.vertices[i - 1], clip_result.vertices[i], volume_triangle->n });
+        Triangle *triangle = this->volume.push();
+        triangle->p0 = clip_result.vertices[0];
+        triangle->p1 = clip_result.vertices[i - 1];
+        triangle->p2 = clip_result.vertices[i];
+        triangle->calculate_normal();
     }
 
 #if DEBUG_PRINT
@@ -170,25 +196,7 @@ b8 Anchor::clip_triangle_against_triangle(Triangle *clipping_triangle, Triangle 
     //thread_sleep(0.1f);
 #endif
 
-    return true;
-}
-
-void Anchor::clip_against_triangle(Triangle *clipping_triangle) {
-    for(s64 i = 0; i < this->volume.count; ++i) { // We are modifying this array inside the loop!
-        this->clip_triangle_against_triangle(clipping_triangle, &this->volume[i]);
-    }
-}
-
-void Anchor::clip_against_plane(Clipping_Plane *plane) {
-    for(auto *clipping_triangle : plane->triangles) {
-        this->clip_against_triangle(clipping_triangle);
-    }
-}
-
-void Anchor::clip_against_boundary(Boundary *boundary) {
-    for(auto *plane : boundary->clipping_planes) {
-        this->clip_against_plane(plane);
-    }
+    return triangle_was_shifted;
 }
 
 void Anchor::eliminate_dead_triangles() {
@@ -389,7 +397,10 @@ void World::make_root_volume(Resizable_Array<Triangle> *triangles) {
     }
     */
 
-    auto *clipping_plane = &this->root_clipping_planes[2];
+    auto *clipping_plane = &this->root_clipping_planes[0];
+    add_triangles_for_clipping_plane(triangles, clipping_plane);
+
+    clipping_plane = &this->root_clipping_planes[1];
     add_triangles_for_clipping_plane(triangles, clipping_plane);
 }
 
@@ -416,106 +427,60 @@ void World::create_octree() {
     }
 }
 
-void World::clip_all_boundaries() {
+void World::calculate_volumes(b8 single_step) {
     tmFunction(TM_WORLD_COLOR);
-
-    for(auto *boundary : this->boundaries) {
-        for(auto *plane : boundary->clipping_planes) {
-            // @Incomplete.
-        }
-    }
-}
-
-void World::calculate_volumes() {
-    tmFunction(TM_WORLD_COLOR);
-
-    this->clip_all_boundaries();
-
-    for(auto *anchor : this->anchors) {
-        this->make_root_volume(&anchor->volume);
-
-        for(auto *boundary : this->boundaries) {
-            anchor->clip_against_boundary(boundary);
-        }
-
-        anchor->eliminate_dead_triangles();
-    }
-}
-
-
-
-//
-// :DbgStep
-// This might, quite frankly, be some of the worst code that has been written in recorded human history (except for spotify).
-// I am trying to enable stepping through the clipping algorithm through a UI, and for that I essentially need to save the
-// state of the big ass for-loop cascade which it is. This is why there are so many iterators, and why I need to do this whole
-// logic.
-// It is an absolute tragedy, and I am sorry for anyone attempting to read this, but it works.
-// In case you had a stroke, I hope you have good insurance.
-// 
-//     vmat, 21.04.24
-//
-
-void World::begin_calculate_volumes_stepping() {
-    this->clip_all_boundaries();
 
     this->dbg_step_anchor_index            = 0;
     this->dbg_step_boundary_index          = 0;
     this->dbg_step_clipping_plane_index    = 0;
     this->dbg_step_clipping_triangle_index = 0;
     this->dbg_step_volume_triangle_index   = 0;
+    this->did_step_before                  = false;
+    this->calculate_volumes_step(single_step);
 }
 
-void World::calculate_volumes_step() {
-    b8 exit = false;
+void World::calculate_volumes_step(b8 single_step) {
+    if(single_step && this->did_step_before) goto continue_from_single_step_exit;
+    this->did_step_before = true;
     
-    while(!exit) {
-        if(this->dbg_step_anchor_index >= this->anchors.count) {
-            this->dbg_step_anchor_index = this->dbg_step_boundary_index = this->dbg_step_clipping_plane_index = this->dbg_step_clipping_triangle_index = this->dbg_step_volume_triangle_index = -1;
-            exit = true;
-            continue;
+    for(; this->dbg_step_anchor_index < this->anchors.count; ++this->dbg_step_anchor_index) {
+        this->make_root_volume(&this->anchors[this->dbg_step_anchor_index].volume);
+
+        for(; this->dbg_step_volume_triangle_index < this->anchors[this->dbg_step_anchor_index].volume.count; ++this->dbg_step_volume_triangle_index) { // We are modifying this volume array inside the loop!
+            do {
+                // nocheckin: Explain this
+                this->dbg_step_triangle_requires_reevaluation = false;
+
+                for(; this->dbg_step_boundary_index < this->boundaries.count; ++this->dbg_step_boundary_index) {
+                    for(; this->dbg_step_clipping_plane_index < this->boundaries[this->dbg_step_boundary_index].clipping_planes.count; ++this->dbg_step_clipping_plane_index) {
+                        for(; this->dbg_step_clipping_triangle_index < this->boundaries[this->dbg_step_boundary_index].clipping_planes[this->dbg_step_clipping_plane_index].triangles.count;) {
+                            this->dbg_step_triangle_requires_reevaluation |= this->anchors[this->dbg_step_anchor_index].clip_triangle_against_triangle(&this->boundaries[this->dbg_step_boundary_index].clipping_planes[this->dbg_step_clipping_plane_index].triangles[this->dbg_step_clipping_triangle_index], &this->anchors[this->dbg_step_anchor_index].volume[this->dbg_step_volume_triangle_index]);
+                            ++this->dbg_step_clipping_triangle_index;
+                            
+                            if(single_step) return;
+                            continue_from_single_step_exit:
+                            continue;
+                        }
+
+                        this->dbg_step_clipping_triangle_index = 0;
+                    }
+
+                    this->dbg_step_clipping_plane_index = 0;
+                }
+
+                this->dbg_step_boundary_index = 0;
+            } while(this->dbg_step_triangle_requires_reevaluation);        
         }
 
-        Anchor *anchor = &this->anchors[this->dbg_step_anchor_index];
-        if(this->dbg_step_boundary_index == 0 && this->dbg_step_clipping_plane_index == 0 && this->dbg_step_clipping_triangle_index == 0 && this->dbg_step_volume_triangle_index == 0) {
-            this->make_root_volume(&anchor->volume);
-        }
-
-        if(this->dbg_step_boundary_index >= this->boundaries.count) {
-            this->dbg_step_boundary_index = 0;
-            anchor->eliminate_dead_triangles();
-
-            ++this->dbg_step_anchor_index;
-            continue;
-        }
-    
-        Boundary *boundary = &this->boundaries[this->dbg_step_boundary_index];
-
-        if(this->dbg_step_clipping_plane_index >= boundary->clipping_planes.count) {
-            this->dbg_step_clipping_plane_index = 0;
-            ++this->dbg_step_boundary_index;
-            continue;
-        }
-
-        Clipping_Plane *clipping_plane = &boundary->clipping_planes[this->dbg_step_clipping_plane_index];
-
-        if(this->dbg_step_clipping_triangle_index >= clipping_plane->triangles.count) {
-            this->dbg_step_clipping_triangle_index = 0;
-            ++this->dbg_step_clipping_plane_index;
-            continue;
-        }
-        
-        Triangle *clipping_triangle = &clipping_plane->triangles[this->dbg_step_clipping_triangle_index];
-
-        if(this->dbg_step_volume_triangle_index >= anchor->volume.count) {
-            this->dbg_step_volume_triangle_index = 0;
-            ++this->dbg_step_clipping_triangle_index;
-            continue;
-        }
-        
-        Triangle *volume_triangle = &anchor->volume[this->dbg_step_volume_triangle_index];
-        exit = anchor->clip_triangle_against_triangle(clipping_triangle, volume_triangle);
-
-        ++this->dbg_step_volume_triangle_index;
+        this->anchors[this->dbg_step_anchor_index].eliminate_dead_triangles();
+        this->dbg_step_volume_triangle_index = 0;
     }
+
+    // If we actually finish the volume calcuation, then reset all these things.
+    this->did_step_before                  = false;
+    this->dbg_step_anchor_index            = MAX_S64;
+    this->dbg_step_boundary_index          = MAX_S64;
+    this->dbg_step_clipping_plane_index    = MAX_S64;
+    this->dbg_step_clipping_triangle_index = MAX_S64;
+    this->dbg_step_volume_triangle_index   = MAX_S64;
 }

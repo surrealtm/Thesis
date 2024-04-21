@@ -63,7 +63,7 @@ extern "C" {
 
     void core_do_world_step(World_Handle world_handle, Debug_Draw_Data *draw_data, Debug_Draw_Options draw_options) {
         World *world = (World *) world_handle;
-        world->calculate_volumes_step();
+        world->calculate_volumes_step(true);
 
         if(draw_data) {
             core_free_debug_draw_data(draw_data);
@@ -104,11 +104,7 @@ extern "C" {
         world->add_boundary_clipping_planes(outer_wall_west, AXIS_X);
 
         world->create_octree();
-        if(step_into) {
-            world->begin_calculate_volumes_stepping();
-        } else {
-            world->calculate_volumes();
-        }
+        world->calculate_volumes(step_into);
         
         return (World_Handle) world;
     }
@@ -194,14 +190,7 @@ extern "C" {
         }
 
         world->create_octree();
-        
-        if(step_into) {
-            world->begin_calculate_volumes_stepping();
-        } else {
-            world->calculate_volumes();
-        }
-        
-
+        world->calculate_volumes(step_into);
         return world;
     }
     
@@ -227,29 +216,42 @@ extern "C" {
         world->add_anchor("Outside"_s, v3f(0, 0, -10));
 
         world->create_octree();
-        
-        if(step_into) {
-            world->begin_calculate_volumes_stepping();
-        } else {
-            world->calculate_volumes();
-        }
-        
+        world->calculate_volumes(step_into);
         return world;
     }
 
     World_Handle core_do_circle_test(b8 step_into) {
         tmFunction(TM_SYSTEM_COLOR);
 
+        // nocheckin
         World *world = (World *) core_allocate_world();
         world->create(v3f(50, 1, 50));
 
-        const s64 steps = 9;
+        Boundary *b0 = world->add_boundary("Boundary"_s, v3f(-10, 0, 0), v3f(.5, .5, 10), v3f(0));
+        world->add_boundary_clipping_planes(b0, AXIS_X);
+
+        Boundary *b1 = world->add_boundary("Boundary"_s, v3f(0, 0, -10), v3f(.5, .5, 10), v3f(0, +.125, 0));
+        world->add_boundary_clipping_planes(b1, AXIS_X);
+
+        Boundary *b2 = world->add_boundary("Boundary"_s, v3f(0, 0, +10), v3f(.5, .5, -10), v3f(0, -.125, 0));
+        world->add_boundary_clipping_planes(b2, AXIS_X);
+
+        world->add_anchor("Anchor"_s, v3f(0, 0, 0));
+
+        world->create_octree();
+        world->calculate_volumes(step_into);
+        return world;
+        /*        
+        World *world = (World *) core_allocate_world();
+        world->create(v3f(50, 1, 50));
+
+        const s64 steps = 5;
         const f32 radius = 10;
         const f32 circumference = 2 * FPI * radius;
         const f32 space_per_step = 0.5f;
         
         for(s64 i = 0; i < steps; ++i) {
-            f32 theta = i / (f32) steps * 2 * FPI;
+            f32 theta    = i / (f32) steps * 2 * FPI;
             v3f position = v3f(sinf(theta) * radius, 0, cosf(theta) * radius);
             v3f rotation = v3f(0, i / (f32) steps, 0);
             v3f size     = v3f(circumference / steps / 2 * (1.f - space_per_step), .5, .5);
@@ -262,14 +264,9 @@ extern "C" {
         //world->add_anchor("Outside"_s, v3f(0, 0, -40));
 
         world->create_octree();
-        
-        if(step_into) {
-            world->begin_calculate_volumes_stepping();
-        } else {
-            world->calculate_volumes();
-        }
-        
+        world->calculate_volumes(step_into);
         return world;
+        */
     }
 
     World_Handle core_do_u_shape_test(b8 step_into) {
@@ -291,13 +288,7 @@ extern "C" {
         world->add_anchor("Outside"_s, v3f(0, 0, -20));
         
         world->create_octree();
-        
-        if(step_into) {
-            world->begin_calculate_volumes_stepping();
-        } else {
-            world->calculate_volumes();
-        }
-        
+        world->calculate_volumes(step_into);
         return world;
     }
     
@@ -315,13 +306,7 @@ extern "C" {
         world->add_anchor("Outside"_s, v3f(0, 0, -10));
         
         world->create_octree();
-        
-        if(step_into) {
-            world->begin_calculate_volumes_stepping();
-        } else {
-            world->calculate_volumes();
-        }
-        
+        world->calculate_volumes(step_into);
         return world;
     }
 

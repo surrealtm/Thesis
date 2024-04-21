@@ -25,6 +25,8 @@ enum Axis {
 struct Triangle {
     v3f p0, p1, p2;
     v3f n;
+
+    void calculate_normal();
 };
 
 struct Clipping_Plane {
@@ -62,13 +64,9 @@ struct Anchor {
     // Only for debug drawing.
     string dbg_name;
     
-    // @@Speed: All these procedures exist so that we can do the stepping mode, they should be refactored into one big thing once it works.
-    void clip_corner_against_triangle(v3f p0, v3f p1, v3f p2, Triangle *clipping_triangle, Clip_Result *result);
+    b8 clip_corner_against_triangle(v3f p0, v3f p1, v3f p2, v3f n, Triangle *clipping_triangle, Clip_Result *result);
     b8 clip_triangle_against_triangle(Triangle *volume_triangle, Triangle *clipping_triangle);
-    void clip_against_triangle(Triangle *clipping_triangle);
-    void clip_against_plane(Clipping_Plane *clipping_plane);
-    void clip_against_boundary(Boundary *boundary);
-
+    
     //
     // The clipping algorithm produces "dead" triangles: triangles without actual surface area.
     // These triangles should be eliminated for better performance.
@@ -177,20 +175,18 @@ struct World {
     void make_root_volume(Resizable_Array<Triangle> *triangles);
     
     void create_octree();
-    void clip_all_boundaries();
-    void calculate_volumes();
-
+    void calculate_volumes(b8 single_step);
+    void calculate_volumes_step(b8 single_step);
 
 
     /* Debugging behaviour */
 
-    // :DbgStep
-    s64 dbg_step_anchor_index            = -1,
-        dbg_step_boundary_index          = -1,
-        dbg_step_clipping_plane_index    = -1,
-        dbg_step_clipping_triangle_index = -1,
-        dbg_step_volume_triangle_index   = -1;
-    
-    void begin_calculate_volumes_stepping();
-    void calculate_volumes_step();
+    // nocheckin: Docs
+    s64 dbg_step_anchor_index            = MAX_S64,
+        dbg_step_boundary_index          = MAX_S64,
+        dbg_step_clipping_plane_index    = MAX_S64,
+        dbg_step_clipping_triangle_index = MAX_S64,
+        dbg_step_volume_triangle_index   = MAX_S64;
+    b8 dbg_step_triangle_requires_reevaluation = false;
+    b8 did_step_before = false;
 };
