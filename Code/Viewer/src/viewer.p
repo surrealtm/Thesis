@@ -17,12 +17,21 @@
 #load "panels.p";
 #load "draw.p";
 
+BUILD_CORE :: true || #run compiler_command_line_option_present("build_core");
 USE_DEBUG_DLL :: false || #run compiler_command_line_option_present("debug_dll");
 
 #if USE_DEBUG_DLL {
     #library "Core\\x64\\DebugDll\\Core.lib";
 } #else {
     #library "Core\\x64\\ReleaseDll\\Core.lib";
+}
+
+compile_core :: #no_export() {
+    if USE_DEBUG_DLL {
+        system("MSBuild.exe Core\\Core.sln /property:Configuration=DebugDll");
+    } else {
+        system("MSBuild.exe Core\\Core.sln /property:Configuration=ReleaseDll");
+    }
 }
 
 //
@@ -47,7 +56,10 @@ copy_latest_dll :: #no_export () {
     }
 }
 
-#run copy_latest_dll();
+#run {
+//    if BUILD_CORE compile_core(); // @Cleanup: This breaks the compiler...
+    copy_latest_dll();
+}
 
 REQUESTED_FPS: f64 : 60;
 
@@ -67,7 +79,7 @@ TESTS: []Viewer_Test : {
         .{ "jobs",          core_do_jobs_test },
 };
 
-STARTUP_TEST :: 1; // -1 means no startup test, else it is the index into the TESTS array.
+STARTUP_TEST :: -1; // -1 means no startup test, else it is the index into the TESTS array.
 // #assert(STARTUP_TEST >= -1 && STARTUP_TEST < TESTS.COUNT); // @Cleanup: This assert here makes the program not compile... Seems the type checker is broken.
 
 Viewer :: struct {
@@ -117,7 +129,7 @@ menu_bar :: (viewer: *Viewer) {
     ui_set_width(*viewer.ui, .Percentage_Of_Parent, 1, 0);
     ui_spacer(*viewer.ui);
 
-    if viewer.stepping_mode && viewer.world_handle != null && (ui_button(*viewer.ui, "Step") || viewer.window.key_pressed[.Space]) {
+    if viewer.stepping_mode && viewer.world_handle != null && (ui_button(*viewer.ui, "Step") || viewer.window.key_repeated[.Space]) {
         core_do_world_step(viewer.world_handle, *viewer.debug_draw_data, viewer.debug_draw_options);
     }
     
@@ -193,8 +205,6 @@ run_test :: (viewer: *Viewer, test_index: s64) {
     
     viewer.profiling_data  = core_get_profiling_data();
     viewer.test_name       = TESTS[test_index].name;
-
-    core_print_profiling(false);
     
     set_window_name(*viewer.window, sprint(*viewer.frame_allocator, "Viewer: %", viewer.test_name));
 }

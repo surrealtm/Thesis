@@ -241,9 +241,9 @@ extern "C" {
         tmFunction(TM_SYSTEM_COLOR);
 
         World *world = (World *) core_allocate_world();
-        world->create(v3f(50, 10, 50));
+        world->create(v3f(50, 1, 50));
 
-        const s64 steps = 12;
+        const s64 steps = 9;
         const f32 radius = 10;
         const f32 circumference = 2 * FPI * radius;
         const f32 space_per_step = 0.5f;
@@ -259,7 +259,7 @@ extern "C" {
         }
 
         world->add_anchor("Inside"_s, v3f(0, 0, 0));
-        world->add_anchor("Outside"_s, v3f(0, 0, -2 * radius));
+        //world->add_anchor("Outside"_s, v3f(0, 0, -40));
 
         world->create_octree();
         

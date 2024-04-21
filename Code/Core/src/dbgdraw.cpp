@@ -4,6 +4,7 @@
 #include "memutils.h"
 
 struct Dbg_Internal_Draw_Data {
+	World *world;
 	Resizable_Array<Debug_Draw_Line> lines;
 	Resizable_Array<Debug_Draw_Triangle> triangles;
 	Resizable_Array<Debug_Draw_Text> texts;
@@ -45,6 +46,7 @@ const Dbg_Draw_Color dbg_anchor_color         = { 255, 100, 100, 255 };
 const Dbg_Draw_Color dbg_boundary_color       = { 100, 100, 100, 255 };
 const Dbg_Draw_Color dbg_clipping_plane_color = { 255,  60,  50, 100 };
 const Dbg_Draw_Color dbg_volume_color         = { 215,  15, 219, 100 };
+const Dbg_Draw_Color dbg_step_highlight_color = { 255, 255, 255, 255 };
 
 Allocator *dbg_alloc = Default_Allocator;
 
@@ -97,22 +99,23 @@ void debug_draw_octree(Dbg_Internal_Draw_Data &_internal, Octree *node, Octree_C
 }
 
 static
-void debug_draw_clipping_plane(Dbg_Internal_Draw_Data &_internal, Clipping_Plane *plane, b8 wireframe) {
+void debug_draw_clipping_plane(Dbg_Internal_Draw_Data &_internal, Clipping_Plane *plane, Dbg_Draw_Color color, b8 wireframe) {
 	if(wireframe) {
 		for(auto *triangle : plane->triangles) {
-			_internal.lines.add({ triangle->p0, triangle->p1, dbg_triangle_wireframe_thickness, dbg_clipping_plane_color.r, dbg_clipping_plane_color.g, dbg_clipping_plane_color.b });
-			_internal.lines.add({ triangle->p1, triangle->p2, dbg_triangle_wireframe_thickness, dbg_clipping_plane_color.r, dbg_clipping_plane_color.g, dbg_clipping_plane_color.b });
-			_internal.lines.add({ triangle->p2, triangle->p0, dbg_triangle_wireframe_thickness, dbg_clipping_plane_color.r, dbg_clipping_plane_color.g, dbg_clipping_plane_color.b });
+			_internal.lines.add({ triangle->p0, triangle->p1, dbg_triangle_wireframe_thickness, color.r, color.g, color.b });
+			_internal.lines.add({ triangle->p1, triangle->p2, dbg_triangle_wireframe_thickness, color.r, color.g, color.b });
+			_internal.lines.add({ triangle->p2, triangle->p0, dbg_triangle_wireframe_thickness, color.r, color.g, color.b });
 		}
 	} else {
 		for(auto *triangle : plane->triangles) {
-			_internal.triangles.add({ triangle->p0, triangle->p1, triangle->p2, dbg_clipping_plane_color.r, dbg_clipping_plane_color.g, dbg_clipping_plane_color.b, dbg_clipping_plane_color.a });
+			_internal.triangles.add({ triangle->p0, triangle->p1, triangle->p2, color.r, color.g, color.b, color.a });
 		}
 	}
 }
 
 Debug_Draw_Data debug_draw_world(World *world, Debug_Draw_Options options) {
 	Dbg_Internal_Draw_Data _internal;
+	_internal.world               = world;
 	_internal.lines.allocator     = dbg_alloc;
 	_internal.triangles.allocator = dbg_alloc;
 	_internal.texts.allocator     = dbg_alloc;
@@ -149,9 +152,12 @@ Debug_Draw_Data debug_draw_world(World *world, Debug_Draw_Options options) {
 		}
 		*/
 
-        for(auto *boundary : world->boundaries) {
-            for(auto *plane : boundary->clipping_planes) {
-                debug_draw_clipping_plane(_internal, plane, false);
+        for(s64 i = 0; i < world->boundaries.count; ++i) {
+            Boundary *boundary = &world->boundaries[i];
+            for(s64 j = 0; j < boundary->clipping_planes.count; ++j) {
+                Dbg_Draw_Color color = (i == world->dbg_step_boundary_index && j == world->dbg_step_clipping_plane_index) ? dbg_step_highlight_color : dbg_clipping_plane_color;
+                Clipping_Plane *plane = &boundary->clipping_planes[j];
+                debug_draw_clipping_plane(_internal, plane, color, false);
 			}
         }
     }
@@ -164,27 +170,37 @@ Debug_Draw_Data debug_draw_world(World *world, Debug_Draw_Options options) {
 		}
 		*/
 
-        for(auto *boundary : world->boundaries) {
-            for(auto *plane : boundary->clipping_planes) {
-                debug_draw_clipping_plane(_internal, plane, true);
+        for(s64 i = 0; i < world->boundaries.count; ++i) {
+            Boundary *boundary = &world->boundaries[i];
+            for(s64 j = 0; j < boundary->clipping_planes.count; ++j) {
+                Dbg_Draw_Color color = (i == world->dbg_step_boundary_index && j == world->dbg_step_clipping_plane_index) ? dbg_step_highlight_color : dbg_clipping_plane_color;
+                Clipping_Plane *plane = &boundary->clipping_planes[j];
+                debug_draw_clipping_plane(_internal, plane, color, true);
 			}
         }		
 	}
 
 	if(options & DEBUG_DRAW_Volume_Faces) {
-		for(auto *anchor : world->anchors) {
-			for(auto *triangle : anchor->volume) {
-				_internal.triangles.add({ triangle->p0, triangle->p1, triangle->p2, dbg_volume_color.r, dbg_volume_color.g, dbg_volume_color.b, dbg_volume_color.a });
+		for(s64 i = 0; i < world->anchors.count; ++i) {
+            Anchor *anchor = &world->anchors[i];
+			for(s64 j = 0; j < anchor->volume.count; ++j) {
+				Dbg_Draw_Color color = (i == world->dbg_step_anchor_index && j == world->dbg_step_volume_triangle_index) ? dbg_step_highlight_color : dbg_volume_color;
+				Triangle *triangle = &anchor->volume[j];
+				_internal.triangles.add({ triangle->p0, triangle->p1, triangle->p2, color.r, color.g, color.b, color.a });
 			}
 		}
 	}
 
 	if(options & DEBUG_DRAW_Volume_Wireframes) {
-		for(auto *anchor : world->anchors) {
-			for(auto * triangle : anchor->volume) {
-				_internal.lines.add({ triangle->p0, triangle->p1, dbg_triangle_wireframe_thickness, dbg_volume_color.r, dbg_volume_color.g, dbg_volume_color.b });
-				_internal.lines.add({ triangle->p1, triangle->p2, dbg_triangle_wireframe_thickness, dbg_volume_color.r, dbg_volume_color.g, dbg_volume_color.b });
-				_internal.lines.add({ triangle->p2, triangle->p0, dbg_triangle_wireframe_thickness, dbg_volume_color.r, dbg_volume_color.g, dbg_volume_color.b });
+		for(s64 i = 0; i < world->anchors.count; ++i) {
+            Anchor *anchor = &world->anchors[i];
+			for(s64 j = 0; j < anchor->volume.count; ++j) {
+				Dbg_Draw_Color color = (i == world->dbg_step_anchor_index && j == world->dbg_step_volume_triangle_index) ? dbg_step_highlight_color : dbg_volume_color;
+				Triangle *triangle = &anchor->volume[j];
+				
+				_internal.lines.add({ triangle->p0, triangle->p1, dbg_triangle_wireframe_thickness, color.r, color.g, color.b });
+				_internal.lines.add({ triangle->p1, triangle->p2, dbg_triangle_wireframe_thickness, color.r, color.g, color.b });
+				_internal.lines.add({ triangle->p2, triangle->p0, dbg_triangle_wireframe_thickness, color.r, color.g, color.b });
 			}
 		}
 	}

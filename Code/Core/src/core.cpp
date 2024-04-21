@@ -3,7 +3,9 @@
 
 #include "core.h"
 
+#include "threads.h" // For thread_sleep. nocheckin
 
+#define DEBUG_PRINT false // nocheckin
 
 /* ----------------------------------------------- 3D Geometry ----------------------------------------------- */
 
@@ -26,6 +28,12 @@ Local_Axes local_axes_rotated(qtf quat, v3f axis_scale) {
     return { qt_rotate(quat, v3f(axis_scale.x, 0, 0)), qt_rotate(quat, v3f(0, axis_scale.y, 0)), qt_rotate(quat, v3f(0, 0, axis_scale.z)) };
 }
 
+f32 triangle_surface_area_approximation(v3f p0, v3f p1, v3f p2) {
+    // https://math.stackexchange.com/questions/128991/how-to-calculate-the-area-of-a-3d-triangle
+    v3f h = v3_cross_v3(p0 - p1, p0 - p2);
+    return v3_length2(h) / 2;
+}
+
 
 
 /* ------------------------------------------------- Objects ------------------------------------------------- */
@@ -37,28 +45,32 @@ void add_triangles_for_clipping_plane(Resizable_Array<Triangle> * triangles, Cli
 }
 
 void Anchor::clip_corner_against_triangle(v3f p0, v3f p1, v3f p2, Triangle *clipping_triangle, Clip_Result *result) {
-    if(v3_dot_v3(p0 - clipping_triangle->p0, clipping_triangle->n) > 0) {
+    f32 dot = v3_dot_v3(p0 - clipping_triangle->p0, clipping_triangle->n);
+
+    if(dot >= -F32_EPSILON) { // Prevent the issue when dot is -0.0000...
         // We are on the good side of the triangle, so there's no need to clip anything here.
         result->vertices[result->vertex_count] = p0;
         ++result->vertex_count;
         return;
     }
     
-    v3f e1 = p0 - p1;
-    f32 d1;
-    b8 i1 = ray_plane_intersection(p0, e1, clipping_triangle->p0, clipping_triangle->n, &d1);
+    v3f flipped_normal = -clipping_triangle->n; // ray_plane_intersection only checks for collisions that go "into" the plane (meaning the opposite normal direction), we however want the opposite here. @@Speed.
 
-    v3f e2 = p0 - p2;
+    v3f e1 = p1 - p0;
+    f32 d1;
+    b8 i1 = ray_plane_intersection(p0, e1, clipping_triangle->p0, flipped_normal, &d1) && d1 < 1.f; // If d1 > 1, then there is an intersection but beyond the actual edge.
+
+    v3f e2 = p2 - p0;
     f32 d2;
-    b8 i2 = ray_plane_intersection(p0, e2, clipping_triangle->p0, clipping_triangle->n, &d2);
+    b8 i2 = ray_plane_intersection(p0, e2, clipping_triangle->p0, flipped_normal, &d2) && d2 < 1.0f; // If d2 > 1, then there is an intersection but beyond the actual edge.
     
-    if(i1) {
+    if(i1 && d1 < 1.f) {
         // This edge intersects with the clipping triangle. Add the intersection to the clip result.
         result->vertices[result->vertex_count] = p0 + e1 * d1;
         ++result->vertex_count;
     }
 
-    if(i2) {
+    if(i2 && d2 < 1.f) {
         // This edge intersects with the clipping triangle. Add the intersection to the clip result.
         result->vertices[result->vertex_count] = p0 + e2 * d2;
         ++result->vertex_count;        
@@ -74,63 +86,122 @@ void Anchor::clip_corner_against_triangle(v3f p0, v3f p1, v3f p2, Triangle *clip
     }
 }
 
-void Anchor::clip_against_plane(Clipping_Plane *plane) {
-    tmFunction(TM_ANCHOR_COLOR);
+b8 Anchor::clip_triangle_against_triangle(Triangle *clipping_triangle, Triangle *volume_triangle) {
+    // Don't clip against back-facing triangle. This probably isn't what we want to do in the long run...
+    if(v3_dot_v3(clipping_triangle->n, this->position - clipping_triangle->p0) <= 0.0f) return false;
     
+    Clip_Result clip_result;
+    clip_result.vertex_count = 0;
+
+    //
+    // Clip each corner point of the volume triangle against the clip triangle.
+    // This will check whether the point is on the "good" side of the triangle (meaning on the
+    // side towards which the clip normal points) or not. If the corner is on the "bad" side,
+    // it means we must clip this part of the triangle away. We do that by calculating the two
+    // intersection points between the edges this corner is connected to and the clip triangle.
+    // 
+    //    |\    < ----   This corner must be clipped, so get the two intersections between the
+    //    | \            edges and the clip triangle (marked by the '*').
+    //    |  \
+    // ***|***\************
+    //    |    \    |
+    //    |-----\   v
+    // 
+    // After we have clipped all corner points, we have between 3 and 6 output vertices, which we then
+    // triangulate again. This way, we have ensured that this triangle got clipped into the correct
+    // shape.
+    //
+
+#if DEBUG_PRINT
+        printf("Clipping triangle: %f, %f, %f | %f, %f, %f | %f, %f, %f | %f, %f, %f.\n", 
+               clipping_triangle->p0.x, clipping_triangle->p0.y, clipping_triangle->p0.z,
+               clipping_triangle->p1.x, clipping_triangle->p1.y, clipping_triangle->p1.z,
+               clipping_triangle->p2.x, clipping_triangle->p2.y, clipping_triangle->p2.z,
+               clipping_triangle->n.x, clipping_triangle->n.y, clipping_triangle->n.z);
+
+        printf("Volume triangle:   %f, %f, %f | %f, %f, %f | %f, %f, %f.\n", 
+               volume_triangle->p0.x, volume_triangle->p0.y, volume_triangle->p0.z,
+               volume_triangle->p1.x, volume_triangle->p1.y, volume_triangle->p1.z,
+               volume_triangle->p2.x, volume_triangle->p2.y, volume_triangle->p2.z);
+#endif
+
+    // Note: The order in which the edges are checked is important, so that our triangulation works
+    // correctly! Essentially, we want to create the clip results in clockwise order, so that we can
+    // just iterate over the vertices and get good triangles.
+    //
+    // p0                p1
+    // |---c1------c2-----/
+    // c0            ----/
+    // |      ---c3-/
+    // c5 -c4--/
+    // |/
+    // p2
+
+    this->clip_corner_against_triangle(volume_triangle->p0, volume_triangle->p2, volume_triangle->p1, clipping_triangle, &clip_result);
+    this->clip_corner_against_triangle(volume_triangle->p1, volume_triangle->p0, volume_triangle->p2, clipping_triangle, &clip_result);
+    this->clip_corner_against_triangle(volume_triangle->p2, volume_triangle->p1, volume_triangle->p0, clipping_triangle, &clip_result);
+            
+    assert(clip_result.vertex_count >= 3 && clip_result.vertex_count <= 6);
+            
+    //
+    // Subdivide this triangle. For now, just do the stupid thing and connect the different vertices.
+    // This may lead to non-optimal triangles (stretched or whatever), but eh.
+    //
+
+    // Reuse this triangle to avoid unnecessary (de-) allocations.
+    volume_triangle->p0 = clip_result.vertices[0];
+    volume_triangle->p1 = clip_result.vertices[1];
+    volume_triangle->p2 = clip_result.vertices[2];
+
+    // Add new triangles for the new vertices.
+    for(s64 i = 3; i < clip_result.vertex_count; ++i) {
+        this->volume.add( { clip_result.vertices[0], clip_result.vertices[i - 1], clip_result.vertices[i], volume_triangle->n });
+    }
+
+#if DEBUG_PRINT
+    printf("Clip result:       ");
+
+    for(s64 i = 0; i < clip_result.vertex_count; ++i) {
+        printf("%f, %f, %f ", clip_result.vertices[i].x, clip_result.vertices[i].y, clip_result.vertices[i].z);
+        if(i + 1 < clip_result.vertex_count) printf("| ");
+    }
+
+    printf(".\n");
+    //thread_sleep(0.1f);
+#endif
+
+    return true;
+}
+
+void Anchor::clip_against_triangle(Triangle *clipping_triangle) {
+    for(s64 i = 0; i < this->volume.count; ++i) { // We are modifying this array inside the loop!
+        this->clip_triangle_against_triangle(clipping_triangle, &this->volume[i]);
+    }
+}
+
+void Anchor::clip_against_plane(Clipping_Plane *plane) {
     for(auto *clipping_triangle : plane->triangles) {
-        if(v3_dot_v3(this->position - clipping_triangle->p0, clipping_triangle->n) < 0.f) continue; // Backfaced triangle, ignore for now. This is wrong!
-
-        for(s64 i = 0; i < this->volume.count; ++i) { // We are modifying this array inside the loop!
-            auto *volume_triangle = &this->volume[i];
-            Clip_Result clip_result;
-            clip_result.vertex_count = 0;
-
-            //
-            // Clip each corner point of the volume triangle against the clip triangle.
-            // This will check whether the point is on the "good" side of the triangle (meaning on the
-            // side towards which the clip normal points) or not. If the corner is on the "bad" side,
-            // it means we must clip this part of the triangle away. We do that by calculating the two
-            // intersection points between the edges this corner is connected to and the clip triangle.
-            // 
-            //    |\    < ----   This corner must be clipped, so get the two intersections between the
-            //    | \            edges and the clip triangle (marked by the '*').
-            //    |  \
-            // ***|***\*****
-            //    |    \
-            //    |-----\
-            // 
-            // After we have clipped all corner points, we have between 3 and 6 output vertices, which we then
-            // triangulate again. This way, we have ensured that this triangle got clipped into the correct
-            // shape.
-            //
-            
-            this->clip_corner_against_triangle(volume_triangle->p0, volume_triangle->p1, volume_triangle->p2, clipping_triangle, &clip_result);
-            this->clip_corner_against_triangle(volume_triangle->p1, volume_triangle->p0, volume_triangle->p2, clipping_triangle, &clip_result);
-            this->clip_corner_against_triangle(volume_triangle->p2, volume_triangle->p0, volume_triangle->p1, clipping_triangle, &clip_result);
-            
-            assert(clip_result.vertex_count >= 3 && clip_result.vertex_count <= 6);
-            
-            //
-            // Subdivide this triangle. For now, just do the stupid thing and connect the different vertices.
-            // This may lead to non-optimal triangles (stretched or whatever), but eh.
-            //
-
-            // Reuse this triangle to avoid unnecessary (de-) allocations.
-            volume_triangle->p0 = clip_result.vertices[0];
-            volume_triangle->p1 = clip_result.vertices[1];
-            volume_triangle->p2 = clip_result.vertices[2];
-
-            // Add new triangles for the new vertices.
-            for(s64 i = 3; i < clip_result.vertex_count; ++i) {
-                this->volume.add( { clip_result.vertices[0], clip_result.vertices[i - 1], clip_result.vertices[i], volume_triangle->n });
-            }
-        }
+        this->clip_against_triangle(clipping_triangle);
     }
 }
 
 void Anchor::clip_against_boundary(Boundary *boundary) {
+    for(auto *plane : boundary->clipping_planes) {
+        this->clip_against_plane(plane);
+    }
+}
+
+void Anchor::eliminate_dead_triangles() {
     tmFunction(TM_ANCHOR_COLOR);
-    for(auto *plane : boundary->clipping_planes) this->clip_against_plane(plane);
+
+    for(s64 i = 0; i < this->volume.count;) {
+        Triangle *triangle = &this->volume[i];
+        if(triangle_surface_area_approximation(triangle->p0, triangle->p1, triangle->p2) < F32_EPSILON) {
+            this->volume.remove(i);
+        } else {
+            ++i;
+        }
+    }
 }
 
 void Anchor::dbg_print_volume() {
@@ -366,36 +437,85 @@ void World::calculate_volumes() {
         for(auto *boundary : this->boundaries) {
             anchor->clip_against_boundary(boundary);
         }
+
+        anchor->eliminate_dead_triangles();
     }
 }
 
 
 
-void World::begin_calculate_volumes_stepping() {
-    tmFunction(TM_WORLD_COLOR);
+//
+// :DbgStep
+// This might, quite frankly, be some of the worst code that has been written in recorded human history (except for spotify).
+// I am trying to enable stepping through the clipping algorithm through a UI, and for that I essentially need to save the
+// state of the big ass for-loop cascade which it is. This is why there are so many iterators, and why I need to do this whole
+// logic.
+// It is an absolute tragedy, and I am sorry for anyone attempting to read this, but it works.
+// In case you had a stroke, I hope you have good insurance.
+// 
+//     vmat, 21.04.24
+//
 
+void World::begin_calculate_volumes_stepping() {
     this->clip_all_boundaries();
 
-    this->dbg_step_anchor_iterator = this->anchors.begin();
-    this->dbg_step_boundary_iterator = this->boundaries.begin();
+    this->dbg_step_anchor_index            = 0;
+    this->dbg_step_boundary_index          = 0;
+    this->dbg_step_clipping_plane_index    = 0;
+    this->dbg_step_clipping_triangle_index = 0;
+    this->dbg_step_volume_triangle_index   = 0;
 }
 
 void World::calculate_volumes_step() {
-    tmFunction(TM_WORLD_COLOR);
+    b8 exit = false;
+    
+    while(!exit) {
+        if(this->dbg_step_anchor_index >= this->anchors.count) {
+            this->dbg_step_anchor_index = this->dbg_step_boundary_index = this->dbg_step_clipping_plane_index = this->dbg_step_clipping_triangle_index = this->dbg_step_volume_triangle_index = -1;
+            exit = true;
+            continue;
+        }
 
-    if(this->dbg_step_anchor_iterator == this->anchors.end()) return;
+        Anchor *anchor = &this->anchors[this->dbg_step_anchor_index];
+        if(this->dbg_step_boundary_index == 0 && this->dbg_step_clipping_plane_index == 0 && this->dbg_step_clipping_triangle_index == 0 && this->dbg_step_volume_triangle_index == 0) {
+            this->make_root_volume(&anchor->volume);
+        }
 
-    Anchor *anchor = this->dbg_step_anchor_iterator.pointer;
+        if(this->dbg_step_boundary_index >= this->boundaries.count) {
+            this->dbg_step_boundary_index = 0;
+            anchor->eliminate_dead_triangles();
 
-    if(this->dbg_step_boundary_iterator == this->boundaries.begin()) this->make_root_volume(&anchor->volume);
+            ++this->dbg_step_anchor_index;
+            continue;
+        }
+    
+        Boundary *boundary = &this->boundaries[this->dbg_step_boundary_index];
 
-    Boundary *boundary = this->dbg_step_boundary_iterator.pointer;
-    anchor->clip_against_boundary(boundary);
+        if(this->dbg_step_clipping_plane_index >= boundary->clipping_planes.count) {
+            this->dbg_step_clipping_plane_index = 0;
+            ++this->dbg_step_boundary_index;
+            continue;
+        }
 
-    ++this->dbg_step_boundary_iterator;
+        Clipping_Plane *clipping_plane = &boundary->clipping_planes[this->dbg_step_clipping_plane_index];
 
-    if(this->dbg_step_boundary_iterator == this->boundaries.end()) {
-        this->dbg_step_boundary_iterator = this->boundaries.begin();
-        ++this->dbg_step_anchor_iterator;
+        if(this->dbg_step_clipping_triangle_index >= clipping_plane->triangles.count) {
+            this->dbg_step_clipping_triangle_index = 0;
+            ++this->dbg_step_clipping_plane_index;
+            continue;
+        }
+        
+        Triangle *clipping_triangle = &clipping_plane->triangles[this->dbg_step_clipping_triangle_index];
+
+        if(this->dbg_step_volume_triangle_index >= anchor->volume.count) {
+            this->dbg_step_volume_triangle_index = 0;
+            ++this->dbg_step_clipping_triangle_index;
+            continue;
+        }
+        
+        Triangle *volume_triangle = &anchor->volume[this->dbg_step_volume_triangle_index];
+        exit = anchor->clip_triangle_against_triangle(clipping_triangle, volume_triangle);
+
+        ++this->dbg_step_volume_triangle_index;
     }
 }
