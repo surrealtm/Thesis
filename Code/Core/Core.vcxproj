@@ -301,6 +301,7 @@
     <ClCompile Include="bindings\bindings.cpp" />
     <ClCompile Include="src\core.cpp" />
     <ClCompile Include="src\dbgdraw.cpp" />
+    <ClCompile Include="src\tessel.cpp" />
     <ClCompile Include="src\tests.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -323,6 +324,7 @@
     <ClInclude Include="bindings\bindings.h" />
     <ClInclude Include="src\core.h" />
     <ClInclude Include="src\dbgdraw.h" />
+    <ClInclude Include="src\tessel.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\Foundation\src\hash_table.inl" />

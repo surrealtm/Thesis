@@ -60,6 +60,9 @@
     <ClCompile Include="..\Foundation\src\jobs.cpp">
       <Filter>Foundation</Filter>
     </ClCompile>
+    <ClCompile Include="src\tessel.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Foundation\src\fileio.h">
@@ -117,12 +120,15 @@
       <Filter>Foundation</Filter>
     </ClInclude>
     <ClInclude Include="..\Foundation\src\hash_table.h">
+      <Filter>Foundation</Filter>
+    </ClInclude>
+    <ClInclude Include="src\tessel.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\Foundation\src\hash_table.inl">
-      <Filter>Header Files</Filter>
+      <Filter>Foundation</Filter>
     </None>
   </ItemGroup>
 </Project>

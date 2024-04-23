@@ -24,14 +24,14 @@ void Triangle::recalculate_normal() {
     assert(fabs(v3_length2(this->n) - 1) < F32_EPSILON);
 }
 
-f32 Triangle::calculate_surface_area() {
+f32 Triangle::approximate_surface_area() {
     // https://math.stackexchange.com/questions/128991/how-to-calculate-the-area-of-a-3d-triangle
     v3f h = v3_cross_v3(this->p0 - this->p1, this->p0 - this->p2);
     return v3_length2(h) / 2;
 }
 
 b8 Triangle::is_dead() {
-    return this->calculate_surface_area() <= F32_EPSILON;
+    return this->approximate_surface_area() <= F32_EPSILON;
 }
 
 
