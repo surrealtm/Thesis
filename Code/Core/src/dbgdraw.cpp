@@ -99,18 +99,15 @@ void debug_draw_octree(Dbg_Internal_Draw_Data &_internal, Octree *node, Octree_C
 }
 
 static
-void debug_draw_clipping_plane(Dbg_Internal_Draw_Data &_internal, Clipping_Plane *plane, Dbg_Draw_Color color, b8 wireframe) {
-	if(wireframe) {
-		for(auto *triangle : plane->triangles) {
-			_internal.lines.add({ triangle->p0, triangle->p1, dbg_triangle_wireframe_thickness, color.r, color.g, color.b });
-			_internal.lines.add({ triangle->p1, triangle->p2, dbg_triangle_wireframe_thickness, color.r, color.g, color.b });
-			_internal.lines.add({ triangle->p2, triangle->p0, dbg_triangle_wireframe_thickness, color.r, color.g, color.b });
-		}
-	} else {
-		for(auto *triangle : plane->triangles) {
-			_internal.triangles.add({ triangle->p0, triangle->p1, triangle->p2, color.r, color.g, color.b, color.a });
-		}
-	}
+void debug_draw_triangle(Dbg_Internal_Draw_Data &_internal, Triangle *triangle, Dbg_Draw_Color color) {
+	_internal.triangles.add({ triangle->p0, triangle->p1, triangle->p2, color.r, color.g, color.b, color.a });
+}
+
+static
+void debug_draw_triangle_wireframe(Dbg_Internal_Draw_Data &_internal, Triangle *triangle, Dbg_Draw_Color color) {
+	_internal.lines.add({ triangle->p0, triangle->p1, dbg_triangle_wireframe_thickness, color.r, color.g, color.b });
+	_internal.lines.add({ triangle->p1, triangle->p2, dbg_triangle_wireframe_thickness, color.r, color.g, color.b });
+	_internal.lines.add({ triangle->p2, triangle->p0, dbg_triangle_wireframe_thickness, color.r, color.g, color.b });
 }
 
 Debug_Draw_Data debug_draw_world(World *world, Debug_Draw_Options options) {
@@ -145,37 +142,31 @@ Debug_Draw_Data debug_draw_world(World *world, Debug_Draw_Options options) {
 	}
 
 	if(options & DEBUG_DRAW_Clipping_Plane_Faces) {
-		/*
 		// Root clipping planes cause more confusion than good right now I think.
-		for(auto *root_plane : world->root_clipping_planes) {
-			debug_draw_clipping_plane(_internal, root_plane);
+		for(auto *root_triangle : world->root_clipping_triangles) {
+			debug_draw_triangle(_internal, root_triangle, dbg_clipping_plane_color);
 		}
-		*/
-
+		
         for(s64 i = 0; i < world->boundaries.count; ++i) {
             Boundary *boundary = &world->boundaries[i];
-            for(s64 j = 0; j < boundary->clipping_planes.count; ++j) {
-                Dbg_Draw_Color color = (i == world->dbg_step_boundary_index && j == world->dbg_step_clipping_plane_index) ? dbg_step_highlight_color : dbg_clipping_plane_color;
-                Clipping_Plane *plane = &boundary->clipping_planes[j];
-                debug_draw_clipping_plane(_internal, plane, color, false);
+            for(s64 j = 0; j < boundary->clipping_triangles.count; ++j) {
+                Dbg_Draw_Color color = (i == world->dbg_step_boundary_index && j == world->dbg_step_clipping_triangle_index) ? dbg_step_highlight_color : dbg_clipping_plane_color;
+				debug_draw_triangle(_internal, &boundary->clipping_triangles[j], color);
 			}
         }
     }
 
 	if(options & DEBUG_DRAW_Clipping_Plane_Wireframes) {
-		/*
 		// Root clipping planes cause more confusion than good right now I think.
-		for(auto *root_plane : world->root_clipping_planes) {
-			debug_draw_clipping_plane(_internal, root_plane);
+		for(auto *root_triangle : world->root_clipping_triangles) {
+			debug_draw_triangle_wireframe(_internal, root_triangle, dbg_clipping_plane_color);
 		}
-		*/
-
+		
         for(s64 i = 0; i < world->boundaries.count; ++i) {
             Boundary *boundary = &world->boundaries[i];
-            for(s64 j = 0; j < boundary->clipping_planes.count; ++j) {
-                Dbg_Draw_Color color = (i == world->dbg_step_boundary_index && j == world->dbg_step_clipping_plane_index) ? dbg_step_highlight_color : dbg_clipping_plane_color;
-                Clipping_Plane *plane = &boundary->clipping_planes[j];
-                debug_draw_clipping_plane(_internal, plane, color, true);
+            for(s64 j = 0; j < boundary->clipping_triangles.count; ++j) {
+                Dbg_Draw_Color color = (i == world->dbg_step_boundary_index && j == world->dbg_step_clipping_triangle_index) ? dbg_step_highlight_color : dbg_clipping_plane_color;
+				debug_draw_triangle_wireframe(_internal, &boundary->clipping_triangles[j], color);
 			}
         }		
 	}
@@ -183,10 +174,9 @@ Debug_Draw_Data debug_draw_world(World *world, Debug_Draw_Options options) {
 	if(options & DEBUG_DRAW_Volume_Faces) {
 		for(s64 i = 0; i < world->anchors.count; ++i) {
             Anchor *anchor = &world->anchors[i];
-			for(s64 j = 0; j < anchor->volume.count; ++j) {
+			for(s64 j = 0; j < anchor->volume_triangles.count; ++j) {
 				Dbg_Draw_Color color = (i == world->dbg_step_anchor_index && j == world->dbg_step_volume_triangle_index) ? dbg_step_highlight_color : dbg_volume_color;
-				Triangle *triangle = &anchor->volume[j];
-				_internal.triangles.add({ triangle->p0, triangle->p1, triangle->p2, color.r, color.g, color.b, color.a });
+				debug_draw_triangle(_internal, &anchor->volume_triangles[j], color);
 			}
 		}
 	}
@@ -194,13 +184,9 @@ Debug_Draw_Data debug_draw_world(World *world, Debug_Draw_Options options) {
 	if(options & DEBUG_DRAW_Volume_Wireframes) {
 		for(s64 i = 0; i < world->anchors.count; ++i) {
             Anchor *anchor = &world->anchors[i];
-			for(s64 j = 0; j < anchor->volume.count; ++j) {
+			for(s64 j = 0; j < anchor->volume_triangles.count; ++j) {
 				Dbg_Draw_Color color = (i == world->dbg_step_anchor_index && j == world->dbg_step_volume_triangle_index) ? dbg_step_highlight_color : dbg_volume_color;
-				Triangle *triangle = &anchor->volume[j];
-				
-				_internal.lines.add({ triangle->p0, triangle->p1, dbg_triangle_wireframe_thickness, color.r, color.g, color.b });
-				_internal.lines.add({ triangle->p1, triangle->p2, dbg_triangle_wireframe_thickness, color.r, color.g, color.b });
-				_internal.lines.add({ triangle->p2, triangle->p0, dbg_triangle_wireframe_thickness, color.r, color.g, color.b });
+				debug_draw_triangle_wireframe(_internal, &anchor->volume_triangles[j], color);
 			}
 		}
 	}

@@ -225,7 +225,7 @@ extern "C" {
 
         // nocheckin
         World *world = (World *) core_allocate_world();
-        world->create(v3f(50, 1, 50));
+        world->create(v3f(50, .5, 50));
 
         Boundary *b0 = world->add_boundary("Boundary"_s, v3f(-10, 0, 0), v3f(.5, .5, 10), v3f(0));
         world->add_boundary_clipping_planes(b0, AXIS_X);
@@ -241,7 +241,8 @@ extern "C" {
         world->create_octree();
         world->calculate_volumes(step_into);
         return world;
-        /*        
+
+        /*
         World *world = (World *) core_allocate_world();
         world->create(v3f(50, 1, 50));
 
@@ -261,7 +262,7 @@ extern "C" {
         }
 
         world->add_anchor("Inside"_s, v3f(0, 0, 0));
-        //world->add_anchor("Outside"_s, v3f(0, 0, -40));
+        world->add_anchor("Outside"_s, v3f(0, 0, -40));
 
         world->create_octree();
         world->calculate_volumes(step_into);
@@ -321,12 +322,12 @@ extern "C" {
         world->add_centered_boundary_clipping_plane(boundary, AXIS_X);
 
         Anchor *anchor = world->add_anchor("Anchor"_s, v3f(1, 1, 1));
-        anchor->volume.add({ v3f(-4,  0, -4), v3f( 4,  0, -4), v3f( 4,  0,  4) });
-        anchor->volume.add({ v3f(-4,  0, -4), v3f(-4,  0,  4), v3f( 4,  0,  4) });
-        anchor->volume.add({ v3f(-4,  4, -4), v3f( 4,  4, -4), v3f( 4, -4, -4) });
-        anchor->volume.add({ v3f(-4,  4, -4), v3f(-4, -4, -4), v3f( 4, -4, -4) });
-        anchor->volume.add({ v3f(-4,  4, -4), v3f(-4,  4,  4), v3f(-4, -4,  4) });
-        anchor->volume.add({ v3f(-4,  4, -4), v3f(-4, -4, -4), v3f(-4, -4,  4) });
+        anchor->volume_triangles.add({ v3f(-4,  0, -4), v3f( 4,  0, -4), v3f( 4,  0,  4) });
+        anchor->volume_triangles.add({ v3f(-4,  0, -4), v3f(-4,  0,  4), v3f( 4,  0,  4) });
+        anchor->volume_triangles.add({ v3f(-4,  4, -4), v3f( 4,  4, -4), v3f( 4, -4, -4) });
+        anchor->volume_triangles.add({ v3f(-4,  4, -4), v3f(-4, -4, -4), v3f( 4, -4, -4) });
+        anchor->volume_triangles.add({ v3f(-4,  4, -4), v3f(-4,  4,  4), v3f(-4, -4,  4) });
+        anchor->volume_triangles.add({ v3f(-4,  4, -4), v3f(-4, -4, -4), v3f(-4, -4,  4) });
 
         world->create_octree();
         world->calculate_volumes(step_into);

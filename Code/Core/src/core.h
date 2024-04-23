@@ -11,7 +11,7 @@
 #define TM_OCTREE_COLOR 2
 #define TM_ANCHOR_COLOR 3
 
-struct Boundary;
+
 
 /* ----------------------------------------------- 3D Geometry ----------------------------------------------- */
 
@@ -27,45 +27,17 @@ struct Triangle {
     v3f n;
 
     Triangle() {};
-    Triangle(v3f p0, v3f p1, v3f p2) : p0(p0), p1(p1), p2(p2), n(v3_normalize(v3_cross_v3(p0 - p1, p0 - p2))) {};
-    Triangle(v3f p0, v3f p1, v3f p2, v3f n) : p0(p0), p1(p1), p2(p2), n(n) {};
+    Triangle(v3f p0, v3f p1, v3f p2);
+    Triangle(v3f p0, v3f p1, v3f p2, v3f n);
 
-    void calculate_normal();
+    void recalculate_normal();
     f32 calculate_surface_area();
     b8 is_dead();
-};
-
-struct Clipping_Plane {
-    Clipping_Plane(Allocator *allocator, v3f p, v3f n, v3f u, v3f v);
-
-    Resizable_Array<Triangle> triangles;
 };
 
 struct AABB {
     v3f min, max;
 };
-
-struct Local_Axes {
-    v3f _[AXIS_COUNT];
-    v3f &operator[](s64 index) { assert(index >= 0 && index <= AXIS_COUNT); return this->_[index]; }
-};
-
-struct Clip_Result {
-    v3f vertices[9]; // Each vertex of a triangle may create three clipping points: One for each edge, and one shifted onto the plane. @@Speed: One plane cannot cause each vertex to create 3 clipping points, but eh.
-    s64 vertex_count;
-
-    s64 p0_count;
-    s64 p1_count;
-    s64 p2_count;
-
-    b8 p0_shifted;
-    b8 p1_shifted;
-    b8 p2_shifted;
-};
-
-AABB aabb_from_position_and_size(v3f center, v3f half_sizes);
-Local_Axes local_axes_rotated(qtf quat, v3f axis_scale);
-void add_triangles_for_clipping_plane(Resizable_Array<Triangle> * triangles, Clipping_Plane *plane);
 
 
 
@@ -73,32 +45,19 @@ void add_triangles_for_clipping_plane(Resizable_Array<Triangle> * triangles, Cli
 
 struct Anchor {
     v3f position;
-    Resizable_Array<Triangle> volume;
+    Resizable_Array<Triangle> volume_triangles;
 
     // Only for debug drawing.
     string dbg_name;
-    
-    b8 shift_corner_onto_triangle(v3f p0, v3f n, Triangle *clipping_triangle, Clip_Result *result);
-    u8 clip_corner_against_triangle(v3f p0, v3f p1, v3f p2, Triangle *clipping_triangle, Clip_Result *result);
-    b8 clip_triangle_against_triangle(Triangle *volume_triangle, Triangle *clipping_triangle);
-    
-    //
-    // The clipping algorithm produces "dead" triangles: triangles without actual surface area.
-    // These triangles should be eliminated for better performance.
-    // Dead triangles are to be expected (unforunately), e.g. consider a triangle which is
-    // completely behind a clipping plane, it will be projected into a 2D-ish line.
-    //
-    void eliminate_dead_triangles();
-
-    void dbg_print_volume();
 };
 
 struct Boundary {
     v3f position;
-    Local_Axes local_scaled_axes; // The three coordinate axis in the local transform (meaning: rotated) of this boundary.
-    Local_Axes local_unit_axes; // The three coordinate axis in the local transform (meaning: rotated) of this boundary.
     AABB aabb;
-    Resizable_Array<Clipping_Plane> clipping_planes; // Having this be a full-on dynamic array is pretty wasteful, since boundaries should only ever have between 1 and 3 clipping planes...  @@Speed.
+    v3f local_scaled_axes[AXIS_COUNT]; // The three coordinate axis in the local transform (meaning: rotated) of this boundary.
+    v3f local_unit_axes[AXIS_COUNT]; // The three coordinate axis in the local transform (meaning: rotated) of this boundary.
+
+    Resizable_Array<Triangle> clipping_triangles; // Having this be a full-on dynamic array is pretty wasteful, since boundaries should only ever have between 1 and 3 clipping planes...  @@Speed.
 
     // Only for debug drawing.
     string dbg_name;
@@ -160,7 +119,7 @@ struct World {
     Allocator pool_allocator;
     Allocator *allocator; // Usually a pointer to the pool_allocator, but can be swapped for testing...
     
-    v3f half_size; // This size is used to initialize the octree. It must be known in advance for the algorithm to be fast.
+    v3f half_size; // This size is used to initialize the octree. The octree implementation does not support dynamic size changing, so this should be fixed.
 
     // The world owns all objects that are part of this problem. These objects
     // are stored here and can then be referenced in other parts of the algorithm.
@@ -171,7 +130,7 @@ struct World {
     Resizable_Array<Boundary> boundaries;
 
     // The clipping planes of the octree, since no volume should ever go past the dimensions of the world.
-    Resizable_Array<Clipping_Plane> root_clipping_planes;
+    Resizable_Array<Triangle> root_clipping_triangles;
 
     // This octree contains pointers to anchors, boundaries and volumes, to make spatial lookup
     // for objects a lot faster.
@@ -197,12 +156,18 @@ struct World {
 
     /* Debugging behaviour */
 
-    // nocheckin: Docs
+    //
+    // :DbgStep
+    // The algorithm should support builtin stepping support, so that we can better visualize what is happening
+    // in the viewer. For that to work, we essentially save the iteration state (meaning: for loop variables)
+    // between the calls, which causes this whole mess.
+    // It is very far from being clean, but it works and I don't want to overengineer things.
+    // (This would seem like a great application for coroutines, unfortunately C++ is a shithole and I couldn't
+    // figure out how they work before being too annoyed).
+    //
     s64 dbg_step_anchor_index            = MAX_S64,
         dbg_step_boundary_index          = MAX_S64,
-        dbg_step_clipping_plane_index    = MAX_S64,
         dbg_step_clipping_triangle_index = MAX_S64,
         dbg_step_volume_triangle_index   = MAX_S64;
-    b8 dbg_step_triangle_requires_reevaluation = false;
     b8 did_step_before = false;
 };
