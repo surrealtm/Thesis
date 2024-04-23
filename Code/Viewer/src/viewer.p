@@ -76,6 +76,7 @@ TESTS: []Viewer_Test : {
         .{ "circle",        core_do_circle_test },
         .{ "u_shape",       core_do_u_shape_test },
         .{ "center_block",  core_do_center_block_test },
+        .{ "clipping",      core_do_clipping_test },
         .{ "jobs",          core_do_jobs_test },
 };
 
@@ -113,7 +114,7 @@ Viewer :: struct {
     memory_information: Memory_Information;
     
     profiling_show_summary: bool;    
-    debug_draw_options: Debug_Draw_Options = .Octree | .Anchors | .Boundaries | .Clipping_Plane_Wireframes | .Volume_Wireframes | .Labels;
+    debug_draw_options: Debug_Draw_Options = .Clipping_Plane_Faces | .Clipping_Plane_Wireframes | .Volume_Faces | .Volume_Wireframes;
 }
 
 

@@ -233,7 +233,7 @@ extern "C" {
         Boundary *b1 = world->add_boundary("Boundary"_s, v3f(0, 0, -10), v3f(.5, .5, 10), v3f(0, +.125, 0));
         world->add_boundary_clipping_planes(b1, AXIS_X);
 
-        Boundary *b2 = world->add_boundary("Boundary"_s, v3f(0, 0, +10), v3f(.5, .5, -10), v3f(0, -.125, 0));
+        Boundary *b2 = world->add_boundary("Boundary"_s, v3f(0, 0, +10), v3f(.5, .5, 10), v3f(0, -.125, 0));
         world->add_boundary_clipping_planes(b2, AXIS_X);
 
         world->add_anchor("Anchor"_s, v3f(0, 0, 0));
@@ -310,6 +310,29 @@ extern "C" {
         return world;
     }
 
+
+    World_Handle core_do_clipping_test(b8 step_into) {
+        tmFunction(TM_SYSTEM_COLOR);
+
+        World *world = (World *) core_allocate_world();
+        world->create(v3f(10, 5, 10));
+
+        Boundary *boundary = world->add_boundary("Ground"_s, v3f(0, 0, 0), v3f(1, 1, 1), v3f(-0.0625, 0, 0));
+        world->add_centered_boundary_clipping_plane(boundary, AXIS_X);
+
+        Anchor *anchor = world->add_anchor("Anchor"_s, v3f(1, 1, 1));
+        anchor->volume.add({ v3f(-4,  0, -4), v3f( 4,  0, -4), v3f( 4,  0,  4) });
+        anchor->volume.add({ v3f(-4,  0, -4), v3f(-4,  0,  4), v3f( 4,  0,  4) });
+        anchor->volume.add({ v3f(-4,  4, -4), v3f( 4,  4, -4), v3f( 4, -4, -4) });
+        anchor->volume.add({ v3f(-4,  4, -4), v3f(-4, -4, -4), v3f( 4, -4, -4) });
+        anchor->volume.add({ v3f(-4,  4, -4), v3f(-4,  4,  4), v3f(-4, -4,  4) });
+        anchor->volume.add({ v3f(-4,  4, -4), v3f(-4, -4, -4), v3f(-4, -4,  4) });
+
+        world->create_octree();
+        world->calculate_volumes(step_into);
+
+        return world;
+    }
 
     World_Handle core_do_jobs_test(b8 step_into) {   
         tmFunction(TM_DEFAULT_COLOR);

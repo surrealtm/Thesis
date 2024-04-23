@@ -48,7 +48,7 @@ extern "C" {
     EXPORT World_Handle core_do_u_shape_test(b8 step_into);
     EXPORT World_Handle core_do_center_block_test(b8 step_into);
 
-
+    EXPORT World_Handle core_do_clipping_test(b8 step_into);
     EXPORT World_Handle core_do_jobs_test(b8 step_into);
     
 

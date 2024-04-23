@@ -306,6 +306,7 @@
   <ItemGroup>
     <ClInclude Include="..\Foundation\src\fileio.h" />
     <ClInclude Include="..\Foundation\src\foundation.h" />
+    <ClInclude Include="..\Foundation\src\hash_table.h" />
     <ClInclude Include="..\Foundation\src\jobs.h" />
     <ClInclude Include="..\Foundation\src\math\intersect.h" />
     <ClInclude Include="..\Foundation\src\math\math.h" />
@@ -322,6 +323,9 @@
     <ClInclude Include="bindings\bindings.h" />
     <ClInclude Include="src\core.h" />
     <ClInclude Include="src\dbgdraw.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\Foundation\src\hash_table.inl" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -23,6 +23,7 @@ core_do_circle_test        :: #foreign (step_into: bool) -> World_Handle;
 core_do_u_shape_test       :: #foreign (step_into: bool) -> World_Handle;
 core_do_center_block_test  :: #foreign (step_into: bool) -> World_Handle;
 
+core_do_clipping_test :: #foreign (step_into: bool) -> World_Handle;
 core_do_jobs_test :: #foreign (step_into: bool) -> World_Handle;
 
 

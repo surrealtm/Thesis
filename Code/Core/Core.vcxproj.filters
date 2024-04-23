@@ -116,5 +116,13 @@
     <ClInclude Include="..\Foundation\src\jobs.h">
       <Filter>Foundation</Filter>
     </ClInclude>
+    <ClInclude Include="..\Foundation\src\hash_table.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\Foundation\src\hash_table.inl">
+      <Filter>Header Files</Filter>
+    </None>
   </ItemGroup>
 </Project>

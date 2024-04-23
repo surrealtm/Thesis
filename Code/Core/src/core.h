@@ -26,7 +26,13 @@ struct Triangle {
     v3f p0, p1, p2;
     v3f n;
 
+    Triangle() {};
+    Triangle(v3f p0, v3f p1, v3f p2) : p0(p0), p1(p1), p2(p2), n(v3_normalize(v3_cross_v3(p0 - p1, p0 - p2))) {};
+    Triangle(v3f p0, v3f p1, v3f p2, v3f n) : p0(p0), p1(p1), p2(p2), n(n) {};
+
     void calculate_normal();
+    f32 calculate_surface_area();
+    b8 is_dead();
 };
 
 struct Clipping_Plane {
@@ -45,13 +51,21 @@ struct Local_Axes {
 };
 
 struct Clip_Result {
+    v3f vertices[9]; // Each vertex of a triangle may create three clipping points: One for each edge, and one shifted onto the plane. @@Speed: One plane cannot cause each vertex to create 3 clipping points, but eh.
     s64 vertex_count;
-    v3f vertices[6];
+
+    s64 p0_count;
+    s64 p1_count;
+    s64 p2_count;
+
+    b8 p0_shifted;
+    b8 p1_shifted;
+    b8 p2_shifted;
 };
 
 AABB aabb_from_position_and_size(v3f center, v3f half_sizes);
 Local_Axes local_axes_rotated(qtf quat, v3f axis_scale);
-f32 triangle_surface_area_approximation(v3f p0, v3f p1, v3f p2);
+void add_triangles_for_clipping_plane(Resizable_Array<Triangle> * triangles, Clipping_Plane *plane);
 
 
 
@@ -64,7 +78,8 @@ struct Anchor {
     // Only for debug drawing.
     string dbg_name;
     
-    b8 clip_corner_against_triangle(v3f p0, v3f p1, v3f p2, v3f n, Triangle *clipping_triangle, Clip_Result *result);
+    b8 shift_corner_onto_triangle(v3f p0, v3f n, Triangle *clipping_triangle, Clip_Result *result);
+    u8 clip_corner_against_triangle(v3f p0, v3f p1, v3f p2, Triangle *clipping_triangle, Clip_Result *result);
     b8 clip_triangle_against_triangle(Triangle *volume_triangle, Triangle *clipping_triangle);
     
     //
@@ -84,8 +99,6 @@ struct Boundary {
     Local_Axes local_unit_axes; // The three coordinate axis in the local transform (meaning: rotated) of this boundary.
     AABB aabb;
     Resizable_Array<Clipping_Plane> clipping_planes; // Having this be a full-on dynamic array is pretty wasteful, since boundaries should only ever have between 1 and 3 clipping planes...  @@Speed.
-
-    void add_clipping_plane(Allocator *allocator, v3f p, v3f n, v3f u, v3f v);
 
     // Only for debug drawing.
     string dbg_name;
@@ -140,6 +153,8 @@ struct Octree {
 struct World {
     // This world manages its own memory, so that allocations aren't fragmented and so that we can just destroy
     // the memory arena and everything is cleaned up.
+    // @@Speed: In some cases it might be even better to use the arena allocator directly, if we know something
+    // is never gonna get freed, so that we don't have the time nor space overhead of doing memory blocks.
     Memory_Arena arena;
     Memory_Pool pool;
     Allocator pool_allocator;
@@ -167,9 +182,10 @@ struct World {
 
     void reserve_objects(s64 anchors, s64 boundaries);
     
-    void add_anchor(string name, v3f position);
+    Anchor *add_anchor(string name, v3f position);
     Boundary *add_boundary(string name, v3f position, v3f size, v3f rotation);
     void add_boundary_clipping_planes(Boundary *boundary, Axis normal_axis);
+    void add_centered_boundary_clipping_plane(Boundary *boundary, Axis normal_axis);
     
     // Creates a volume which spans the whole root area.
     void make_root_volume(Resizable_Array<Triangle> *triangles);
