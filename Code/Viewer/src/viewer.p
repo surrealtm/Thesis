@@ -114,7 +114,7 @@ Viewer :: struct {
     memory_information: Memory_Information;
     
     profiling_show_summary: bool;    
-    debug_draw_options: Debug_Draw_Options = .Clipping_Plane_Faces | .Clipping_Plane_Wireframes | .Volume_Faces | .Volume_Wireframes;
+    debug_draw_options: Debug_Draw_Options = .Octree | .Anchors | .Boundaries | .Clipping_Plane_Wireframes | .Volume_Faces | .Volume_Wireframes;
 }
 
 

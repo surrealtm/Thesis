@@ -39,7 +39,8 @@ static f32 dbg_octree_depth_thickness_map[] = {
 };
 
 const f32 dbg_anchor_radius = 0.5f;
-const f32 dbg_triangle_wireframe_thickness = 0.2f;
+//const f32 dbg_triangle_wireframe_thickness = 0.2f; // nocheckin
+const f32 dbg_triangle_wireframe_thickness = 0.02f;
 
 const Dbg_Draw_Color dbg_label_color          = { 255, 255, 255, 255 };
 const Dbg_Draw_Color dbg_anchor_color         = { 255, 100, 100, 255 };
@@ -104,10 +105,10 @@ void debug_draw_triangle(Dbg_Internal_Draw_Data &_internal, Triangle *triangle, 
 }
 
 static
-void debug_draw_triangle_wireframe(Dbg_Internal_Draw_Data &_internal, Triangle *triangle, Dbg_Draw_Color color) {
-	_internal.lines.add({ triangle->p0, triangle->p1, dbg_triangle_wireframe_thickness, color.r, color.g, color.b });
-	_internal.lines.add({ triangle->p1, triangle->p2, dbg_triangle_wireframe_thickness, color.r, color.g, color.b });
-	_internal.lines.add({ triangle->p2, triangle->p0, dbg_triangle_wireframe_thickness, color.r, color.g, color.b });
+void debug_draw_triangle_wireframe(Dbg_Internal_Draw_Data &_internal, Triangle *triangle, Dbg_Draw_Color color, f32 thickness) {
+	_internal.lines.add({ triangle->p0, triangle->p1, thickness, color.r, color.g, color.b });
+	_internal.lines.add({ triangle->p1, triangle->p2, thickness, color.r, color.g, color.b });
+	_internal.lines.add({ triangle->p2, triangle->p0, thickness, color.r, color.g, color.b });
 }
 
 Debug_Draw_Data debug_draw_world(World *world, Debug_Draw_Options options) {
@@ -142,7 +143,6 @@ Debug_Draw_Data debug_draw_world(World *world, Debug_Draw_Options options) {
 	}
 
 	if(options & DEBUG_DRAW_Clipping_Plane_Faces) {
-		// Root clipping planes cause more confusion than good right now I think.
 		for(auto *root_triangle : world->root_clipping_triangles) {
 			debug_draw_triangle(_internal, root_triangle, dbg_clipping_plane_color);
 		}
@@ -157,16 +157,18 @@ Debug_Draw_Data debug_draw_world(World *world, Debug_Draw_Options options) {
     }
 
 	if(options & DEBUG_DRAW_Clipping_Plane_Wireframes) {
-		// Root clipping planes cause more confusion than good right now I think.
 		for(auto *root_triangle : world->root_clipping_triangles) {
-			debug_draw_triangle_wireframe(_internal, root_triangle, dbg_clipping_plane_color);
+            f32 thickness = dbg_triangle_wireframe_thickness;
+			debug_draw_triangle_wireframe(_internal, root_triangle, dbg_clipping_plane_color, thickness);
 		}
 		
         for(s64 i = 0; i < world->boundaries.count; ++i) {
             Boundary *boundary = &world->boundaries[i];
             for(s64 j = 0; j < boundary->clipping_triangles.count; ++j) {
-                Dbg_Draw_Color color = (i == world->dbg_step_boundary_index && j == world->dbg_step_clipping_triangle_index) ? dbg_step_highlight_color : dbg_clipping_plane_color;
-				debug_draw_triangle_wireframe(_internal, &boundary->clipping_triangles[j], color);
+                b8 active = (i == world->dbg_step_boundary_index && j == world->dbg_step_clipping_triangle_index);
+				Dbg_Draw_Color color = active ? dbg_step_highlight_color : dbg_clipping_plane_color;
+                f32 thickness = active ? dbg_triangle_wireframe_thickness * 2.f : dbg_triangle_wireframe_thickness;
+				debug_draw_triangle_wireframe(_internal, &boundary->clipping_triangles[j], color, thickness);
 			}
         }		
 	}
@@ -175,7 +177,8 @@ Debug_Draw_Data debug_draw_world(World *world, Debug_Draw_Options options) {
 		for(s64 i = 0; i < world->anchors.count; ++i) {
             Anchor *anchor = &world->anchors[i];
 			for(s64 j = 0; j < anchor->volume_triangles.count; ++j) {
-				Dbg_Draw_Color color = (i == world->dbg_step_anchor_index && j == world->dbg_step_volume_triangle_index) ? dbg_step_highlight_color : dbg_volume_color;
+				b8 active = (i == world->dbg_step_anchor_index && j == world->dbg_step_volume_triangle_index);
+				Dbg_Draw_Color color = active ? dbg_step_highlight_color : dbg_volume_color;
 				debug_draw_triangle(_internal, &anchor->volume_triangles[j], color);
 			}
 		}
@@ -185,8 +188,10 @@ Debug_Draw_Data debug_draw_world(World *world, Debug_Draw_Options options) {
 		for(s64 i = 0; i < world->anchors.count; ++i) {
             Anchor *anchor = &world->anchors[i];
 			for(s64 j = 0; j < anchor->volume_triangles.count; ++j) {
-				Dbg_Draw_Color color = (i == world->dbg_step_anchor_index && j == world->dbg_step_volume_triangle_index) ? dbg_step_highlight_color : dbg_volume_color;
-				debug_draw_triangle_wireframe(_internal, &anchor->volume_triangles[j], color);
+				b8 active = (i == world->dbg_step_anchor_index && j == world->dbg_step_volume_triangle_index);
+				Dbg_Draw_Color color = active ? dbg_step_highlight_color : dbg_volume_color;
+                f32 thickness = active ? dbg_triangle_wireframe_thickness * 2.f : dbg_triangle_wireframe_thickness;
+                debug_draw_triangle_wireframe(_internal, &anchor->volume_triangles[j], color, thickness);
 			}
 		}
 	}

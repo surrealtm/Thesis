@@ -24,13 +24,10 @@ enum Axis {
 
 struct Triangle {
     v3f p0, p1, p2;
-    v3f n;
-
+    
     Triangle() {};
     Triangle(v3f p0, v3f p1, v3f p2);
-    Triangle(v3f p0, v3f p1, v3f p2, v3f n);
-
-    void recalculate_normal();
+    
     f32 approximate_surface_area(); // This avoids a square root for performance, since we only roughly want to know whether the triangle is dead or not.
     b8 is_dead();
 };
