@@ -18,10 +18,6 @@ void check_edge_against_triangle(Tessellator *tessellator, v3f e0, v3f e1, Trian
         // If the intersection_count is already >= 2, then we are having some numerical instability on
         // parallel triangles, see :TessellationOfCoplanarTriangles
         tessellator->intersection_point[tessellator->intersection_count] = e0 + direction * result.distance;
-
-        printf("Intersection point: %f, %f, %f\n", tessellator->intersection_point[tessellator->intersection_count].x, tessellator->intersection_point[tessellator->intersection_count].y, tessellator->intersection_point[tessellator->intersection_count].z);
-        printf("    Ray: %f, %f, %f | %f, %f, %f\n", e0.x, e0.y, e0.z, direction.x, direction.y, direction.z);
-
         ++tessellator->intersection_count;
     }
 }
@@ -34,9 +30,6 @@ void generate_new_triangle(Tessellator *tessellator, v3f p0, v3f p1, v3f p2) {
     v3f n = v3_cross_v3(p1 - p0, p2 - p0);
     f32 estimated_surface_area = v3_length(n) / 2;    
     if(estimated_surface_area < F32_EPSILON) return;
-
-    printf("Generated triangle: %f\n", estimated_surface_area);
-    printf("    %f, %f, %f | %f, %f, %f | %f, %f, %f\n", p0.x, p0.y, p0.z, p1.x, p1.y, p1.z, p2.x, p2.y, p2.z);
     
     if(tessellator->generated_triangle_count == 0) {
         // Re-use the input triangle to avoid re-allocations.
@@ -70,8 +63,6 @@ s64 tessellate(Triangle *input, Triangle *clip, Resizable_Array<Triangle> *outpu
     // and we are done.
     //
 
-    printf("Tessellating triangle: %f, %f, %f | %f, %f, %f | %f, %f, %f\n", input->p0.x, input->p0.y, input->p0.z, input->p1.x, input->p1.y, input->p1.z, input->p2.x, input->p2.y, input->p2.z);
-    
     Tessellator tessellator;
     tessellator.input_corner[0] = input->p0;
     tessellator.input_corner[1] = input->p1;
@@ -102,6 +93,20 @@ s64 tessellate(Triangle *input, Triangle *clip, Resizable_Array<Triangle> *outpu
     
     calculate_barycentric_coefficients(tessellator.input_corner[0], tessellator.input_corner[1], tessellator.input_corner[2], tessellator.intersection_point[0], &tessellator.barycentric_coefficients[0][0], &tessellator.barycentric_coefficients[0][1], &tessellator.barycentric_coefficients[0][2]);
     calculate_barycentric_coefficients(tessellator.input_corner[0], tessellator.input_corner[1], tessellator.input_corner[2], tessellator.intersection_point[1], &tessellator.barycentric_coefficients[1][0], &tessellator.barycentric_coefficients[1][1], &tessellator.barycentric_coefficients[1][2]);
+
+    b8 intersection_point_is_corner[2] = {
+        tessellator.barycentric_coefficients[0][0] >= 1.f - F32_EPSILON || tessellator.barycentric_coefficients[0][1] >= 1.f - F32_EPSILON || tessellator.barycentric_coefficients[0][2] >= 1.f - F32_EPSILON,
+        tessellator.barycentric_coefficients[1][0] >= 1.f - F32_EPSILON || tessellator.barycentric_coefficients[1][1] >= 1.f - F32_EPSILON || tessellator.barycentric_coefficients[1][2] >= 1.f - F32_EPSILON };
+
+    //
+    // If both intersection points are very close to (or exactly on) the corners, then we don't bother
+    // tessellation since there must already be an edge between the intersection points on the input
+    // triangle (duh).
+    // This can happen if this triangle here is the result of a previous tessellation, so two corners
+    // are on a clipping plane. Due to precision errors, we might get intersections between those
+    // corners, since the edge is on the clipping triangle...
+    //
+    if(intersection_point_is_corner[0] && intersection_point_is_corner[1]) return 0;
     
     //
     // So there are two intersection points on the triangle. We now want to tessellate the triangle
