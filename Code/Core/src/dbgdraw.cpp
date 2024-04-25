@@ -40,7 +40,7 @@ static f32 dbg_octree_depth_thickness_map[] = {
 };
 
 const f32 dbg_anchor_radius = 0.5f;
-const f32 dbg_triangle_wireframe_thickness = 0.04f;
+const f32 dbg_triangle_wireframe_thickness = 0.01f;
 const f32 dbg_triangle_normal_thickness    = 0.2f;
 const f32 dbg_triangle_normal_length       = 1.f;
 

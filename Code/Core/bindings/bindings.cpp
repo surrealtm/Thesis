@@ -225,7 +225,7 @@ extern "C" {
 
         // nocheckin
         World *world = (World *) core_allocate_world();
-        world->create(v3f(50, .5, 50));
+        world->create(v3f(40, .5, 40));
 
         /*
         Boundary *b0 = world->add_boundary("Boundary"_s, v3f(-10, 0, 0), v3f(.5, .5, 10), v3f(0));

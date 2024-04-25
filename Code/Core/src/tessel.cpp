@@ -18,6 +18,10 @@ void check_edge_against_triangle(Tessellator *tessellator, v3f e0, v3f e1, Trian
         // If the intersection_count is already >= 2, then we are having some numerical instability on
         // parallel triangles, see :TessellationOfCoplanarTriangles
         tessellator->intersection_point[tessellator->intersection_count] = e0 + direction * result.distance;
+
+        printf("Intersection point: %f, %f, %f\n", tessellator->intersection_point[tessellator->intersection_count].x, tessellator->intersection_point[tessellator->intersection_count].y, tessellator->intersection_point[tessellator->intersection_count].z);
+        printf("    Ray: %f, %f, %f | %f, %f, %f\n", e0.x, e0.y, e0.z, direction.x, direction.y, direction.z);
+
         ++tessellator->intersection_count;
     }
 }
@@ -28,9 +32,12 @@ void generate_new_triangle(Tessellator *tessellator, v3f p0, v3f p1, v3f p2) {
     // would be considered dead anyway, and we don't even bother generating it in the first
     // place.
     v3f n = v3_cross_v3(p1 - p0, p2 - p0);
-    f32 estimated_surface_area = v3_length2(n) / 2;    
+    f32 estimated_surface_area = v3_length(n) / 2;    
     if(estimated_surface_area < F32_EPSILON) return;
 
+    printf("Generated triangle: %f\n", estimated_surface_area);
+    printf("    %f, %f, %f | %f, %f, %f | %f, %f, %f\n", p0.x, p0.y, p0.z, p1.x, p1.y, p1.z, p2.x, p2.y, p2.z);
+    
     if(tessellator->generated_triangle_count == 0) {
         // Re-use the input triangle to avoid re-allocations.
         tessellator->input_triangle->p0 = p0;
@@ -62,6 +69,8 @@ s64 tessellate(Triangle *input, Triangle *clip, Resizable_Array<Triangle> *outpu
     // If the two triangles don't intersect, then there is no need to tessellate here
     // and we are done.
     //
+
+    printf("Tessellating triangle: %f, %f, %f | %f, %f, %f | %f, %f, %f\n", input->p0.x, input->p0.y, input->p0.z, input->p1.x, input->p1.y, input->p1.z, input->p2.x, input->p2.y, input->p2.z);
     
     Tessellator tessellator;
     tessellator.input_corner[0] = input->p0;
@@ -134,27 +143,20 @@ s64 tessellate(Triangle *input, Triangle *clip, Resizable_Array<Triangle> *outpu
     s8 first_other_corner_index  = (extension_corner_index + 1) % 3;
     s8 second_other_corner_index = (extension_corner_index + 2) % 3;
 
-    v3f _in = tessellator.intersection_point[closest_intersection_point_index[extension_corner_index]]; // Near intersection point
-    v3f _if = tessellator.intersection_point[(closest_intersection_point_index[extension_corner_index] + 1) % 2]; // Far intersection point
+    v3f ext    = tessellator.input_corner[extension_corner_index];
+    v3f first  = tessellator.input_corner[first_other_corner_index];
+    v3f second = tessellator.input_corner[second_other_corner_index];
+    v3f near   = tessellator.intersection_point[closest_intersection_point_index[extension_corner_index]]; // Near intersection point
+    v3f far    = tessellator.intersection_point[(closest_intersection_point_index[extension_corner_index] + 1) % 2]; // Far intersection point
 
     //
-    // Generate the "outer" triangles.
-    // These are the ones which connect to input corners with one intersection point.
+    // Generate the new triangles. Dead triangles will be caught in generate_new_triangle.
     //
-    {
-        generate_new_triangle(&tessellator, tessellator.input_corner[extension_corner_index],   _in, tessellator.input_corner[first_other_corner_index]);
-        generate_new_triangle(&tessellator, tessellator.input_corner[extension_corner_index],   _in, tessellator.input_corner[second_other_corner_index]);
-        generate_new_triangle(&tessellator, tessellator.input_corner[first_other_corner_index], _if, tessellator.input_corner[second_other_corner_index]);
-    }
-    
-    //
-    // Generate the "inner" triangles.
-    // These are the ones which connect the two intersection points with one outer corner.
-    //
-    {
-        generate_new_triangle(&tessellator, tessellator.input_corner[first_other_corner_index], _in, _if);
-        generate_new_triangle(&tessellator, tessellator.input_corner[second_other_corner_index], _in, _if);
-    }
+    generate_new_triangle(&tessellator, ext, first, near);
+    generate_new_triangle(&tessellator, ext, near, second);
+    generate_new_triangle(&tessellator, near, first, far);
+    generate_new_triangle(&tessellator, near, far, second);
+    generate_new_triangle(&tessellator, far, first, second);
                           
     return tessellator.generated_triangle_count;
 }
