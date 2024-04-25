@@ -41,6 +41,8 @@ static f32 dbg_octree_depth_thickness_map[] = {
 
 const f32 dbg_anchor_radius = 0.5f;
 const f32 dbg_triangle_wireframe_thickness = 0.04f;
+const f32 dbg_triangle_normal_thickness    = 0.2f;
+const f32 dbg_triangle_normal_length       = 1.f;
 
 const Dbg_Draw_Color dbg_label_color          = { 255, 255, 255, 255 };
 const Dbg_Draw_Color dbg_anchor_color         = { 255, 100, 100, 255 };
@@ -106,8 +108,8 @@ void debug_draw_triangle(Dbg_Internal_Draw_Data &_internal, Triangle *triangle, 
 
     if(_internal.draw_normals) {
         v3f center = (triangle->p0 + triangle->p1 + triangle->p2) / 3.f;
-        v3f normal = v3_normalize(triangle->normal());
-        _internal.lines.add({ center, center + normal, dbg_triangle_wireframe_thickness, dbg_normal_color.r, dbg_normal_color.g, dbg_normal_color.b });
+        v3f normal = v3_normalize(triangle->normal()) * dbg_triangle_normal_length;
+        _internal.lines.add({ center, center + normal, dbg_triangle_normal_thickness, dbg_normal_color.r, dbg_normal_color.g, dbg_normal_color.b });
     }
 }
 
@@ -119,8 +121,8 @@ void debug_draw_triangle_wireframe(Dbg_Internal_Draw_Data &_internal, Triangle *
 
     if(_internal.draw_normals) {
         v3f center = (triangle->p0 + triangle->p1 + triangle->p2) / 3.f;
-        v3f normal = v3_normalize(triangle->normal()) * 0.5f;
-        _internal.lines.add({ center, center + normal, dbg_triangle_wireframe_thickness, dbg_normal_color.r, dbg_normal_color.g, dbg_normal_color.b });
+        v3f normal = v3_normalize(triangle->normal()) * dbg_triangle_normal_length;
+        _internal.lines.add({ center, center + normal, dbg_triangle_normal_thickness, dbg_normal_color.r, dbg_normal_color.g, dbg_normal_color.b });
     }
 }
 
