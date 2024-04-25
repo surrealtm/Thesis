@@ -2,7 +2,7 @@
 
 
 static
-void check_edge_against_triangle(Tessellator *tesselator, v3f e0, v3f e1, Triangle *triangle) {
+void check_edge_against_triangle(Tessellator *tessellator, v3f e0, v3f e1, Triangle *triangle) {
     //
     // We check for a double-sided plane intersection here since we don't care about the triangle
     // orientation. We always want to tesselate the triangle, no matter whether the edge passed in
@@ -12,37 +12,39 @@ void check_edge_against_triangle(Tessellator *tesselator, v3f e0, v3f e1, Triang
     v3f direction = e1 - e0;   
     Triangle_Intersection_Result result = ray_double_sided_triangle_intersection(e0, direction, triangle->p0, triangle->p1, triangle->p2);
 
-    if(result.intersection && result.distance > 0.0f && result.distance < 1.0f && tesselator->intersection_count < 2) {
+    if(result.intersection && result.distance > 0.0f && result.distance < 1.0f && tessellator->intersection_count < 2) {
         // If result.distance <= 0.f || result.distance >= 1.f, then we do get an intersection with the
         // ray, but not inside the edge section of the ray.
         // If the intersection_count is already >= 2, then we are having some numerical instability on
         // parallel triangles, see :TesselationOfCoplanarTriangles
-        tesselator->intersection_point[tesselator->intersection_count] = e0 + direction * result.distance;
-        ++tesselator->intersection_count;
+        tessellator->intersection_point[tessellator->intersection_count] = e0 + direction * result.distance;
+        ++tessellator->intersection_count;
     }
 }
 
 static
-void generate_new_triangle(Tessellator *tesselator, v3f p0, v3f p1, v3f p2) {
+void generate_new_triangle(Tessellator *tessellator, v3f p0, v3f p1, v3f p2) {
     // Check if two edges of this triangle are almost parallel. In this case, the triangle
     // would be considered dead anyway, and we don't even bother generating it in the first
     // place.
     v3f n = v3_cross_v3(p1 - p0, p2 - p0);
-    if(v3_length2(n) / (v3_length2(p1 - p0) * v3_length2(p2 - p0)) < F32_EPSILON) return;
-    
-    if(tesselator->generated_triangle_count == 0) {
+    f32 estimated_surface_area = v3_length(n) / 2;    
+    if(estimated_surface_area < F32_EPSILON) return;
+
+    if(tessellator->generated_triangle_count == 0) {
         // Re-use the input triangle to avoid re-allocations.
-        tesselator->input_triangle->p0 = p0;
-        tesselator->input_triangle->p1 = p1;
-        tesselator->input_triangle->p2 = p2;
+        tessellator->input_triangle->p0 = p0;
+        tessellator->input_triangle->p1 = p1;
+        tessellator->input_triangle->p2 = p2;
     } else {
         // Add a new triangle to the output array.
-        tesselator->output_array->add({ p0, p1, p2 });
+        tessellator->output_array->add({ p0, p1, p2 });
     }
 
-    printf("Generated a new triangle: %f, %f, %f | %f, %f, %f | %f, %f, %f\n", p0.x, p0.y, p0.z, p1.x, p1.y, p1.z, p2.x, p2.y, p2.z);
+    printf("  Generated a new triangle: %f, %f, %f | %f, %f, %f | %f, %f, %f\n", p0.x, p0.y, p0.z, p1.x, p1.y, p1.z, p2.x, p2.y, p2.z);
+    printf("    Estimated surface area: %f\n", estimated_surface_area);
     
-    ++tesselator->generated_triangle_count;
+    ++tessellator->generated_triangle_count;
 }
 
 static inline
@@ -64,6 +66,8 @@ s64 tessellate(Triangle *input, Triangle *clip, Resizable_Array<Triangle> *outpu
     // and we are done.
     //
 
+    printf("Tessellating triangle: %f, %f, %f | %f, %f, %f | %f, %f, %f\n", input->p0.x, input->p0.y, input->p0.z, input->p1.x, input->p1.y, input->p1.z, input->p2.x, input->p2.y, input->p2.z);
+    
     Tessellator tessellator;
     tessellator.input_corner[0] = input->p0;
     tessellator.input_corner[1] = input->p1;
@@ -90,6 +94,8 @@ s64 tessellate(Triangle *input, Triangle *clip, Resizable_Array<Triangle> *outpu
     //
     if(tessellator.intersection_count != 2) return 0;
 
+    tessellator.generated_triangle_count = 0;
+    
     calculate_barycentric_coefficients(tessellator.input_corner[0], tessellator.input_corner[1], tessellator.input_corner[2], tessellator.intersection_point[0], &tessellator.barycentric_coefficients[0][0], &tessellator.barycentric_coefficients[0][1], &tessellator.barycentric_coefficients[0][2]);
     calculate_barycentric_coefficients(tessellator.input_corner[0], tessellator.input_corner[1], tessellator.input_corner[2], tessellator.intersection_point[1], &tessellator.barycentric_coefficients[1][0], &tessellator.barycentric_coefficients[1][1], &tessellator.barycentric_coefficients[1][2]);
     

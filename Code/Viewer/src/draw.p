@@ -240,7 +240,7 @@ update_camera :: (renderer: *Renderer) {
             renderer.camera.position.z += velocity.z;
         }
         
-        if renderer.window.button_held[.Middle] {
+        if renderer.window.button_held[.Middle] || renderer.window.key_held[.Control] {
             renderer.camera.rotation.x += xx renderer.window.raw_mouse_delta_y * 0.0002;
             renderer.camera.rotation.y += xx renderer.window.raw_mouse_delta_x * 0.0002;
         }
