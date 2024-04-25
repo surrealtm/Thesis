@@ -4,12 +4,13 @@
 #include "memutils.h"
 
 struct Dbg_Internal_Draw_Data {
-	World *world;
 	Resizable_Array<Debug_Draw_Line> lines;
 	Resizable_Array<Debug_Draw_Triangle> triangles;
 	Resizable_Array<Debug_Draw_Text> texts;
 	Resizable_Array<Debug_Draw_Cuboid> cuboids;
 	Resizable_Array<Debug_Draw_Sphere> spheres;
+    b8 draw_labels;
+    b8 draw_normals;
 };
 
 struct Dbg_Draw_Color {
@@ -39,8 +40,7 @@ static f32 dbg_octree_depth_thickness_map[] = {
 };
 
 const f32 dbg_anchor_radius = 0.5f;
-//const f32 dbg_triangle_wireframe_thickness = 0.2f; // nocheckin
-const f32 dbg_triangle_wireframe_thickness = 0.02f;
+const f32 dbg_triangle_wireframe_thickness = 0.04f;
 
 const Dbg_Draw_Color dbg_label_color          = { 255, 255, 255, 255 };
 const Dbg_Draw_Color dbg_anchor_color         = { 255, 100, 100, 255 };
@@ -48,6 +48,7 @@ const Dbg_Draw_Color dbg_boundary_color       = { 100, 100, 100, 255 };
 const Dbg_Draw_Color dbg_clipping_plane_color = { 255,  60,  50, 100 };
 const Dbg_Draw_Color dbg_volume_color         = { 215,  15, 219, 100 };
 const Dbg_Draw_Color dbg_step_highlight_color = { 255, 255, 255, 255 };
+const Dbg_Draw_Color dbg_normal_color         = {  50,  50, 255, 255 };
 
 Allocator *dbg_alloc = Default_Allocator;
 
@@ -102,6 +103,12 @@ void debug_draw_octree(Dbg_Internal_Draw_Data &_internal, Octree *node, Octree_C
 static
 void debug_draw_triangle(Dbg_Internal_Draw_Data &_internal, Triangle *triangle, Dbg_Draw_Color color) {
 	_internal.triangles.add({ triangle->p0, triangle->p1, triangle->p2, color.r, color.g, color.b, color.a });
+
+    if(_internal.draw_normals) {
+        v3f center = (triangle->p0 + triangle->p1 + triangle->p2) / 3.f;
+        v3f normal = v3_normalize(triangle->normal());
+        _internal.lines.add({ center, center + normal, dbg_triangle_wireframe_thickness, dbg_normal_color.r, dbg_normal_color.g, dbg_normal_color.b });
+    }
 }
 
 static
@@ -109,18 +116,24 @@ void debug_draw_triangle_wireframe(Dbg_Internal_Draw_Data &_internal, Triangle *
 	_internal.lines.add({ triangle->p0, triangle->p1, thickness, color.r, color.g, color.b });
 	_internal.lines.add({ triangle->p1, triangle->p2, thickness, color.r, color.g, color.b });
 	_internal.lines.add({ triangle->p2, triangle->p0, thickness, color.r, color.g, color.b });
+
+    if(_internal.draw_normals) {
+        v3f center = (triangle->p0 + triangle->p1 + triangle->p2) / 3.f;
+        v3f normal = v3_normalize(triangle->normal()) * 0.5f;
+        _internal.lines.add({ center, center + normal, dbg_triangle_wireframe_thickness, dbg_normal_color.r, dbg_normal_color.g, dbg_normal_color.b });
+    }
 }
 
 Debug_Draw_Data debug_draw_world(World *world, Debug_Draw_Options options) {
 	Dbg_Internal_Draw_Data _internal;
-	_internal.world               = world;
 	_internal.lines.allocator     = dbg_alloc;
 	_internal.triangles.allocator = dbg_alloc;
 	_internal.texts.allocator     = dbg_alloc;
 	_internal.cuboids.allocator   = dbg_alloc;
 	_internal.spheres.allocator   = dbg_alloc;
 
-    b8 labels = !!(options & DEBUG_DRAW_Labels);
+    _internal.draw_labels  = !!(options & DEBUG_DRAW_Labels);
+    _internal.draw_normals = !!(options & DEBUG_DRAW_Normals);
     
 	if(options & DEBUG_DRAW_Octree) {
 		debug_draw_octree(_internal, &world->root, OCTREE_CHILD_COUNT, 0);
@@ -130,7 +143,7 @@ Debug_Draw_Data debug_draw_world(World *world, Debug_Draw_Options options) {
 		for(auto *anchor: world->anchors) {
 			_internal.spheres.add({ anchor->position, dbg_anchor_radius, dbg_anchor_color.r, dbg_anchor_color.g, dbg_anchor_color.b });
 
-			if(labels) _internal.texts.add({ anchor->position, anchor->dbg_name, dbg_label_color.r, dbg_label_color.g, dbg_label_color.b });
+			if(_internal.draw_labels) _internal.texts.add({ anchor->position, anchor->dbg_name, dbg_label_color.r, dbg_label_color.g, dbg_label_color.b });
 		}			
 	}
 
@@ -138,11 +151,11 @@ Debug_Draw_Data debug_draw_world(World *world, Debug_Draw_Options options) {
 		for(auto *boundary : world->boundaries) {
 			_internal.cuboids.add({ boundary->position, boundary->dbg_half_size, boundary->dbg_rotation, dbg_boundary_color.r, dbg_boundary_color.g, dbg_boundary_color.b });
 
-            if(labels) _internal.texts.add({ boundary->position, boundary->dbg_name, dbg_label_color.r, dbg_label_color.g, dbg_label_color.b });
+            if(_internal.draw_labels) _internal.texts.add({ boundary->position, boundary->dbg_name, dbg_label_color.r, dbg_label_color.g, dbg_label_color.b });
         }
 	}
 
-	if(options & DEBUG_DRAW_Clipping_Plane_Faces) {
+	if(options & DEBUG_DRAW_Clipping_Faces) {
 		for(auto *root_triangle : world->root_clipping_triangles) {
 			debug_draw_triangle(_internal, root_triangle, dbg_clipping_plane_color);
 		}
@@ -156,7 +169,7 @@ Debug_Draw_Data debug_draw_world(World *world, Debug_Draw_Options options) {
         }
     }
 
-	if(options & DEBUG_DRAW_Clipping_Plane_Wireframes) {
+	if(options & DEBUG_DRAW_Clipping_Wireframes) {
 		for(auto *root_triangle : world->root_clipping_triangles) {
             f32 thickness = dbg_triangle_wireframe_thickness;
 			debug_draw_triangle_wireframe(_internal, root_triangle, dbg_clipping_plane_color, thickness);

@@ -30,6 +30,9 @@ struct Triangle {
     
     f32 approximate_surface_area(); // This avoids a square root for performance, since we only roughly want to know whether the triangle is dead or not.
     b8 is_dead();
+    v3f normal(); // NOT the unit normal!
+    
+    void project_onto_plane(Triangle *plane);
 };
 
 struct AABB {

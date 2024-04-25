@@ -8,16 +8,17 @@
 struct World;
 
 enum Debug_Draw_Options {
-    DEBUG_DRAW_Nothing                   = 0x0,
-    DEBUG_DRAW_Octree                    = 0x1,
-    DEBUG_DRAW_Anchors                   = 0x2,
-    DEBUG_DRAW_Boundaries                = 0x4,
-    DEBUG_DRAW_Clipping_Plane_Faces      = 0x8,
-    DEBUG_DRAW_Clipping_Plane_Wireframes = 0x10,
-    DEBUG_DRAW_Volume_Faces              = 0x20,
-    DEBUG_DRAW_Volume_Wireframes         = 0x40,
-    DEBUG_DRAW_Labels                    = 0x1000, // Draw hud texts for all anchors and boundaries.
-    DEBUG_DRAW_Everything                = 0xffffffff,
+    DEBUG_DRAW_Nothing             = 0x0,
+    DEBUG_DRAW_Octree              = 0x1,
+    DEBUG_DRAW_Anchors             = 0x2,
+    DEBUG_DRAW_Boundaries          = 0x4,
+    DEBUG_DRAW_Clipping_Faces      = 0x8,
+    DEBUG_DRAW_Clipping_Wireframes = 0x10,
+    DEBUG_DRAW_Volume_Faces        = 0x20,
+    DEBUG_DRAW_Volume_Wireframes   = 0x40,
+    DEBUG_DRAW_Labels              = 0x1000, // Draw hud texts for all anchors and boundaries.
+    DEBUG_DRAW_Normals             = 0x2000, // Draw normals for clipping planes and volumes.
+    DEBUG_DRAW_Everything          = 0xffffffff,
 };
 
 struct Debug_Draw_Line {

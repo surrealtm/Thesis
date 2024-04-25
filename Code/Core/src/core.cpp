@@ -14,7 +14,7 @@ Triangle::Triangle(v3f p0, v3f p1, v3f p2) {
 
 f32 Triangle::approximate_surface_area() {
     // https://math.stackexchange.com/questions/128991/how-to-calculate-the-area-of-a-3d-triangle
-    v3f h = v3_cross_v3(this->p0 - this->p1, this->p0 - this->p2);
+    v3f h = v3_cross_v3(this->p1 - this->p0, this->p2 - this->p0);
     return v3_length2(h) / 2;
 }
 
@@ -22,6 +22,33 @@ b8 Triangle::is_dead() {
     return this->approximate_surface_area() <= F32_EPSILON;
 }
 
+v3f Triangle::normal() {
+    return v3_cross_v3(this->p1 - this->p0, this->p2 - this->p0);    
+}
+
+void Triangle::project_onto_plane(Triangle *plane) {
+    //
+    // This projects the vertices of this triangle onto the target plane, defined by the given triangle.
+    // Note that this projects along OUR normal, not the plane's normal.
+    // We only want to project the vertices if they are on the "bad" side of the plane (where the bad side
+    // is the backface of the triangle, or the the opposite of the normal).
+    //
+    v3f my_normal = this->normal();
+    v3f plane_normal = -plane->normal(); // ray_plane_intersection only reports intersections into the frontface of the triangle, but we actually want intersections with the backface.
+
+    f32 distance;
+    if(ray_plane_intersection(this->p0, my_normal, plane->p0, plane_normal, &distance)) {
+        this->p0 = this->p0 + my_normal * distance;
+    }
+    
+    if(ray_plane_intersection(this->p1, my_normal, plane->p0, plane_normal, &distance)) {
+        this->p1 = this->p1 + my_normal * distance;
+    }
+    
+    if(ray_plane_intersection(this->p2, my_normal, plane->p0, plane_normal, &distance)) {
+        this->p2 = this->p2 + my_normal * distance;
+    }
+}
 
 
 /* -------------------------------------------------- Octree -------------------------------------------------- */
@@ -291,7 +318,6 @@ void World::calculate_volumes_step(b8 single_step) {
     Anchor *anchor;
     Triangle *volume_triangle, *clipping_triangle;
     Boundary *boundary;
-    s64 new_triangle_count;
 
     if(single_step && this->did_step_before) goto continue_from_single_step_exit;
     this->did_step_before = true;
@@ -307,7 +333,7 @@ void World::calculate_volumes_step(b8 single_step) {
                     boundary          = &this->boundaries[this->dbg_step_boundary_index];
                     clipping_triangle = &boundary->clipping_triangles[this->dbg_step_clipping_triangle_index];
 
-                    new_triangle_count = tessellate(volume_triangle, clipping_triangle, &anchor->volume_triangles);
+                    tessellate(volume_triangle, clipping_triangle, &anchor->volume_triangles);
                     
                     ++this->dbg_step_clipping_triangle_index;
 

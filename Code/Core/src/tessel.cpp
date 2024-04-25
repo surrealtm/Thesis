@@ -5,7 +5,7 @@ static
 void check_edge_against_triangle(Tessellator *tessellator, v3f e0, v3f e1, Triangle *triangle) {
     //
     // We check for a double-sided plane intersection here since we don't care about the triangle
-    // orientation. We always want to tesselate the triangle, no matter whether the edge passed in
+    // orientation. We always want to tessellate the triangle, no matter whether the edge passed in
     // through the "forward" or "backward" side of the triangle.
     //
 
@@ -16,7 +16,7 @@ void check_edge_against_triangle(Tessellator *tessellator, v3f e0, v3f e1, Trian
         // If result.distance <= 0.f || result.distance >= 1.f, then we do get an intersection with the
         // ray, but not inside the edge section of the ray.
         // If the intersection_count is already >= 2, then we are having some numerical instability on
-        // parallel triangles, see :TesselationOfCoplanarTriangles
+        // parallel triangles, see :TessellationOfCoplanarTriangles
         tessellator->intersection_point[tessellator->intersection_count] = e0 + direction * result.distance;
         ++tessellator->intersection_count;
     }
@@ -28,7 +28,7 @@ void generate_new_triangle(Tessellator *tessellator, v3f p0, v3f p1, v3f p2) {
     // would be considered dead anyway, and we don't even bother generating it in the first
     // place.
     v3f n = v3_cross_v3(p1 - p0, p2 - p0);
-    f32 estimated_surface_area = v3_length(n) / 2;    
+    f32 estimated_surface_area = v3_length2(n) / 2;    
     if(estimated_surface_area < F32_EPSILON) return;
 
     if(tessellator->generated_triangle_count == 0) {
@@ -41,9 +41,6 @@ void generate_new_triangle(Tessellator *tessellator, v3f p0, v3f p1, v3f p2) {
         tessellator->output_array->add({ p0, p1, p2 });
     }
 
-    printf("  Generated a new triangle: %f, %f, %f | %f, %f, %f | %f, %f, %f\n", p0.x, p0.y, p0.z, p1.x, p1.y, p1.z, p2.x, p2.y, p2.z);
-    printf("    Estimated surface area: %f\n", estimated_surface_area);
-    
     ++tessellator->generated_triangle_count;
 }
 
@@ -62,11 +59,9 @@ s64 tessellate(Triangle *input, Triangle *clip, Resizable_Array<Triangle> *outpu
     // of two intersection points. We then triangulate the input around these two
     // intersection points.
     //
-    // If the two triangles don't intersect, then there is no need to tesselate here
+    // If the two triangles don't intersect, then there is no need to tessellate here
     // and we are done.
     //
-
-    printf("Tessellating triangle: %f, %f, %f | %f, %f, %f | %f, %f, %f\n", input->p0.x, input->p0.y, input->p0.z, input->p1.x, input->p1.y, input->p1.z, input->p2.x, input->p2.y, input->p2.z);
     
     Tessellator tessellator;
     tessellator.input_corner[0] = input->p0;
@@ -85,12 +80,12 @@ s64 tessellate(Triangle *input, Triangle *clip, Resizable_Array<Triangle> *outpu
     check_edge_against_triangle(&tessellator, clip->p2, clip->p0, input);
 
     //
-    // :TesselationOfCoplanarTriangles
+    // :TessellationOfCoplanarTriangles
     // While in theory there may only ever be 0 or 2 intersection points, we may experience some
     // numerical problems if an edge or even the entire triangle lies on the clipping plane. In this
     // case, we may get 1 or even three intersection points, depending on the instability. If that
     // happens, we know that the triangle lies on the clipping plane and therefore does not require
-    // further tesselation.
+    // further tessellation.
     //
     if(tessellator.intersection_count != 2) return 0;
 

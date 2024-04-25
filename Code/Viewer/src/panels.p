@@ -43,11 +43,12 @@ debug_draw_options_panel :: (viewer: *Viewer) {
         new_options = debug_draw_option_box(viewer, new_options, "Octree", .Octree);
         new_options = debug_draw_option_box(viewer, new_options, "Anchors", .Anchors);
         new_options = debug_draw_option_box(viewer, new_options, "Boundaries", .Boundaries);
-        new_options = debug_draw_option_box(viewer, new_options, "Clipping Plane Faces", .Clipping_Plane_Faces);
-        new_options = debug_draw_option_box(viewer, new_options, "Clipping Plane Wireframes", .Clipping_Plane_Wireframes);
+        new_options = debug_draw_option_box(viewer, new_options, "Clipping Faces", .Clipping_Faces);
+        new_options = debug_draw_option_box(viewer, new_options, "Clipping Wireframes", .Clipping_Wireframes);
         new_options = debug_draw_option_box(viewer, new_options, "Volume Faces", .Volume_Faces);
         new_options = debug_draw_option_box(viewer, new_options, "Volume Wireframes", .Volume_Wireframes);
         new_options = debug_draw_option_box(viewer, new_options, "Labels", .Labels);
+        new_options = debug_draw_option_box(viewer, new_options, "Normals", .Normals);
 
         ui_divider(*viewer.ui, true);
         
@@ -63,14 +64,15 @@ debug_draw_options_panel :: (viewer: *Viewer) {
             builder: String_Builder;
             builder.allocator = *viewer.frame_allocator;
 
-            if new_options & .Octree                      append_string(*builder, " | .Octree");
-            if new_options & .Anchors                     append_string(*builder, " | .Anchors");
-            if new_options & .Boundaries                  append_string(*builder, " | .Boundaries");
-            if new_options & .Clipping_Plane_Faces        append_string(*builder, " | .Clipping_Plane_Faces");
-            if new_options & .Clipping_Plane_Wireframes   append_string(*builder, " | .Clipping_Plane_Wireframes");
-            if new_options & .Volume_Faces                append_string(*builder, " | .Volume_Faces");
-            if new_options & .Volume_Wireframes           append_string(*builder, " | .Volume_Wireframes");
-            if new_options & .Labels                      append_string(*builder, " | .Labels");
+            if new_options & .Octree                append_string(*builder, " | .Octree");
+            if new_options & .Anchors               append_string(*builder, " | .Anchors");
+            if new_options & .Boundaries            append_string(*builder, " | .Boundaries");
+            if new_options & .Clipping_Faces        append_string(*builder, " | .Clipping_Faces");
+            if new_options & .Clipping_Wireframes   append_string(*builder, " | .Clipping_Wireframes");
+            if new_options & .Volume_Faces          append_string(*builder, " | .Volume_Faces");
+            if new_options & .Volume_Wireframes     append_string(*builder, " | .Volume_Wireframes");
+            if new_options & .Labels                append_string(*builder, " | .Labels");
+            if new_options & .Normals               append_string(*builder, " | .Normals");
 
             complete_string := finish_string_builder(*builder);
             complete_string = substring_view(complete_string, 3, complete_string.count); // Cut out the leading ' | '
