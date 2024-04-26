@@ -32,7 +32,7 @@ struct Triangle {
     b8 is_dead();
     v3f normal(); // NOT the unit normal!
     
-    void project_onto_plane(Triangle *plane);
+    b8 project_onto_plane(Triangle *plane);
 };
 
 struct AABB {
@@ -169,5 +169,6 @@ struct World {
         dbg_step_boundary_index          = MAX_S64,
         dbg_step_clipping_triangle_index = MAX_S64,
         dbg_step_volume_triangle_index   = MAX_S64;
+    b8 dbg_step_triangle_was_shifted     = false; // nocheckin: Docs
     b8 did_step_before = false;
 };

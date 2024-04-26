@@ -41,6 +41,8 @@ void generate_new_triangle(Tessellator *tessellator, v3f p0, v3f p1, v3f p2) {
         tessellator->output_array->add({ p0, p1, p2 });
     }
 
+    printf("Generated new triangle: %f, %f, %f | %f, %f, %f | %f, %f, %f\n", p0.x, p0.y, p0.z, p1.x, p1.y, p1.z, p2.x, p2.y, p2.z);
+    
     ++tessellator->generated_triangle_count;
 }
 

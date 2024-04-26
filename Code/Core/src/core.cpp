@@ -26,28 +26,35 @@ v3f Triangle::normal() {
     return v3_cross_v3(this->p1 - this->p0, this->p2 - this->p0);    
 }
 
-void Triangle::project_onto_plane(Triangle *plane) {
+b8 Triangle::project_onto_plane(Triangle *plane) {
     //
     // This projects the vertices of this triangle onto the target plane, defined by the given triangle.
     // Note that this projects along OUR normal, not the plane's normal.
-    // We only want to project the vertices if they are on the "bad" side of the plane (where the bad side
-    // is the backface of the triangle, or the the opposite of the normal).
+    // We only want to project the vertices if they are on the "bad" side of the triangle (where the bad side
+    // is the backface of the triangle, or the the opposite of the normal), therefore we give
+    // ray_triangle_intersection the triangle vertices in the wrong order.
     //
-    v3f my_normal = this->normal();
-    v3f plane_normal = -plane->normal(); // ray_plane_intersection only reports intersections into the frontface of the triangle, but we actually want intersections with the backface.
+    v3f direction = this->normal();
 
+    b8 shifted = false;
+    
     f32 distance;
-    if(ray_plane_intersection(this->p0, my_normal, plane->p0, plane_normal, &distance)) {
-        this->p0 = this->p0 + my_normal * distance;
+    if(ray_triangle_intersection(this->p0, direction, plane->p0, plane->p2, plane->p1, &distance) && distance > F32_EPSILON) {
+        this->p0 = this->p0 + direction * distance;
+        shifted = true;
     }
     
-    if(ray_plane_intersection(this->p1, my_normal, plane->p0, plane_normal, &distance)) {
-        this->p1 = this->p1 + my_normal * distance;
+    if(ray_triangle_intersection(this->p1, direction, plane->p0, plane->p2, plane->p1, &distance) && distance > F32_EPSILON) {
+        this->p1 = this->p1 + direction * distance;
+        shifted = true;
     }
     
-    if(ray_plane_intersection(this->p2, my_normal, plane->p0, plane_normal, &distance)) {
-        this->p2 = this->p2 + my_normal * distance;
+    if(ray_triangle_intersection(this->p2, direction, plane->p0, plane->p2, plane->p1, &distance) && distance > F32_EPSILON) {
+        this->p2 = this->p2 + direction * distance;
+        shifted = true;
     }
+
+    return shifted;
 }
 
 
@@ -321,7 +328,7 @@ void World::calculate_volumes_step(b8 single_step) {
     Anchor *anchor;
     Triangle *volume_triangle, *clipping_triangle;
     Boundary *boundary;
-
+    
     if(single_step && this->did_step_before) goto continue_from_single_step_exit;
     this->did_step_before = true;
 
@@ -329,27 +336,33 @@ void World::calculate_volumes_step(b8 single_step) {
         if(!this->anchors[this->dbg_step_anchor_index].volume_triangles.count) this->make_root_volume(&this->anchors[this->dbg_step_anchor_index].volume_triangles); // Don't create the root volume in case this anchor has a precomputed base volume.
 
         for(; this->dbg_step_volume_triangle_index < this->anchors[this->dbg_step_anchor_index].volume_triangles.count; ++this->dbg_step_volume_triangle_index) { // We are modifying this volume array inside the loop!
-            for(; this->dbg_step_boundary_index < this->boundaries.count; ++this->dbg_step_boundary_index) {
-                for(; this->dbg_step_clipping_triangle_index < this->boundaries[this->dbg_step_boundary_index].clipping_triangles.count;) {
-                    anchor            = &this->anchors[this->dbg_step_anchor_index];
-                    volume_triangle   = &anchor->volume_triangles[this->dbg_step_volume_triangle_index];
-                    boundary          = &this->boundaries[this->dbg_step_boundary_index];
-                    clipping_triangle = &boundary->clipping_triangles[this->dbg_step_clipping_triangle_index];
+            do {
+                this->dbg_step_triangle_was_shifted = false;
+                
+                for(; this->dbg_step_boundary_index < this->boundaries.count; ++this->dbg_step_boundary_index) {
+                    for(; this->dbg_step_clipping_triangle_index < this->boundaries[this->dbg_step_boundary_index].clipping_triangles.count;) {
+                        anchor            = &this->anchors[this->dbg_step_anchor_index];
+                        volume_triangle   = &anchor->volume_triangles[this->dbg_step_volume_triangle_index];
+                        boundary          = &this->boundaries[this->dbg_step_boundary_index];
+                        clipping_triangle = &boundary->clipping_triangles[this->dbg_step_clipping_triangle_index];
 
-                    tessellate(volume_triangle, clipping_triangle, &anchor->volume_triangles);
-                    
-                    ++this->dbg_step_clipping_triangle_index;
+                        tessellate(volume_triangle, clipping_triangle, &anchor->volume_triangles);
+                        this->dbg_step_triangle_was_shifted |= volume_triangle->project_onto_plane(clipping_triangle);
+                        this->dbg_step_triangle_was_shifted = false; // nocheckin
 
-                    if(single_step) return;
+                        ++this->dbg_step_clipping_triangle_index;
+
+                        if(single_step) return;
                                 
-                continue_from_single_step_exit:
-                    continue;
+                    continue_from_single_step_exit:
+                        continue;
+                    }
+
+                    this->dbg_step_clipping_triangle_index = 0;
                 }
 
-                this->dbg_step_clipping_triangle_index = 0;
-            }
-
-            this->dbg_step_boundary_index = 0;
+                this->dbg_step_boundary_index = 0;
+            } while(this->dbg_step_triangle_was_shifted);            
         }
 
         this->dbg_step_volume_triangle_index = 0;
