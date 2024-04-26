@@ -61,17 +61,6 @@ extern "C" {
     
     /* ----------------------------------------------- Testing ------------------------------------------------ */
 
-    void core_do_world_step(World_Handle world_handle, Debug_Draw_Data *draw_data, Debug_Draw_Options draw_options) {
-        World *world = (World *) world_handle;
-        world->calculate_volumes_step(true);
-
-        if(draw_data) {
-            core_free_debug_draw_data(draw_data);
-            *draw_data = core_debug_draw_world(world_handle, draw_options);
-        }
-    }
-
-
     World_Handle core_do_house_test(b8 step_into) {
         tmZone("do_house_test", TM_SYSTEM_COLOR);
 
@@ -104,7 +93,7 @@ extern "C" {
         world->add_boundary_clipping_planes(outer_wall_west, AXIS_X);
 
         world->create_octree();
-        world->calculate_volumes(step_into);
+        world->clip_boundaries();
         
         return (World_Handle) world;
     }
@@ -190,7 +179,7 @@ extern "C" {
         }
 
         world->create_octree();
-        world->calculate_volumes(step_into);
+        world->clip_boundaries();
         return world;
     }
     
@@ -216,7 +205,7 @@ extern "C" {
         world->add_anchor("Outside"_s, v3f(0, 0, -10));
 
         world->create_octree();
-        world->calculate_volumes(step_into);
+        world->clip_boundaries();
         return world;
     }
 
@@ -241,7 +230,7 @@ extern "C" {
         world->add_anchor("Anchor"_s, v3f(0, 0, 0));
 
         world->create_octree();
-        world->calculate_volumes(step_into);
+        world->clip_boundaries();
         return world;
 
         /*
@@ -267,7 +256,7 @@ extern "C" {
         world->add_anchor("Outside"_s, v3f(0, 0, -40));
 
         world->create_octree();
-        world->calculate_volumes(step_into);
+        world->clip_boundaries();
         return world;
         */
     }
@@ -291,7 +280,7 @@ extern "C" {
         world->add_anchor("Outside"_s, v3f(0, 0, -20));
         
         world->create_octree();
-        world->calculate_volumes(step_into);
+        world->clip_boundaries();
         return world;
     }
     
@@ -309,31 +298,7 @@ extern "C" {
         world->add_anchor("Outside"_s, v3f(0, 0, -10));
         
         world->create_octree();
-        world->calculate_volumes(step_into);
-        return world;
-    }
-
-
-    World_Handle core_do_clipping_test(b8 step_into) {
-        tmFunction(TM_SYSTEM_COLOR);
-
-        World *world = (World *) core_allocate_world();
-        world->create(v3f(10, 5, 10));
-
-        Boundary *boundary = world->add_boundary("Ground"_s, v3f(0, 0, 0), v3f(1, 1, 1), v3f(-0.0625, 0, 0));
-        world->add_centered_boundary_clipping_plane(boundary, AXIS_X);
-
-        Anchor *anchor = world->add_anchor("Anchor"_s, v3f(1, 1, 1));
-        anchor->volume_triangles.add({ v3f(-4,  0, -4), v3f( 4,  0, -4), v3f( 4,  0,  4) });
-        anchor->volume_triangles.add({ v3f(-4,  0, -4), v3f(-4,  0,  4), v3f( 4,  0,  4) });
-        anchor->volume_triangles.add({ v3f(-4,  4, -4), v3f( 4,  4, -4), v3f( 4, -4, -4) });
-        anchor->volume_triangles.add({ v3f(-4,  4, -4), v3f(-4, -4, -4), v3f( 4, -4, -4) });
-        anchor->volume_triangles.add({ v3f(-4,  4, -4), v3f(-4,  4,  4), v3f(-4, -4,  4) });
-        anchor->volume_triangles.add({ v3f(-4,  4, -4), v3f(-4, -4, -4), v3f(-4, -4,  4) });
-
-        world->create_octree();
-        world->calculate_volumes(step_into);
-
+        world->clip_boundaries();
         return world;
     }
 

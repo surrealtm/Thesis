@@ -58,6 +58,7 @@ b8 Triangle::project_onto_plane(Triangle *plane) {
 }
 
 
+
 /* -------------------------------------------------- Octree -------------------------------------------------- */
 
 void Octree::create(Allocator *allocator, v3f center, v3f half_size, u8 depth) {
@@ -271,22 +272,6 @@ tmFunction(TM_WORLD_COLOR);
     boundary->clipping_triangles.add( { p0, p2, p3});
 }
 
-void World::make_root_volume(Resizable_Array<Triangle> *volume) {
-    tmFunction(TM_WORLD_COLOR);
-
-    /*
-    // nocheckin
-    for(auto *triangle : this->root_clipping_triangles) {
-        volume->add(*triangle);
-    }
-    */
-
-    {
-        Triangle *clip = &this->root_clipping_triangles[2];
-        volume->add(*clip);
-    }
-}
-
 void World::create_octree() {
     tmFunction(TM_WORLD_COLOR);
 
@@ -310,68 +295,6 @@ void World::create_octree() {
     }
 }
 
-void World::calculate_volumes(b8 single_step) {
+void World::clip_boundaries() {
     tmFunction(TM_WORLD_COLOR);
-
-    this->dbg_step_anchor_index            = 0;
-    this->dbg_step_boundary_index          = 0;
-    this->dbg_step_clipping_triangle_index = 0;
-    this->dbg_step_volume_triangle_index   = 0;
-    this->did_step_before                  = false;
-    if(!single_step) this->calculate_volumes_step(single_step);
-}
-
-// :DbgStep
-void World::calculate_volumes_step(b8 single_step) {
-    // So that the 'goto' doesn't (wrongly) complain about the skipping
-    // of variable initialization.
-    Anchor *anchor;
-    Triangle *volume_triangle, *clipping_triangle;
-    Boundary *boundary;
-    
-    if(single_step && this->did_step_before) goto continue_from_single_step_exit;
-    this->did_step_before = true;
-
-    for(; this->dbg_step_anchor_index < this->anchors.count; ++this->dbg_step_anchor_index) {
-        if(!this->anchors[this->dbg_step_anchor_index].volume_triangles.count) this->make_root_volume(&this->anchors[this->dbg_step_anchor_index].volume_triangles); // Don't create the root volume in case this anchor has a precomputed base volume.
-
-        for(; this->dbg_step_volume_triangle_index < this->anchors[this->dbg_step_anchor_index].volume_triangles.count; ++this->dbg_step_volume_triangle_index) { // We are modifying this volume array inside the loop!
-            do {
-                this->dbg_step_triangle_was_shifted = false;
-                
-                for(; this->dbg_step_boundary_index < this->boundaries.count; ++this->dbg_step_boundary_index) {
-                    for(; this->dbg_step_clipping_triangle_index < this->boundaries[this->dbg_step_boundary_index].clipping_triangles.count;) {
-                        anchor            = &this->anchors[this->dbg_step_anchor_index];
-                        volume_triangle   = &anchor->volume_triangles[this->dbg_step_volume_triangle_index];
-                        boundary          = &this->boundaries[this->dbg_step_boundary_index];
-                        clipping_triangle = &boundary->clipping_triangles[this->dbg_step_clipping_triangle_index];
-
-                        tessellate(volume_triangle, clipping_triangle, &anchor->volume_triangles);
-                        this->dbg_step_triangle_was_shifted |= volume_triangle->project_onto_plane(clipping_triangle);
-                        this->dbg_step_triangle_was_shifted = false; // nocheckin
-
-                        ++this->dbg_step_clipping_triangle_index;
-
-                        if(single_step) return;
-                                
-                    continue_from_single_step_exit:
-                        continue;
-                    }
-
-                    this->dbg_step_clipping_triangle_index = 0;
-                }
-
-                this->dbg_step_boundary_index = 0;
-            } while(this->dbg_step_triangle_was_shifted);            
-        }
-
-        this->dbg_step_volume_triangle_index = 0;
-    }
-
-    // If we actually finish the volume calcuation, then reset all these things.
-    this->did_step_before                  = false;
-    this->dbg_step_anchor_index            = MAX_S64;
-    this->dbg_step_boundary_index          = MAX_S64;
-    this->dbg_step_clipping_triangle_index = MAX_S64;
-    this->dbg_step_volume_triangle_index   = MAX_S64;
 }

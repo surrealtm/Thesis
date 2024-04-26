@@ -40,7 +40,7 @@ static f32 dbg_octree_depth_thickness_map[] = {
 };
 
 const f32 dbg_anchor_radius = 0.5f;
-const f32 dbg_triangle_wireframe_thickness = 0.01f;
+const f32 dbg_triangle_wireframe_thickness = 0.03f;
 const f32 dbg_triangle_normal_thickness    = 0.2f;
 const f32 dbg_triangle_normal_length       = 1.f;
 
@@ -165,7 +165,7 @@ Debug_Draw_Data debug_draw_world(World *world, Debug_Draw_Options options) {
         for(s64 i = 0; i < world->boundaries.count; ++i) {
             Boundary *boundary = &world->boundaries[i];
             for(s64 j = 0; j < boundary->clipping_triangles.count; ++j) {
-                Dbg_Draw_Color color = (i == world->dbg_step_boundary_index && j == world->dbg_step_clipping_triangle_index) ? dbg_step_highlight_color : dbg_clipping_plane_color;
+                Dbg_Draw_Color color = dbg_clipping_plane_color;
 				debug_draw_triangle(_internal, &boundary->clipping_triangles[j], color);
 			}
         }
@@ -180,9 +180,8 @@ Debug_Draw_Data debug_draw_world(World *world, Debug_Draw_Options options) {
         for(s64 i = 0; i < world->boundaries.count; ++i) {
             Boundary *boundary = &world->boundaries[i];
             for(s64 j = 0; j < boundary->clipping_triangles.count; ++j) {
-                b8 active = (i == world->dbg_step_boundary_index && j == world->dbg_step_clipping_triangle_index);
-				Dbg_Draw_Color color = active ? dbg_step_highlight_color : dbg_clipping_plane_color;
-                f32 thickness = active ? dbg_triangle_wireframe_thickness * 2.f : dbg_triangle_wireframe_thickness;
+                Dbg_Draw_Color color = dbg_clipping_plane_color;
+                f32 thickness = dbg_triangle_wireframe_thickness;
 				debug_draw_triangle_wireframe(_internal, &boundary->clipping_triangles[j], color, thickness);
 			}
         }		
@@ -192,8 +191,7 @@ Debug_Draw_Data debug_draw_world(World *world, Debug_Draw_Options options) {
 		for(s64 i = 0; i < world->anchors.count; ++i) {
             Anchor *anchor = &world->anchors[i];
 			for(s64 j = 0; j < anchor->volume_triangles.count; ++j) {
-				b8 active = (i == world->dbg_step_anchor_index && j == world->dbg_step_volume_triangle_index);
-				Dbg_Draw_Color color = active ? dbg_step_highlight_color : dbg_volume_color;
+				Dbg_Draw_Color color = dbg_volume_color;
 				debug_draw_triangle(_internal, &anchor->volume_triangles[j], color);
 			}
 		}
@@ -203,9 +201,8 @@ Debug_Draw_Data debug_draw_world(World *world, Debug_Draw_Options options) {
 		for(s64 i = 0; i < world->anchors.count; ++i) {
             Anchor *anchor = &world->anchors[i];
 			for(s64 j = 0; j < anchor->volume_triangles.count; ++j) {
-				b8 active = (i == world->dbg_step_anchor_index && j == world->dbg_step_volume_triangle_index);
-				Dbg_Draw_Color color = active ? dbg_step_highlight_color : dbg_volume_color;
-                f32 thickness = active ? dbg_triangle_wireframe_thickness * 2.f : dbg_triangle_wireframe_thickness;
+				Dbg_Draw_Color color = dbg_volume_color;
+                f32 thickness = dbg_triangle_wireframe_thickness;
                 debug_draw_triangle_wireframe(_internal, &anchor->volume_triangles[j], color, thickness);
 			}
 		}

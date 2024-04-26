@@ -146,29 +146,6 @@ struct World {
     void add_boundary_clipping_planes(Boundary *boundary, Axis normal_axis);
     void add_centered_boundary_clipping_plane(Boundary *boundary, Axis normal_axis);
     
-    // Creates a volume which spans the whole root area.
-    void make_root_volume(Resizable_Array<Triangle> *triangles);
-    
     void create_octree();
-    void calculate_volumes(b8 single_step);
-    void calculate_volumes_step(b8 single_step);
-
-
-    /* Debugging behaviour */
-
-    //
-    // :DbgStep
-    // The algorithm should support builtin stepping support, so that we can better visualize what is happening
-    // in the viewer. For that to work, we essentially save the iteration state (meaning: for loop variables)
-    // between the calls, which causes this whole mess.
-    // It is very far from being clean, but it works and I don't want to overengineer things.
-    // (This would seem like a great application for coroutines, unfortunately C++ is a shithole and I couldn't
-    // figure out how they work before being too annoyed).
-    //
-    s64 dbg_step_anchor_index            = MAX_S64,
-        dbg_step_boundary_index          = MAX_S64,
-        dbg_step_clipping_triangle_index = MAX_S64,
-        dbg_step_volume_triangle_index   = MAX_S64;
-    b8 dbg_step_triangle_was_shifted     = false; // nocheckin: Docs
-    b8 did_step_before = false;
+    void clip_boundaries();
 };

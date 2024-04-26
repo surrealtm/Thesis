@@ -38,8 +38,6 @@ extern "C" {
 
     /* ----------------------------------------------- Testing ----------------------------------------------- */
     
-    EXPORT void core_do_world_step(World_Handle world, Debug_Draw_Data *draw_data, Debug_Draw_Options draw_options);
-    
     EXPORT World_Handle core_do_house_test(b8 step_into);
     EXPORT World_Handle core_do_octree_test(b8 step_into);
     EXPORT World_Handle core_do_large_volumes_test(b8 step_into);
@@ -48,7 +46,6 @@ extern "C" {
     EXPORT World_Handle core_do_u_shape_test(b8 step_into);
     EXPORT World_Handle core_do_center_block_test(b8 step_into);
 
-    EXPORT World_Handle core_do_clipping_test(b8 step_into);
     EXPORT World_Handle core_do_jobs_test(b8 step_into);
     
 
