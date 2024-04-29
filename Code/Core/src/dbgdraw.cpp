@@ -52,6 +52,8 @@ const Dbg_Draw_Color dbg_volume_color         = { 215,  15, 219, 100 };
 const Dbg_Draw_Color dbg_step_highlight_color = { 255, 255, 255, 255 };
 const Dbg_Draw_Color dbg_normal_color         = {  50,  50, 255, 255 };
 
+const b8 dbg_draw_root_clipping_triangles = true;
+
 Allocator *dbg_alloc = Default_Allocator;
 
 static
@@ -158,8 +160,10 @@ Debug_Draw_Data debug_draw_world(World *world, Debug_Draw_Options options) {
 	}
 
 	if(options & DEBUG_DRAW_Clipping_Faces) {
-		for(auto *root_triangle : world->root_clipping_triangles) {
-			debug_draw_triangle(_internal, root_triangle, dbg_clipping_plane_color);
+		if(dbg_draw_root_clipping_triangles) {
+			for(auto *root_triangle : world->root_clipping_triangles) {
+				debug_draw_triangle(_internal, root_triangle, dbg_clipping_plane_color);
+			}
 		}
 		
         for(s64 i = 0; i < world->boundaries.count; ++i) {
@@ -172,9 +176,11 @@ Debug_Draw_Data debug_draw_world(World *world, Debug_Draw_Options options) {
     }
 
 	if(options & DEBUG_DRAW_Clipping_Wireframes) {
-		for(auto *root_triangle : world->root_clipping_triangles) {
-            f32 thickness = dbg_triangle_wireframe_thickness;
-			debug_draw_triangle_wireframe(_internal, root_triangle, dbg_clipping_plane_color, thickness);
+		if(dbg_draw_root_clipping_triangles) {
+			for(auto *root_triangle : world->root_clipping_triangles) {
+				f32 thickness = dbg_triangle_wireframe_thickness;
+				debug_draw_triangle_wireframe(_internal, root_triangle, dbg_clipping_plane_color, thickness);
+			}
 		}
 		
         for(s64 i = 0; i < world->boundaries.count; ++i) {
@@ -206,6 +212,12 @@ Debug_Draw_Data debug_draw_world(World *world, Debug_Draw_Options options) {
                 debug_draw_triangle_wireframe(_internal, &anchor->volume_triangles[j], color, thickness);
 			}
 		}
+	}
+
+	if(options & DEBUG_DRAW_Axis_Gizmo) {
+		_internal.lines.add({ v3f(0, 0, 0), v3f(3, 0, 0), 0.02f, 255, 0, 0 });
+		_internal.lines.add({ v3f(0, 0, 0), v3f(0, 3, 0), 0.02f, 0, 255, 0 });
+		_internal.lines.add({ v3f(0, 0, 0), v3f(0, 0, 3), 0.02f, 0, 0, 255 });
 	}
 
 	Debug_Draw_Data data = { 0 };

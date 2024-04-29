@@ -38,6 +38,7 @@ Debug_Draw_Options :: enum {
     Volume_Wireframes   :: 0x40;
     Labels              :: 0x1000;
     Normals             :: 0x2000;
+    Axis_Gizmo          :: 0x4000;
     Everything          :: 0xffffffff;
 }
 

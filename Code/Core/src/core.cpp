@@ -151,14 +151,14 @@ void World::create(v3f half_size) {
 
         this->root_clipping_triangles.add({ v3f( this->half_size.x, -this->half_size.y,  this->half_size.z), v3f( this->half_size.x,  this->half_size.y,  this->half_size.z), v3f( this->half_size.x, -this->half_size.y, -this->half_size.z) });
         this->root_clipping_triangles.add({ v3f( this->half_size.x,  this->half_size.y,  this->half_size.z), v3f( this->half_size.x,  this->half_size.y, -this->half_size.z), v3f( this->half_size.x, -this->half_size.y, -this->half_size.z) });
-
+        
         // Y-Axis
         this->root_clipping_triangles.add({ v3f(-this->half_size.x, -this->half_size.y,  this->half_size.z), v3f(-this->half_size.x, -this->half_size.y, -this->half_size.z), v3f( this->half_size.x, -this->half_size.y,  this->half_size.z) });
         this->root_clipping_triangles.add({ v3f( this->half_size.x, -this->half_size.y, -this->half_size.z), v3f( this->half_size.x, -this->half_size.y,  this->half_size.z), v3f(-this->half_size.x, -this->half_size.y, -this->half_size.z) });
-        
+
         this->root_clipping_triangles.add({ v3f(-this->half_size.x,  this->half_size.y,  this->half_size.z), v3f( this->half_size.x,  this->half_size.y,  this->half_size.z), v3f(-this->half_size.x,  this->half_size.y, -this->half_size.z) });
         this->root_clipping_triangles.add({ v3f( this->half_size.x,  this->half_size.y,  this->half_size.z), v3f( this->half_size.x,  this->half_size.y, -this->half_size.z), v3f(-this->half_size.x,  this->half_size.y, -this->half_size.z) });
-
+        
         // Z-Axis
         this->root_clipping_triangles.add({ v3f( this->half_size.x,  this->half_size.y, -this->half_size.z), v3f(-this->half_size.x,  this->half_size.y, -this->half_size.z), v3f(-this->half_size.x, -this->half_size.y, -this->half_size.z) });
         this->root_clipping_triangles.add({ v3f( this->half_size.x, -this->half_size.y, -this->half_size.z), v3f( this->half_size.x,  this->half_size.y, -this->half_size.z), v3f(-this->half_size.x, -this->half_size.y, -this->half_size.z) });
@@ -253,8 +253,8 @@ void World::add_boundary_clipping_planes(Boundary *boundary, Axis normal_axis) {
 }
 
 void World::add_centered_boundary_clipping_plane(Boundary *boundary, Axis normal_axis) {
-tmFunction(TM_WORLD_COLOR);
-
+    tmFunction(TM_WORLD_COLOR);
+ 
     assert(normal_axis >= 0 && normal_axis < AXIS_COUNT);
 
     f32 extension = max(max(this->half_size.x, this->half_size.y), this->half_size.z) * 2.0f; // This clipping plane should stretch across the entire world, before it might be clipped down.
@@ -297,4 +297,17 @@ void World::create_octree() {
 
 void World::clip_boundaries() {
     tmFunction(TM_WORLD_COLOR);
+
+    for(auto *boundary : this->boundaries) {
+        for(s64 i = 0; i < boundary->clipping_triangles.count; ++i) { // We are adding to this array in tessellate()!
+            auto *boundary_triangle = &boundary->clipping_triangles[i];
+
+            //
+            // Clip this boundary against the root volume.
+            //
+            for(auto *root_triangle : this->root_clipping_triangles) {
+                tessellate(boundary_triangle, root_triangle, &boundary->clipping_triangles);
+            }
+        }
+    }
 }

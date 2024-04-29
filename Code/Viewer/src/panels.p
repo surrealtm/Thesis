@@ -49,6 +49,7 @@ debug_draw_options_panel :: (viewer: *Viewer) {
         new_options = debug_draw_option_box(viewer, new_options, "Volume Wireframes", .Volume_Wireframes);
         new_options = debug_draw_option_box(viewer, new_options, "Labels", .Labels);
         new_options = debug_draw_option_box(viewer, new_options, "Normals", .Normals);
+        new_options = debug_draw_option_box(viewer, new_options, "Axis", .Axis_Gizmo);
 
         ui_divider(*viewer.ui, true);
         
@@ -73,6 +74,7 @@ debug_draw_options_panel :: (viewer: *Viewer) {
             if new_options & .Volume_Wireframes     append_string(*builder, " | .Volume_Wireframes");
             if new_options & .Labels                append_string(*builder, " | .Labels");
             if new_options & .Normals               append_string(*builder, " | .Normals");
+            if new_options & .Axis_Gizmo            append_string(*builder, " | .Axis_Gizmo");
 
             complete_string := finish_string_builder(*builder);
             complete_string = substring_view(complete_string, 3, complete_string.count); // Cut out the leading ' | '

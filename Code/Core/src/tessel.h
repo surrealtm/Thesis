@@ -13,6 +13,13 @@ struct Tessellator {
 	v3f intersection_point[2];
 	s8 intersection_count;
 
+    s8 far_intersection_point_index;
+    s8 near_intersection_point_index;
+
+    s8 extension_corner_index;
+    s8 first_other_corner_index;
+    s8 second_other_corner_index;
+    
     f32 barycentric_coefficients[2][3]; // The barycentric coefficients of the intersection points in relation to the input corners.
     
 	// To know whether to add a new triangle or re-use the input one.

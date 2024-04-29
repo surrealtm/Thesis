@@ -18,6 +18,7 @@ enum Debug_Draw_Options {
     DEBUG_DRAW_Volume_Wireframes   = 0x40,
     DEBUG_DRAW_Labels              = 0x1000, // Draw hud texts for all anchors and boundaries.
     DEBUG_DRAW_Normals             = 0x2000, // Draw normals for clipping planes and volumes.
+    DEBUG_DRAW_Axis_Gizmo          = 0x4000, // Draw a small axis indicator at the center of the world.
     DEBUG_DRAW_Everything          = 0xffffffff,
 };
 
