@@ -5,6 +5,10 @@
 #include "core.h"
 
 struct Tessellator {
+	// If this is true, then clip against the plane of the triangle, not just the triangle's
+	// surface area.
+	b8 clip_against_plane;
+
 	// The corner points and normal of the input triangle, copied since we will modify
 	// the input triangle to avoid (re-) allocations.
 	v3f input_corner[3];
@@ -28,4 +32,4 @@ struct Tessellator {
 	s64 generated_triangle_count;
 };
 
-s64 tessellate(Triangle *input, Triangle *clip, Resizable_Array<Triangle> *output);
+s64 tessellate(Triangle *input, Triangle *clip, Resizable_Array<Triangle> *output, bool clip_against_plane = false);

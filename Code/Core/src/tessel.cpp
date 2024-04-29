@@ -22,6 +22,28 @@ void check_edge_against_triangle(Tessellator *tessellator, v3f e0, v3f e1, Trian
 }
 
 static
+void check_edge_against_plane(Tessellator *tessellator, v3f e0, v3f e1, Triangle *triangle) {
+    //
+    // We check for a double-sided plane intersection here since we don't care about the triangle
+    // orientation. We always want to tessellate the triangle, no matter whether the edge passed in
+    // through the "forward" or "backward" side of the triangle.
+    //
+
+    v3f direction = e1 - e0;
+    f32 distance;
+    b8 intersection = ray_double_sided_plane_intersection(e0, direction, triangle->p0, triangle->normal(), &distance);
+
+    if(intersection && distance >= 0.f && distance < 1.0f && tessellator->intersection_count < 2) {
+        // If result.distance < 0.f || result.distance > 1.f, then we do get an intersection with the
+        // ray, but not inside the edge section of the ray.
+        // If the intersection_count is already >= 2, then we are having some numerical instability on
+        // parallel triangles, see :TessellationOfCoplanarTriangles
+        tessellator->intersection_point[tessellator->intersection_count] = e0 + direction * distance;
+        ++tessellator->intersection_count;
+    }
+}
+
+static
 void generate_new_triangle(Tessellator *tessellator, v3f p0, v3f p1, v3f p2) {
     // Check if two edges of this triangle are almost parallel. In this case, the triangle
     // would be considered dead anyway, and we don't even bother generating it in the first
@@ -63,7 +85,7 @@ s8 get_closest_intersection_point_to_corner(Tessellator *tessellator, s64 point_
 }
 
 static inline
-b8 far_point_inside_outer_triangle(Tessellator *tessellator, s64 c0, s64 c1, s64 c2) {
+b8 far_point_inside_outer_triangle(Tessellator *tessellator, s64 c0, s64 c1, s64 oppposition) {
     //
     // We essentially compare the angle between the near-to-far vector with the two edges
     // of this triangle (where c0 and c1 are the corner points of the desired triangle, and
@@ -74,7 +96,7 @@ b8 far_point_inside_outer_triangle(Tessellator *tessellator, s64 c0, s64 c1, s64
     v3f near = v3f(tessellator->barycentric_coefficients[tessellator->near_intersection_point_index][0], tessellator->barycentric_coefficients[tessellator->near_intersection_point_index][1], tessellator->barycentric_coefficients[tessellator->near_intersection_point_index][2]);
     v3f far = v3f(tessellator->barycentric_coefficients[tessellator->far_intersection_point_index][0], tessellator->barycentric_coefficients[tessellator->far_intersection_point_index][1], tessellator->barycentric_coefficients[tessellator->far_intersection_point_index][2]);
     
-    v3f h = get_barycentric_coefficient_for_corner_index(c2);
+    v3f h = get_barycentric_coefficient_for_corner_index(oppposition);
     v3f near_to_c0 = get_barycentric_coefficient_for_corner_index(c0) - near;
     v3f near_to_c1 = get_barycentric_coefficient_for_corner_index(c1) - near;
     v3f near_to_far = far - near;
@@ -83,21 +105,9 @@ b8 far_point_inside_outer_triangle(Tessellator *tessellator, s64 c0, s64 c1, s64
         v3_dot_v3(near_to_far, h) >= v3_dot_v3(near_to_c1, h);
 }
 
-s64 tessellate(Triangle *input, Triangle *clip, Resizable_Array<Triangle> *output) {
-    //
-    // https://stackoverflow.com/questions/7113344/find-whether-two-triangles-intersect-or-not
-    // Two triangles can intersect in the following two ways:
-    //   1. Two edges of one triangle intersect the face of the other triangle.
-    //   2. One edge of each triangle intersects the face of the other triangle.
-    // In both cases, we get two edge-to-face intersections, meaning we got a total
-    // of two intersection points. We then triangulate the input around these two
-    // intersection points.
-    //
-    // If the two triangles don't intersect, then there is no need to tessellate here
-    // and we are done.
-    //
-
+s64 tessellate(Triangle *input, Triangle *clip, Resizable_Array<Triangle> *output, bool clip_against_plane) {
     Tessellator tessellator;
+    tessellator.clip_against_plane = clip_against_plane;
     tessellator.input_corner[0] = input->p0;
     tessellator.input_corner[1] = input->p1;
     tessellator.input_corner[2] = input->p2;
@@ -106,12 +116,37 @@ s64 tessellate(Triangle *input, Triangle *clip, Resizable_Array<Triangle> *outpu
 
     tessellator.intersection_count = 0;
 
-    check_edge_against_triangle(&tessellator, input->p0, input->p1, clip);
-    check_edge_against_triangle(&tessellator, input->p1, input->p2, clip);
-    check_edge_against_triangle(&tessellator, input->p2, input->p0, clip);
-    check_edge_against_triangle(&tessellator, clip->p0, clip->p1, input);
-    check_edge_against_triangle(&tessellator, clip->p1, clip->p2, input);
-    check_edge_against_triangle(&tessellator, clip->p2, clip->p0, input);
+    if(!tessellator.clip_against_plane) {
+        //
+        // https://stackoverflow.com/questions/7113344/find-whether-two-triangles-intersect-or-not
+        // Two triangles can intersect in the following two ways:
+        //   1. Two edges of one triangle intersect the face of the other triangle.
+        //   2. One edge of each triangle intersects the face of the other triangle.
+        // In both cases, we get two edge-to-face intersections, meaning we got a total
+        // of two intersection points. We then triangulate the input around these two
+        // intersection points.
+        //
+        // If the two triangles don't intersect, then there is no need to tessellate here
+        // and we are done.
+        //
+        check_edge_against_triangle(&tessellator, input->p0, input->p1, clip);
+        check_edge_against_triangle(&tessellator, input->p1, input->p2, clip);
+        check_edge_against_triangle(&tessellator, input->p2, input->p0, clip);
+        check_edge_against_triangle(&tessellator, clip->p0, clip->p1, input);
+        check_edge_against_triangle(&tessellator, clip->p1, clip->p2, input);
+        check_edge_against_triangle(&tessellator, clip->p2, clip->p0, input);
+    } else {
+        //
+        // A plane and a triangle intersect if two edges of the triangle intersect the
+        // plane. We therefore also should get two intersection points (on intersection),
+        // but we only need to check the input edges against the plane, since they cannot
+        // "miss" the plane (since it is infinite), like they can miss a triangle in the
+        // above case.
+        //
+        check_edge_against_plane(&tessellator, input->p0, input->p1, clip);
+        check_edge_against_plane(&tessellator, input->p1, input->p2, clip);
+        check_edge_against_plane(&tessellator, input->p2, input->p0, clip);
+    }
 
     //
     // :TessellationOfCoplanarTriangles
@@ -122,8 +157,6 @@ s64 tessellate(Triangle *input, Triangle *clip, Resizable_Array<Triangle> *outpu
     // further tessellation.
     //
     if(tessellator.intersection_count != 2) return 0;
-
-    tessellator.generated_triangle_count = 0;
 
     calculate_barycentric_coefficients(tessellator.input_corner[0], tessellator.input_corner[1], tessellator.input_corner[2], tessellator.intersection_point[0], &tessellator.barycentric_coefficients[0][0], &tessellator.barycentric_coefficients[0][1], &tessellator.barycentric_coefficients[0][2]);
     calculate_barycentric_coefficients(tessellator.input_corner[0], tessellator.input_corner[1], tessellator.input_corner[2], tessellator.intersection_point[1], &tessellator.barycentric_coefficients[1][0], &tessellator.barycentric_coefficients[1][1], &tessellator.barycentric_coefficients[1][2]);
@@ -177,8 +210,8 @@ s64 tessellate(Triangle *input, Triangle *clip, Resizable_Array<Triangle> *outpu
     tessellator.extension_corner_index = (corner_extension_factor[0] > corner_extension_factor[1]) ?
         (corner_extension_factor[0] > corner_extension_factor[2] ? 0 : 2) :
         (corner_extension_factor[1] > corner_extension_factor[2] ? 1 : 2);
-    tessellator.first_other_corner_index  = (tessellator.extension_corner_index + 1) % 3;
-    tessellator.second_other_corner_index = (tessellator.extension_corner_index + 2) % 3;
+    tessellator.first_other_corner_index      = (tessellator.extension_corner_index + 1) % 3;
+    tessellator.second_other_corner_index     = (tessellator.extension_corner_index + 2) % 3;
     tessellator.near_intersection_point_index = closest_intersection_point_index[tessellator.extension_corner_index];
     tessellator.far_intersection_point_index  = (closest_intersection_point_index[tessellator.extension_corner_index] + 1) % 2;
 
@@ -196,6 +229,8 @@ s64 tessellate(Triangle *input, Triangle *clip, Resizable_Array<Triangle> *outpu
     // subtriangle into three more sub-subtriangles, resulting in a total of 5 new triangles (minus the
     // empty one caught by generate_new_triangle).
     //
+
+    tessellator.generated_triangle_count = 0;
 
     if(far_point_inside_outer_triangle(&tessellator, tessellator.first_other_corner_index, tessellator.second_other_corner_index, tessellator.extension_corner_index)) {
         // The far point is inside the triangle (near, first, second).

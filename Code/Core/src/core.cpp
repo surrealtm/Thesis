@@ -26,37 +26,6 @@ v3f Triangle::normal() {
     return v3_cross_v3(this->p1 - this->p0, this->p2 - this->p0);    
 }
 
-b8 Triangle::project_onto_plane(Triangle *plane) {
-    //
-    // This projects the vertices of this triangle onto the target plane, defined by the given triangle.
-    // Note that this projects along OUR normal, not the plane's normal.
-    // We only want to project the vertices if they are on the "bad" side of the triangle (where the bad side
-    // is the backface of the triangle, or the the opposite of the normal), therefore we give
-    // ray_triangle_intersection the triangle vertices in the wrong order.
-    //
-    v3f direction = this->normal();
-
-    b8 shifted = false;
-    
-    f32 distance;
-    if(ray_triangle_intersection(this->p0, direction, plane->p0, plane->p2, plane->p1, &distance) && distance > F32_EPSILON) {
-        this->p0 = this->p0 + direction * distance;
-        shifted = true;
-    }
-    
-    if(ray_triangle_intersection(this->p1, direction, plane->p0, plane->p2, plane->p1, &distance) && distance > F32_EPSILON) {
-        this->p1 = this->p1 + direction * distance;
-        shifted = true;
-    }
-    
-    if(ray_triangle_intersection(this->p2, direction, plane->p0, plane->p2, plane->p1, &distance) && distance > F32_EPSILON) {
-        this->p2 = this->p2 + direction * distance;
-        shifted = true;
-    }
-
-    return shifted;
-}
-
 b8 Triangle::is_fully_behind_plane(Triangle *plane) {
     //
     // Returns true if this triangle is on the "backface" side of the plane, meaning
@@ -64,16 +33,17 @@ b8 Triangle::is_fully_behind_plane(Triangle *plane) {
     // this triangle.
     //
     v3f plane_normal = plane->normal();
-    f32 d0 = v3_dot_v3(this->p0 - plane->p0, plane_normal);
-    f32 d1 = v3_dot_v3(this->p1 - plane->p0, plane_normal);
-    f32 d2 = v3_dot_v3(this->p2 - plane->p0, plane_normal);
+    f32 inverse_length2 = 1.f / v3_length2(plane_normal); // Once again, fight issues with imprecision when one point is supposed to be on the plane and the other are far away, in which case the normal is pretty big and the d0 value is bigger than F32_EPSILON...
+    f32 d0 = v3_dot_v3(this->p0 - plane->p0, plane_normal) * inverse_length2;
+    f32 d1 = v3_dot_v3(this->p1 - plane->p0, plane_normal) * inverse_length2;
+    f32 d2 = v3_dot_v3(this->p2 - plane->p0, plane_normal) * inverse_length2;
 
     //
     // Return true if no point is on the "frontface" of the clipping triangle, AND at least one
     // point is not on the clipping triangle. We don't want to clip triangles which lie on the
     // plane.
     //
-    return d0 <= 0.f && d1 <= 0.f && d2 <= 0.f && (d0 < -F32_EPSILON || d1 < -F32_EPSILON || d2 < -F32_EPSILON);
+    return d0 <= F32_EPSILON && d1 <= F32_EPSILON && d2 <= F32_EPSILON && (d0 < -F32_EPSILON || d1 < -F32_EPSILON || d2 < -F32_EPSILON);
 }
 
 
@@ -324,8 +294,9 @@ void World::clip_boundaries() {
             // The root triangles should act more like planes, and tessellate everything that clips
             // their plane, not just their triangle face.
             //
-            for(auto *root_triangle : this->root_clipping_triangles) {
-                tessellate(boundary_triangle, root_triangle, &boundary->clipping_triangles);
+            for(s64 j = 0; j < this->root_clipping_triangles.count; ++j) {
+                auto *root_triangle = &this->root_clipping_triangles[j];
+                tessellate(boundary_triangle, root_triangle, &boundary->clipping_triangles, true); // Clip against the root plane, and not just the root triangle.
                 boundary_triangle_should_be_clippped |= boundary_triangle->is_fully_behind_plane(root_triangle);
             }
 
