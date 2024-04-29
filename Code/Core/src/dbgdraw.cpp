@@ -52,7 +52,8 @@ const Dbg_Draw_Color dbg_volume_color         = { 215,  15, 219, 100 };
 const Dbg_Draw_Color dbg_step_highlight_color = { 255, 255, 255, 255 };
 const Dbg_Draw_Color dbg_normal_color         = {  50,  50, 255, 255 };
 
-const b8 dbg_draw_root_clipping_triangles = true;
+const b8 dbg_draw_root_clipping_triangle_wireframes = false;
+const b8 dbg_draw_root_clipping_triangle_faces      = false;
 
 Allocator *dbg_alloc = Default_Allocator;
 
@@ -160,7 +161,7 @@ Debug_Draw_Data debug_draw_world(World *world, Debug_Draw_Options options) {
 	}
 
 	if(options & DEBUG_DRAW_Clipping_Faces) {
-		if(dbg_draw_root_clipping_triangles) {
+		if(dbg_draw_root_clipping_triangle_faces) {
 			for(auto *root_triangle : world->root_clipping_triangles) {
 				debug_draw_triangle(_internal, root_triangle, dbg_clipping_plane_color);
 			}
@@ -176,7 +177,7 @@ Debug_Draw_Data debug_draw_world(World *world, Debug_Draw_Options options) {
     }
 
 	if(options & DEBUG_DRAW_Clipping_Wireframes) {
-		if(dbg_draw_root_clipping_triangles) {
+		if(dbg_draw_root_clipping_triangle_wireframes) {
 			for(auto *root_triangle : world->root_clipping_triangles) {
 				f32 thickness = dbg_triangle_wireframe_thickness;
 				debug_draw_triangle_wireframe(_internal, root_triangle, dbg_clipping_plane_color, thickness);

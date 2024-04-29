@@ -1,19 +1,6 @@
 #include "tessel.h"
 
 static
-v3f get_barycentric_coefficient_for_corner_index(s64 index) {
-    v3f result;
-
-    switch(index) {
-    case 0: result = v3f(1, 0, 0); break;
-    case 1: result = v3f(0, 1, 0); break;
-    case 2: result = v3f(0, 0, 1); break;
-    }
-
-    return result;
-}
-
-static
 void check_edge_against_triangle(Tessellator *tessellator, v3f e0, v3f e1, Triangle *triangle) {
     //
     // We check for a double-sided plane intersection here since we don't care about the triangle
@@ -55,6 +42,19 @@ void generate_new_triangle(Tessellator *tessellator, v3f p0, v3f p1, v3f p2) {
     }
 
     ++tessellator->generated_triangle_count;
+}
+
+static inline
+v3f get_barycentric_coefficient_for_corner_index(s64 index) {
+    v3f result;
+
+    switch(index) {
+    case 0: result = v3f(1, 0, 0); break;
+    case 1: result = v3f(0, 1, 0); break;
+    case 2: result = v3f(0, 0, 1); break;
+    }
+
+    return result;
 }
 
 static inline

@@ -33,6 +33,7 @@ struct Triangle {
     v3f normal(); // NOT the unit normal!
     
     b8 project_onto_plane(Triangle *plane);
+    b8 is_fully_behind_plane(Triangle *plane);
 };
 
 struct AABB {

@@ -57,6 +57,25 @@ b8 Triangle::project_onto_plane(Triangle *plane) {
     return shifted;
 }
 
+b8 Triangle::is_fully_behind_plane(Triangle *plane) {
+    //
+    // Returns true if this triangle is on the "backface" side of the plane, meaning
+    // in the opposite direction of the plane's normal. This usually means we should clip
+    // this triangle.
+    //
+    v3f plane_normal = plane->normal();
+    f32 d0 = v3_dot_v3(this->p0 - plane->p0, plane_normal);
+    f32 d1 = v3_dot_v3(this->p1 - plane->p0, plane_normal);
+    f32 d2 = v3_dot_v3(this->p2 - plane->p0, plane_normal);
+
+    //
+    // Return true if no point is on the "frontface" of the clipping triangle, AND at least one
+    // point is not on the clipping triangle. We don't want to clip triangles which lie on the
+    // plane.
+    //
+    return d0 <= 0.f && d1 <= 0.f && d2 <= 0.f && (d0 < -F32_EPSILON || d1 < -F32_EPSILON || d2 < -F32_EPSILON);
+}
+
 
 
 /* -------------------------------------------------- Octree -------------------------------------------------- */
@@ -153,11 +172,11 @@ void World::create(v3f half_size) {
         this->root_clipping_triangles.add({ v3f( this->half_size.x,  this->half_size.y,  this->half_size.z), v3f( this->half_size.x,  this->half_size.y, -this->half_size.z), v3f( this->half_size.x, -this->half_size.y, -this->half_size.z) });
         
         // Y-Axis
-        this->root_clipping_triangles.add({ v3f(-this->half_size.x, -this->half_size.y,  this->half_size.z), v3f(-this->half_size.x, -this->half_size.y, -this->half_size.z), v3f( this->half_size.x, -this->half_size.y,  this->half_size.z) });
-        this->root_clipping_triangles.add({ v3f( this->half_size.x, -this->half_size.y, -this->half_size.z), v3f( this->half_size.x, -this->half_size.y,  this->half_size.z), v3f(-this->half_size.x, -this->half_size.y, -this->half_size.z) });
+        this->root_clipping_triangles.add({ v3f(-this->half_size.x, -this->half_size.y, -this->half_size.z), v3f(-this->half_size.x, -this->half_size.y,  this->half_size.z), v3f( this->half_size.x, -this->half_size.y,  this->half_size.z) });
+        this->root_clipping_triangles.add({ v3f( this->half_size.x, -this->half_size.y,  this->half_size.z), v3f( this->half_size.x, -this->half_size.y, -this->half_size.z), v3f(-this->half_size.x, -this->half_size.y, -this->half_size.z) });
 
-        this->root_clipping_triangles.add({ v3f(-this->half_size.x,  this->half_size.y,  this->half_size.z), v3f( this->half_size.x,  this->half_size.y,  this->half_size.z), v3f(-this->half_size.x,  this->half_size.y, -this->half_size.z) });
-        this->root_clipping_triangles.add({ v3f( this->half_size.x,  this->half_size.y,  this->half_size.z), v3f( this->half_size.x,  this->half_size.y, -this->half_size.z), v3f(-this->half_size.x,  this->half_size.y, -this->half_size.z) });
+        this->root_clipping_triangles.add({ v3f( this->half_size.x,  this->half_size.y,  this->half_size.z), v3f(-this->half_size.x,  this->half_size.y,  this->half_size.z), v3f(-this->half_size.x,  this->half_size.y, -this->half_size.z) });
+        this->root_clipping_triangles.add({ v3f( this->half_size.x,  this->half_size.y, -this->half_size.z), v3f( this->half_size.x,  this->half_size.y,  this->half_size.z), v3f(-this->half_size.x,  this->half_size.y, -this->half_size.z) });
         
         // Z-Axis
         this->root_clipping_triangles.add({ v3f( this->half_size.x,  this->half_size.y, -this->half_size.z), v3f(-this->half_size.x,  this->half_size.y, -this->half_size.z), v3f(-this->half_size.x, -this->half_size.y, -this->half_size.z) });
@@ -218,11 +237,9 @@ void World::add_boundary_clipping_planes(Boundary *boundary, Axis normal_axis) {
 
     assert(normal_axis >= 0 && normal_axis < AXIS_COUNT);
 
-    f32 extension = max(max(this->half_size.x, this->half_size.y), this->half_size.z) * 2.0f; // This clipping plane should stretch across the entire world, before it might be clipped down.
-
     v3f a = boundary->local_scaled_axes[normal_axis];
-    v3f u = boundary->local_unit_axes[(normal_axis + 1) % 3] * extension;
-    v3f v = boundary->local_unit_axes[(normal_axis + 2) % 3] * extension;
+    v3f u = boundary->local_unit_axes[(normal_axis + 1) % 3] * this->half_size * 2.0f;
+    v3f v = boundary->local_unit_axes[(normal_axis + 2) % 3] * this->half_size * 2.0f;
 
     //
     // A boundary owns an actual volume, which means that the clipping plane
@@ -257,11 +274,9 @@ void World::add_centered_boundary_clipping_plane(Boundary *boundary, Axis normal
  
     assert(normal_axis >= 0 && normal_axis < AXIS_COUNT);
 
-    f32 extension = max(max(this->half_size.x, this->half_size.y), this->half_size.z) * 2.0f; // This clipping plane should stretch across the entire world, before it might be clipped down.
-
     v3f a = boundary->local_scaled_axes[normal_axis];
-    v3f u = boundary->local_unit_axes[(normal_axis + 1) % 3] * extension;
-    v3f v = boundary->local_unit_axes[(normal_axis + 2) % 3] * extension;
+    v3f u = boundary->local_unit_axes[(normal_axis + 1) % 3] * this->half_size * 2.0f;
+    v3f v = boundary->local_unit_axes[(normal_axis + 2) % 3] * this->half_size * 2.0f;
 
     v3f c = boundary->position;
     v3f p0 = c - u - v;
@@ -299,14 +314,25 @@ void World::clip_boundaries() {
     tmFunction(TM_WORLD_COLOR);
 
     for(auto *boundary : this->boundaries) {
-        for(s64 i = 0; i < boundary->clipping_triangles.count; ++i) { // We are adding to this array in tessellate()!
+        for(s64 i = 0; i < boundary->clipping_triangles.count; ) { // We are adding to this array in tessellate() and removing triangles inside this loop!
             auto *boundary_triangle = &boundary->clipping_triangles[i];
+
+            b8 boundary_triangle_should_be_clippped = false;
 
             //
             // Clip this boundary against the root volume.
+            // The root triangles should act more like planes, and tessellate everything that clips
+            // their plane, not just their triangle face.
             //
             for(auto *root_triangle : this->root_clipping_triangles) {
                 tessellate(boundary_triangle, root_triangle, &boundary->clipping_triangles);
+                boundary_triangle_should_be_clippped |= boundary_triangle->is_fully_behind_plane(root_triangle);
+            }
+
+            if(boundary_triangle_should_be_clippped) {
+                boundary->clipping_triangles.remove(i);
+            } else {
+                ++i;
             }
         }
     }

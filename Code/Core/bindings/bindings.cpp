@@ -216,6 +216,7 @@ extern "C" {
         World *world = (World *) core_allocate_world();
         world->create(v3f(40, .5, 40));
 
+        /*
         Boundary *b0 = world->add_boundary("Boundary"_s, v3f(-10, 0, 0), v3f(.5, .5, 10), v3f(0));
         world->add_boundary_clipping_planes(b0, AXIS_X);
 
@@ -224,7 +225,11 @@ extern "C" {
         
         Boundary *b2 = world->add_boundary("Boundary"_s, v3f(0, 0, +10), v3f(.5, .5, 10), v3f(0, -.125, 0));
         world->add_boundary_clipping_planes(b2, AXIS_X);
+        */
 
+        Boundary *b0 = world->add_boundary("Boundary"_s, v3f(-10, 0, 0), v3f(.5, .5, 10), v3f(0, .125, 0));
+        world->add_centered_boundary_clipping_plane(b0, AXIS_X);
+        
         world->add_anchor("Anchor"_s, v3f(0, 0, 0));
 
         world->create_octree();
