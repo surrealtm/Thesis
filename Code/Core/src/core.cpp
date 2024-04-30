@@ -199,10 +199,12 @@ void World::add_boundary_clipping_planes(Boundary *boundary, Axis normal_axis) {
 
     assert(normal_axis >= 0 && normal_axis < AXIS_COUNT);
 
+    f32 extension = max(max(this->half_size.x, this->half_size.y), this->half_size.z) * 2.f; // Uniformly scale the clipping plane to cover the entire world space, before it will probably get cut down later.
+    
     v3f a = boundary->local_scaled_axes[normal_axis];
     v3f n = boundary->local_unit_axes[normal_axis];
-    v3f u = boundary->local_unit_axes[(normal_axis + 1) % 3] * this->half_size * 2.0f;
-    v3f v = boundary->local_unit_axes[(normal_axis + 2) % 3] * this->half_size * 2.0f;
+    v3f u = boundary->local_unit_axes[(normal_axis + 1) % 3] * extension;
+    v3f v = boundary->local_unit_axes[(normal_axis + 2) % 3] * extension;
 
     //
     // A boundary owns an actual volume, which means that the clipping plane
@@ -217,8 +219,8 @@ void World::add_boundary_clipping_planes(Boundary *boundary, Axis normal_axis) {
         v3f p1 = c - u + v;
         v3f p2 = c + u - v;
         v3f p3 = c + u + v;
-        boundary->clipping_triangles.add( { p0, p3, p1, n });
-        boundary->clipping_triangles.add( { p0, p2, p3, n });
+        boundary->clipping_triangles.add({ p0, p3, p1, n });
+        boundary->clipping_triangles.add({ p0, p2, p3, n });
     }
 
     {
@@ -227,8 +229,8 @@ void World::add_boundary_clipping_planes(Boundary *boundary, Axis normal_axis) {
         v3f p1 = c - u + v;
         v3f p2 = c + u - v;
         v3f p3 = c + u + v;
-        boundary->clipping_triangles.add( { p0, p1, p3, n });
-        boundary->clipping_triangles.add( { p0, p3, p2, n });
+        boundary->clipping_triangles.add({ p0, p1, p3, n });
+        boundary->clipping_triangles.add({ p0, p3, p2, n });
     }
 }
 
@@ -237,18 +239,20 @@ void World::add_centered_boundary_clipping_plane(Boundary *boundary, Axis normal
  
     assert(normal_axis >= 0 && normal_axis < AXIS_COUNT);
 
+    f32 extension = max(max(this->half_size.x, this->half_size.y), this->half_size.z) * 2.f; // Uniformly scale the clipping plane to cover the entire world space, before it will probably get cut down later.
+
     v3f a = boundary->local_scaled_axes[normal_axis];
     v3f n = boundary->local_unit_axes[normal_axis];
-    v3f u = boundary->local_unit_axes[(normal_axis + 1) % 3] * this->half_size * 2.0f;
-    v3f v = boundary->local_unit_axes[(normal_axis + 2) % 3] * this->half_size * 2.0f;
+    v3f u = boundary->local_unit_axes[(normal_axis + 1) % 3] * extension;
+    v3f v = boundary->local_unit_axes[(normal_axis + 2) % 3] * extension;
 
     v3f c = boundary->position;
     v3f p0 = c - u - v;
     v3f p1 = c - u + v;
     v3f p2 = c + u - v;
     v3f p3 = c + u + v;
-    boundary->clipping_triangles.add( { p0, p1, p3, n });
-    boundary->clipping_triangles.add( { p0, p2, p3, n });
+    boundary->clipping_triangles.add({ p0, p1, p3, n });
+    boundary->clipping_triangles.add({ p0, p2, p3, n });
 }
 
 void World::create_octree() {
