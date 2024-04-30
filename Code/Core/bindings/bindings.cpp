@@ -141,13 +141,18 @@ extern "C" {
     World_Handle core_do_large_volumes_test(b8 step_into) {
         tmZone("do_large_volumes_test", TM_SYSTEM_COLOR);
         
+        //
+        // nocheckin:
+        // There are still clipping planes going outside the world boundaries...
+        //
+
         World *world = (World *) core_allocate_world();
         world->create(v3f(100, 40, 100));
         
         {
             tmZone("create_random_boundaries", TM_SYSTEM_COLOR);
 
-            const s64 count = 1000;
+            const s64 count = 1000; // nocheckin: Was 1000
 
             const f32 width  = world->half_size.x;
             const f32 height = world->half_size.y;
@@ -269,10 +274,6 @@ extern "C" {
     
     World_Handle core_do_center_block_test(b8 step_into) {
         tmFunction(TM_SYSTEM_COLOR);
-
-        // nocheckin: This is still a little bit broken, either the rotation isn't correct
-        // for the generated clipping triangles, or we mess up clipping somehow so that
-        // they fuck up their orientation?
 
         World *world = (World *) core_allocate_world();
         world->create(v3f(50, 10, 50));

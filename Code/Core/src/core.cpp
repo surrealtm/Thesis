@@ -35,7 +35,19 @@ b8 Triangle::is_fully_behind_plane(Triangle *plane) {
     // point is not on the clipping triangle. We don't want to clip triangles which lie on the
     // plane.
     //
-    return d0 <= F32_EPSILON && d1 <= F32_EPSILON && d2 <= F32_EPSILON && (d0 < -F32_EPSILON || d1 < -F32_EPSILON || d2 < -F32_EPSILON);
+    return d0 <= TESSEL_EPSILON && d1 <= TESSEL_EPSILON && d2 <= TESSEL_EPSILON && (d0 < -TESSEL_EPSILON || d1 < -TESSEL_EPSILON || d2 < -TESSEL_EPSILON);
+}
+
+b8 Triangle::no_point_behind_plane(Triangle *plane) {
+    //
+    // Ensures that all points of this triangle lie on the "frontface" of the clipping triangle.
+    //
+    assert(fuzzy_equals(v3_length2(plane->n), 1.f));
+    f32 d0 = v3_dot_v3(this->p0 - plane->p0, plane->n);
+    f32 d1 = v3_dot_v3(this->p1 - plane->p0, plane->n);
+    f32 d2 = v3_dot_v3(this->p2 - plane->p0, plane->n);
+
+    return d0 >= -TESSEL_EPSILON || d1 >= -TESSEL_EPSILON && d2 >= -TESSEL_EPSILON;
 }
 
 
@@ -307,7 +319,10 @@ void World::clip_boundaries(b8 single_step) {
             while(this->dbg_step_root_triangle < this->root_clipping_triangles.count) {
                 auto *root_triangle = &this->root_clipping_triangles[this->dbg_step_root_triangle];
                 tessellate(boundary_triangle, root_triangle, &boundary->clipping_triangles, true); // Clip against the root plane, and not just the root triangle.
+                assert(boundary_triangle->is_fully_behind_plane(root_triangle) || boundary_triangle->no_point_behind_plane(root_triangle)); // nocheckin
+                
                 this->dbg_step_clipping_triangle_should_be_removed |= boundary_triangle->is_fully_behind_plane(root_triangle);
+
                 ++this->dbg_step_root_triangle;
 
                 if(single_step) return;

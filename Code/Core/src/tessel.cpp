@@ -5,8 +5,6 @@
 
 #define TESSEL_PRINT false // @@Ship: Remove this.
 
-constexpr f32 TESSEL_EPSILON = 0.001f; // We have a higher floating point tolerance here since we are talking about actual geometry units, where 1.f is roughly 1 meter semantically...
-
 struct Tessellator {
 	// The corner points and normal of the input triangle, copied since we will modify
 	// the input triangle to avoid (re-) allocations.
