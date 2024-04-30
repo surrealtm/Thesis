@@ -13,6 +13,8 @@ core_destroy_world :: #foreign (world: World_Handle);
 
 /* ------------------------------------------------- Testing ------------------------------------------------- */
 
+core_do_world_step :: #foreign (world: World_Handle, step_mode: bool);
+
 core_do_house_test         :: #foreign (step_into: bool) -> World_Handle;
 core_do_octree_test        :: #foreign (step_into: bool) -> World_Handle;
 core_do_large_volumes_test :: #foreign (step_into: bool) -> World_Handle;
@@ -39,6 +41,7 @@ Debug_Draw_Options :: enum {
     Labels              :: 0x1000;
     Normals             :: 0x2000;
     Axis_Gizmo          :: 0x4000;
+    Root_Planes         :: 0x8000;
     Everything          :: 0xffffffff;
 }
 

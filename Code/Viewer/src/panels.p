@@ -50,6 +50,7 @@ debug_draw_options_panel :: (viewer: *Viewer) {
         new_options = debug_draw_option_box(viewer, new_options, "Labels", .Labels);
         new_options = debug_draw_option_box(viewer, new_options, "Normals", .Normals);
         new_options = debug_draw_option_box(viewer, new_options, "Axis", .Axis_Gizmo);
+        new_options = debug_draw_option_box(viewer, new_options, "Root Planes", .Root_Planes);
 
         ui_divider(*viewer.ui, true);
         
@@ -75,6 +76,7 @@ debug_draw_options_panel :: (viewer: *Viewer) {
             if new_options & .Labels                append_string(*builder, " | .Labels");
             if new_options & .Normals               append_string(*builder, " | .Normals");
             if new_options & .Axis_Gizmo            append_string(*builder, " | .Axis_Gizmo");
+            if new_options & .Root_Planes           append_string(*builder, " | .Root_Planes");
 
             complete_string := finish_string_builder(*builder);
             complete_string = substring_view(complete_string, 3, complete_string.count); // Cut out the leading ' | '

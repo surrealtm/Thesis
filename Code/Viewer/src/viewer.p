@@ -105,6 +105,7 @@ Viewer :: struct {
     
     // Core data.
     test_name: string;
+    stepping_mode: bool;
     
     world_handle: World_Handle;
     debug_draw_data: Debug_Draw_Data;    
@@ -127,6 +128,13 @@ menu_bar :: (viewer: *Viewer) {
 
     ui_set_width(*viewer.ui, .Percentage_Of_Parent, 1, 0);
     ui_spacer(*viewer.ui);
+
+    if viewer.stepping_mode && viewer.world_handle && (ui_button(*viewer.ui, "Step") || viewer.window.key_repeated[.Space]) {
+        core_do_world_step(viewer.world_handle, viewer.stepping_mode);
+        rebuild_debug_draw_data(viewer);
+    }
+    
+    ui_toggle_button_with_pointer(*viewer.ui, "Step Mode", *viewer.stepping_mode);
     
     ui_pop_height(*viewer.ui);
     ui_pop_width(*viewer.ui);
@@ -188,7 +196,7 @@ run_test :: (viewer: *Viewer, test_index: s64) {
     destroy_test_data(viewer);
 
     core_begin_profiling();
-    viewer.world_handle = TESTS[test_index].proc(false);
+    viewer.world_handle = TESTS[test_index].proc(viewer.stepping_mode);
     core_stop_profiling();
 
     if viewer.world_handle != null {

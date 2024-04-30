@@ -38,6 +38,8 @@ extern "C" {
 
     /* ----------------------------------------------- Testing ----------------------------------------------- */
     
+    EXPORT void core_do_world_step(World_Handle world_handle, b8 step_mode);
+
     EXPORT World_Handle core_do_house_test(b8 step_into);
     EXPORT World_Handle core_do_octree_test(b8 step_into);
     EXPORT World_Handle core_do_large_volumes_test(b8 step_into);

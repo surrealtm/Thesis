@@ -47,13 +47,11 @@ const f32 dbg_triangle_normal_length       = 1.f;
 const Dbg_Draw_Color dbg_label_color          = { 255, 255, 255, 255 };
 const Dbg_Draw_Color dbg_anchor_color         = { 255, 100, 100, 255 };
 const Dbg_Draw_Color dbg_boundary_color       = { 100, 100, 100, 255 };
+const Dbg_Draw_Color dbg_root_plane_color     = { 255, 193,   0, 100 };
 const Dbg_Draw_Color dbg_clipping_plane_color = { 255,  60,  50, 100 };
 const Dbg_Draw_Color dbg_volume_color         = { 215,  15, 219, 100 };
 const Dbg_Draw_Color dbg_step_highlight_color = { 255, 255, 255, 255 };
 const Dbg_Draw_Color dbg_normal_color         = {  50,  50, 255, 255 };
-
-const b8 dbg_draw_root_clipping_triangle_wireframes = false;
-const b8 dbg_draw_root_clipping_triangle_faces      = false;
 
 Allocator *dbg_alloc = Default_Allocator;
 
@@ -111,7 +109,7 @@ void debug_draw_triangle(Dbg_Internal_Draw_Data &_internal, Triangle *triangle, 
 
     if(_internal.draw_normals) {
         v3f center = (triangle->p0 + triangle->p1 + triangle->p2) / 3.f;
-        v3f normal = v3_normalize(triangle->normal()) * dbg_triangle_normal_length;
+        v3f normal = triangle->n * dbg_triangle_normal_length;
         _internal.lines.add({ center, center + normal, dbg_triangle_normal_thickness, dbg_normal_color.r, dbg_normal_color.g, dbg_normal_color.b });
     }
 }
@@ -124,7 +122,7 @@ void debug_draw_triangle_wireframe(Dbg_Internal_Draw_Data &_internal, Triangle *
 
     if(_internal.draw_normals) {
         v3f center = (triangle->p0 + triangle->p1 + triangle->p2) / 3.f;
-        v3f normal = v3_normalize(triangle->normal()) * dbg_triangle_normal_length;
+        v3f normal = triangle->n * dbg_triangle_normal_length;
         _internal.lines.add({ center, center + normal, dbg_triangle_normal_thickness, dbg_normal_color.r, dbg_normal_color.g, dbg_normal_color.b });
     }
 }
@@ -161,34 +159,40 @@ Debug_Draw_Data debug_draw_world(World *world, Debug_Draw_Options options) {
 	}
 
 	if(options & DEBUG_DRAW_Clipping_Faces) {
-		if(dbg_draw_root_clipping_triangle_faces) {
-			for(auto *root_triangle : world->root_clipping_triangles) {
-				debug_draw_triangle(_internal, root_triangle, dbg_clipping_plane_color);
+		if(options & DEBUG_DRAW_Root_Planes) {
+			for(s64 i = 0; i < world->root_clipping_triangles.count; ++i) {
+				b8 active = world->dbg_step_initialized && !world->dbg_step_completed && world->dbg_step_root_triangle == i;
+				Dbg_Draw_Color color = active ? dbg_step_highlight_color : dbg_root_plane_color;
+				debug_draw_triangle(_internal, &world->root_clipping_triangles[i], color);
 			}
 		}
 		
         for(s64 i = 0; i < world->boundaries.count; ++i) {
             Boundary *boundary = &world->boundaries[i];
             for(s64 j = 0; j < boundary->clipping_triangles.count; ++j) {
-                Dbg_Draw_Color color = dbg_clipping_plane_color;
-				debug_draw_triangle(_internal, &boundary->clipping_triangles[j], color);
+                b8 active = world->dbg_step_initialized && !world->dbg_step_completed && world->dbg_step_boundary == i && world->dbg_step_clipping_triangle == j;
+				Dbg_Draw_Color color = active ? dbg_step_highlight_color : dbg_clipping_plane_color;
+                debug_draw_triangle(_internal, &boundary->clipping_triangles[j], color);
 			}
         }
     }
 
 	if(options & DEBUG_DRAW_Clipping_Wireframes) {
-		if(dbg_draw_root_clipping_triangle_wireframes) {
-			for(auto *root_triangle : world->root_clipping_triangles) {
-				f32 thickness = dbg_triangle_wireframe_thickness;
-				debug_draw_triangle_wireframe(_internal, root_triangle, dbg_clipping_plane_color, thickness);
+		if(options & DEBUG_DRAW_Root_Planes) {
+			for(s64 i = 0; i < world->root_clipping_triangles.count; ++i) {
+				b8 active = world->dbg_step_initialized && !world->dbg_step_completed && world->dbg_step_root_triangle == i;
+				Dbg_Draw_Color color = active ? dbg_step_highlight_color : dbg_root_plane_color;
+				f32 thickness = active ? dbg_triangle_wireframe_thickness * 2 : dbg_triangle_wireframe_thickness;
+				debug_draw_triangle_wireframe(_internal, &world->root_clipping_triangles[i], color, thickness);
 			}
 		}
 		
         for(s64 i = 0; i < world->boundaries.count; ++i) {
             Boundary *boundary = &world->boundaries[i];
             for(s64 j = 0; j < boundary->clipping_triangles.count; ++j) {
-                Dbg_Draw_Color color = dbg_clipping_plane_color;
-                f32 thickness = dbg_triangle_wireframe_thickness;
+                b8 active = world->dbg_step_initialized && !world->dbg_step_completed && world->dbg_step_boundary == i && world->dbg_step_clipping_triangle == j;
+				Dbg_Draw_Color color = active ? dbg_step_highlight_color : dbg_clipping_plane_color;
+				f32 thickness = active ? dbg_triangle_wireframe_thickness * 2 : dbg_triangle_wireframe_thickness;
 				debug_draw_triangle_wireframe(_internal, &boundary->clipping_triangles[j], color, thickness);
 			}
         }		

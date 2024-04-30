@@ -1,4 +1,5 @@
 #include "bindings.h"
+
 #include "../src/core.h"
 #include "../src/random.h"
 #include "../src/os_specific.h"
@@ -61,6 +62,11 @@ extern "C" {
     
     /* ----------------------------------------------- Testing ------------------------------------------------ */
 
+    void core_do_world_step(World_Handle world_handle, b8 step_mode) {
+        World *world = (World *) world_handle;
+        world->clip_boundaries(step_mode);
+    }
+
     World_Handle core_do_house_test(b8 step_into) {
         tmZone("do_house_test", TM_SYSTEM_COLOR);
 
@@ -93,7 +99,7 @@ extern "C" {
         world->add_boundary_clipping_planes(outer_wall_west, AXIS_X);
 
         world->create_octree();
-        world->clip_boundaries();
+        world->clip_boundaries(step_into);
         
         return (World_Handle) world;
     }
@@ -179,7 +185,7 @@ extern "C" {
         }
 
         world->create_octree();
-        world->clip_boundaries();
+        world->clip_boundaries(step_into);
         return world;
     }
     
@@ -205,51 +211,26 @@ extern "C" {
         world->add_anchor("Outside"_s, v3f(0, 0, -10));
 
         world->create_octree();
-        world->clip_boundaries();
+        world->clip_boundaries(step_into);
         return world;
     }
 
     World_Handle core_do_circle_test(b8 step_into) {
         tmFunction(TM_SYSTEM_COLOR);
 
-        // nocheckin
-        World *world = (World *) core_allocate_world();
-        world->create(v3f(40, .5, 40));
-
-        /*
-        Boundary *b0 = world->add_boundary("Boundary"_s, v3f(-10, 0, 0), v3f(.5, .5, 10), v3f(0));
-        world->add_boundary_clipping_planes(b0, AXIS_X);
-
-        Boundary *b1 = world->add_boundary("Boundary"_s, v3f(0, 0, -10), v3f(.5, .5, 10), v3f(0, +.125, 0));
-        world->add_boundary_clipping_planes(b1, AXIS_X);
-        
-        Boundary *b2 = world->add_boundary("Boundary"_s, v3f(0, 0, +10), v3f(.5, .5, 10), v3f(0, -.125, 0));
-        world->add_boundary_clipping_planes(b2, AXIS_X);
-        */
-
-        Boundary *b0 = world->add_boundary("Boundary"_s, v3f(-10, 0, 0), v3f(.5, .5, 10), v3f(0, .125, 0));
-        world->add_centered_boundary_clipping_plane(b0, AXIS_X);
-        
-        world->add_anchor("Anchor"_s, v3f(0, 0, 0));
-
-        world->create_octree();
-        world->clip_boundaries();
-        return world;
-
-        /*
         World *world = (World *) core_allocate_world();
         world->create(v3f(50, 1, 50));
 
-        const s64 steps = 5;
+        const s64 steps = 12;
         const f32 radius = 10;
         const f32 circumference = 2 * FPI * radius;
         const f32 space_per_step = 0.5f;
-        
+
         for(s64 i = 0; i < steps; ++i) {
             f32 theta    = i / (f32) steps * 2 * FPI;
             v3f position = v3f(sinf(theta) * radius, 0, cosf(theta) * radius);
             v3f rotation = v3f(0, i / (f32) steps, 0);
-            v3f size     = v3f(circumference / steps / 2 * (1.f - space_per_step), .5, .5);
+            v3f size     = v3f(circumference / steps / 2 * (1.f - space_per_step), .5f, .5f);
 
             Boundary *b = world->add_boundary("Boundary"_s, position, size, rotation);
             world->add_boundary_clipping_planes(b, AXIS_Z);
@@ -259,9 +240,8 @@ extern "C" {
         world->add_anchor("Outside"_s, v3f(0, 0, -40));
 
         world->create_octree();
-        world->clip_boundaries();
+        world->clip_boundaries(step_into);
         return world;
-        */
     }
 
     World_Handle core_do_u_shape_test(b8 step_into) {
@@ -283,25 +263,28 @@ extern "C" {
         world->add_anchor("Outside"_s, v3f(0, 0, -20));
         
         world->create_octree();
-        world->clip_boundaries();
+        world->clip_boundaries(step_into);
         return world;
     }
     
     World_Handle core_do_center_block_test(b8 step_into) {
         tmFunction(TM_SYSTEM_COLOR);
 
+        // nocheckin: This is still a little bit broken, either the rotation isn't correct
+        // for the generated clipping triangles, or we mess up clipping somehow so that
+        // they fuck up their orientation?
+
         World *world = (World *) core_allocate_world();
         world->create(v3f(50, 10, 50));
 
-        //Boundary *boundary = world->add_boundary("Boundary"_s, v3f(0, 0, 0), v3f(5, 5, 5), v3f(0.125, 0, 0.125));
-        Boundary *boundary = world->add_boundary("Center Block"_s, v3f(0, 0, 0), v3f(5, 5, 5), v3f(0, 0, 0));
-        //world->add_boundary_clipping_planes(boundary, AXIS_X);
+        Boundary *boundary = world->add_boundary("Center Block"_s, v3f(0, 0, 0), v3f(5, 5, 5), v3f(0.125, 0, 0.125));
+        world->add_boundary_clipping_planes(boundary, AXIS_X);
         world->add_boundary_clipping_planes(boundary, AXIS_Z);
 
         world->add_anchor("Outside"_s, v3f(0, 0, -10));
         
         world->create_octree();
-        world->clip_boundaries();
+        world->clip_boundaries(step_into);
         return world;
     }
 
