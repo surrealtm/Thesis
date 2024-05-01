@@ -4,16 +4,16 @@
 #include "math/v2.h"
 #include "math/intersect.h"
 
-#define TESSEL_PRINT false // @@Ship: Remove this.
+#define TESSEL_DEBUG_PRINT false // @@Ship: Remove this.
 
 struct Tessellator {
-	// The corner points and normal of the input triangle, copied since we will modify
-	// the input triangle to avoid (re-) allocations.
-	v3f input_corner[3];
+    // The corner points and normal of the input triangle, copied since we will modify
+    // the input triangle to avoid (re-) allocations.
+    vec3 input_corner[3];
 
-	// Intermediate state keeping.
-	v3f intersection_point[2];
-	s8 intersection_count;
+    // Intermediate state keeping.
+    vec3 intersection_point[2];
+    s8 intersection_count;
 
     s8 far_intersection_point_index;
     s8 near_intersection_point_index;
@@ -21,30 +21,30 @@ struct Tessellator {
     s8 extension_corner_index;
     s8 first_corner_index;
     s8 second_corner_index;
-    
-    f32 barycentric_coefficients[2][3]; // The barycentric coefficients of the intersection points in relation to the input corners.
-    
-	// To know whether to add a new triangle or re-use the input one.
-	Triangle *input_triangle;
-	Resizable_Array<Triangle> *output_array;
-	s64 generated_triangle_count;
+
+    real barycentric_coefficients[2][3]; // The barycentric coefficients of the intersection points in relation to the input corners.
+
+    // To know whether to add a new triangle or re-use the input one.
+    Triangle *input_triangle;
+    Resizable_Array<Triangle> *output_array;
+    s64 generated_triangle_count;
 };
 
 
 static inline
-v2f convert_barycentric_to_planar(Tessellator *tessellator, s64 intersection_point, s64 c0, s64 c1) {
-    return v2f(tessellator->barycentric_coefficients[intersection_point][c0],
+vec2 convert_barycentric_to_planar(Tessellator *tessellator, s64 intersection_point, s64 c0, s64 c1) {
+    return vec2(tessellator->barycentric_coefficients[intersection_point][c0],
                tessellator->barycentric_coefficients[intersection_point][c1]);
 }
 
 static inline
-v3f get_barycentric_coefficient_for_corner_index(s64 index) {
-    v3f result;
+vec3 get_barycentric_coefficient_for_corner_index(s64 index) {
+    vec3 result;
 
     switch(index) {
-    case 0: result = v3f(1, 0, 0); break;
-    case 1: result = v3f(0, 1, 0); break;
-    case 2: result = v3f(0, 0, 1); break;
+    case 0: result = vec3(1, 0, 0); break;
+    case 1: result = vec3(0, 1, 0); break;
+    case 2: result = vec3(0, 0, 1); break;
     }
 
     return result;
@@ -52,8 +52,8 @@ v3f get_barycentric_coefficient_for_corner_index(s64 index) {
 
 
 static inline
-b8 points_almost_identical(v3f p0, v3f p1) {
-    return fabsf(p0.x - p1.x) < CORE_EPSILON && fabs(p0.y - p1.y) < CORE_EPSILON && fabs(p0.z - p1.z) < CORE_EPSILON;
+b8 points_almost_identical(vec3 p0, vec3 p1) {
+    return fabs(p0.x - p1.x) < CORE_EPSILON && fabs(p0.y - p1.y) < CORE_EPSILON && fabs(p0.z - p1.z) < CORE_EPSILON;
 }
 
 static inline
@@ -64,19 +64,19 @@ b8 far_point_inside_outer_triangle(Tessellator *tessellator, s64 c0, s64 c1, s64
     // We do a regular 2D point-in-triangle check in the barycentric coordinate system.
     //
 
-    v2f f  = convert_barycentric_to_planar(tessellator, tessellator->far_intersection_point_index,  c0, c1);
+    vec2 f  = convert_barycentric_to_planar(tessellator, tessellator->far_intersection_point_index,  c0, c1);
 
-    v2f p0 = convert_barycentric_to_planar(tessellator, tessellator->near_intersection_point_index, c0, c1);
-    v2f p1 = v2f(1, 0);
-    v2f p2 = v2f(0, 1);
-    
+    vec2 p0 = convert_barycentric_to_planar(tessellator, tessellator->near_intersection_point_index, c0, c1);
+    vec2 p1 = vec2(1, 0);
+    vec2 p2 = vec2(0, 1);
+
     // @Cut'N'Paste: From point_inside_triangle in intersect.cpp.
     {
 #define sign(p0, p1, p2) ((p0.x - p2.x) * (p1.y - p2.y) - (p1.x - p2.x) * (p0.y - p2.y))
-    
-        f32 d0 = sign(f, p0, p1);
-        f32 d1 = sign(f, p1, p2);
-        f32 d2 = sign(f, p2, p0);
+
+        real d0 = sign(f, p0, p1);
+        real d1 = sign(f, p1, p2);
+        real d2 = sign(f, p2, p0);
 
 #undef sign
 
@@ -96,7 +96,7 @@ s8 get_closest_intersection_point_to_corner(Tessellator *tessellator, s64 point_
 
 
 static inline
-void maybe_add_intersection_point(Tessellator *tessellator, v3f point) {
+void maybe_add_intersection_point(Tessellator *tessellator, vec3 point) {
     //
     // If a corner of the triangle lies on the clipping plane, we may get two intersection points
     // for that, one for each edge of this corner. We only want to add the point once here.
@@ -112,16 +112,16 @@ void maybe_add_intersection_point(Tessellator *tessellator, v3f point) {
 }
 
 static
-void check_edge_against_triangle(Tessellator *tessellator, v3f e0, v3f e1, Triangle *triangle) {
+void check_edge_against_triangle(Tessellator *tessellator, vec3 e0, vec3 e1, Triangle *triangle) {
     //
     // We check for a double-sided plane intersection here since we don't care about the triangle
     // orientation. We always want to tessellate the triangle, no matter whether the edge passed in
     // through the "forward" or "backward" side of the triangle.
     //
 
-    v3f direction = e1 - e0;
-    
-    Triangle_Intersection_Result result = ray_double_sided_triangle_intersection(e0, direction, triangle->p0, triangle->p1, triangle->p2);
+    vec3 direction = e1 - e0;
+
+    Triangle_Intersection_Result<real> result = ray_double_sided_triangle_intersection(e0, direction, triangle->p0, triangle->p1, triangle->p2);
 
     // If result.distance < 0.f || result.distance > 1.f, then we do get an intersection with the
     // ray, but not inside the edge section of the ray.
@@ -131,17 +131,17 @@ void check_edge_against_triangle(Tessellator *tessellator, v3f e0, v3f e1, Trian
 }
 
 static
-void check_edge_against_plane(Tessellator *tessellator, v3f e0, v3f e1, Triangle *triangle) {
+void check_edge_against_plane(Tessellator *tessellator, vec3 e0, vec3 e1, Triangle *triangle) {
     //
     // We check for a double-sided plane intersection here since we don't care about the triangle
     // orientation. We always want to tessellate the triangle, no matter whether the edge passed in
     // through the "forward" or "backward" side of the triangle.
     //
 
-    v3f direction = e1 - e0;
+    vec3 direction = e1 - e0;
     if(fabs(v3_dot_v3(direction, triangle->n)) < CORE_EPSILON) return; // @@Speed: This is done again in ray_double_sided_plane_intersection, but here we use CORE_EPSILON instead of F32_EPSILON, since F32_EPSILON is too small for our purposes here...
 
-    f32 distance;
+    real distance;
     b8 intersection = ray_double_sided_plane_intersection(e0, direction, triangle->p0, triangle->n, &distance);
 
     // If result.distance < 0.f || result.distance > 1.f, then we do get an intersection with the
@@ -152,7 +152,7 @@ void check_edge_against_plane(Tessellator *tessellator, v3f e0, v3f e1, Triangle
 }
 
 static
-void generate_new_triangle(Tessellator *tessellator, v3f p0, v3f p1, v3f p2) {
+void generate_new_triangle(Tessellator *tessellator, vec3 p0, vec3 p1, vec3 p2) {
     //
     // Calculate the (estimated) surface area of the new triangle here. If it is too small, then consider it
     // dead and irrellevant to this algorithm.
@@ -163,16 +163,16 @@ void generate_new_triangle(Tessellator *tessellator, v3f p0, v3f p1, v3f p2) {
     //
     if(points_almost_identical(p0, p1) || points_almost_identical(p0, p2) || points_almost_identical(p1, p2)) return;
 
-    v3f n = v3_cross_v3(p1 - p0, p2 - p0);
+    vec3 n = v3_cross_v3(p1 - p0, p2 - p0);
 
-    f32 estimated_surface_area = v3_length2(n) / 2;
+    real estimated_surface_area = v3_length2(n) / 2;
     if(estimated_surface_area < CORE_EPSILON) return;
 
-#if TESSEL_PRINT
+#if TESSEL_DEBUG_PRINT
     printf("    Generated triangle: %f, %f, %f | %f, %f, %f | %f, %f, %f\n", p0.x, p0.y, p0.z, p1.x, p1.y, p1.z, p2.x, p2.y, p2.z);
     printf("        Surface Area: %f\n", estimated_surface_area);
 #endif
-    
+
     if(tessellator->generated_triangle_count == 0) {
         // Re-use the input triangle to avoid re-allocations.
         tessellator->input_triangle->p0 = p0;
@@ -243,12 +243,12 @@ s64 tessellate(Triangle *input, Triangle *clip, Resizable_Array<Triangle> *outpu
     calculate_barycentric_coefficients(tessellator.input_corner[0], tessellator.input_corner[1], tessellator.input_corner[2], tessellator.intersection_point[1], &tessellator.barycentric_coefficients[1][0], &tessellator.barycentric_coefficients[1][1], &tessellator.barycentric_coefficients[1][2]);
 
     /*
-    assert(tessellator.barycentric_coefficients[0][0] >= 0.f && tessellator.barycentric_coefficients[0][0] <= 1.f);
-    assert(tessellator.barycentric_coefficients[0][1] >= 0.f && tessellator.barycentric_coefficients[0][1] <= 1.f);
-    assert(tessellator.barycentric_coefficients[0][2] >= 0.f && tessellator.barycentric_coefficients[0][2] <= 1.f);
-    assert(tessellator.barycentric_coefficients[1][0] >= 0.f && tessellator.barycentric_coefficients[1][0] <= 1.f);
-    assert(tessellator.barycentric_coefficients[1][1] >= 0.f && tessellator.barycentric_coefficients[1][1] <= 1.f);
-    assert(tessellator.barycentric_coefficients[1][2] >= 0.f && tessellator.barycentric_coefficients[1][2] <= 1.f);
+      assert(tessellator.barycentric_coefficients[0][0] >= 0.f && tessellator.barycentric_coefficients[0][0] <= 1.f);
+      assert(tessellator.barycentric_coefficients[0][1] >= 0.f && tessellator.barycentric_coefficients[0][1] <= 1.f);
+      assert(tessellator.barycentric_coefficients[0][2] >= 0.f && tessellator.barycentric_coefficients[0][2] <= 1.f);
+      assert(tessellator.barycentric_coefficients[1][0] >= 0.f && tessellator.barycentric_coefficients[1][0] <= 1.f);
+      assert(tessellator.barycentric_coefficients[1][1] >= 0.f && tessellator.barycentric_coefficients[1][1] <= 1.f);
+      assert(tessellator.barycentric_coefficients[1][2] >= 0.f && tessellator.barycentric_coefficients[1][2] <= 1.f);
     */
 
     b8 intersection_point_is_corner[2] = {
@@ -264,7 +264,7 @@ s64 tessellate(Triangle *input, Triangle *clip, Resizable_Array<Triangle> *outpu
     // corners, since the edge is on the clipping triangle...
     //
     if(intersection_point_is_corner[0] && intersection_point_is_corner[1]) return 0;
-    
+
     //
     // So there are two intersection points on the triangle. We now want to tessellate the triangle
     // so that there is an edge connecting the two intersection points. This means that, depending
@@ -281,21 +281,21 @@ s64 tessellate(Triangle *input, Triangle *clip, Resizable_Array<Triangle> *outpu
     // build triangles along these two edges.
     //
 
-    v3f intersection_edge = tessellator.intersection_point[0] - tessellator.intersection_point[1];
+    vec3 intersection_edge = tessellator.intersection_point[0] - tessellator.intersection_point[1];
     s8 closest_intersection_point_index[3] = { get_closest_intersection_point_to_corner(&tessellator, 0),
                                                get_closest_intersection_point_to_corner(&tessellator, 1),
                                                get_closest_intersection_point_to_corner(&tessellator, 2) };
 
-    v3f corner_to_intersection[3] = { tessellator.input_corner[0] - tessellator.intersection_point[closest_intersection_point_index[0]],
-                                      tessellator.input_corner[1] - tessellator.intersection_point[closest_intersection_point_index[1]],
-                                      tessellator.input_corner[2] - tessellator.intersection_point[closest_intersection_point_index[2]] };
+    vec3 corner_to_intersection[3] = { tessellator.input_corner[0] - tessellator.intersection_point[closest_intersection_point_index[0]],
+                                       tessellator.input_corner[1] - tessellator.intersection_point[closest_intersection_point_index[1]],
+                                       tessellator.input_corner[2] - tessellator.intersection_point[closest_intersection_point_index[2]] };
 
     // Calculate the angle between each corner to its nearest intersection point, and the intersection
     // edge. Normalize since we want to look at the angle between corner_to_intersection and
     // intersection_edge.
-    f32 corner_extension_factor[3] = { fabsf(v3_dot_v3(corner_to_intersection[0], intersection_edge) / v3_length2(corner_to_intersection[0])),
-                                       fabsf(v3_dot_v3(corner_to_intersection[1], intersection_edge) / v3_length2(corner_to_intersection[1])),
-                                       fabsf(v3_dot_v3(corner_to_intersection[2], intersection_edge) / v3_length2(corner_to_intersection[2])) };
+    real corner_extension_factor[3] = { real_abs(v3_dot_v3(corner_to_intersection[0], intersection_edge) / v3_length2(corner_to_intersection[0])),
+                                        real_abs(v3_dot_v3(corner_to_intersection[1], intersection_edge) / v3_length2(corner_to_intersection[1])),
+                                        real_abs(v3_dot_v3(corner_to_intersection[2], intersection_edge) / v3_length2(corner_to_intersection[2])) };
 
     tessellator.extension_corner_index = (corner_extension_factor[0] > corner_extension_factor[1]) ?
         (corner_extension_factor[0] > corner_extension_factor[2] ? 0 : 2) :
@@ -305,17 +305,17 @@ s64 tessellate(Triangle *input, Triangle *clip, Resizable_Array<Triangle> *outpu
     tessellator.near_intersection_point_index = closest_intersection_point_index[tessellator.extension_corner_index];
     tessellator.far_intersection_point_index  = (closest_intersection_point_index[tessellator.extension_corner_index] + 1) % 2;
 
-    v3f ext    = tessellator.input_corner[tessellator.extension_corner_index];
-    v3f first  = tessellator.input_corner[tessellator.first_corner_index];
-    v3f second = tessellator.input_corner[tessellator.second_corner_index];
-    v3f near   = tessellator.intersection_point[tessellator.near_intersection_point_index];
-    v3f far    = tessellator.intersection_point[tessellator.far_intersection_point_index];
+    vec3 ext    = tessellator.input_corner[tessellator.extension_corner_index];
+    vec3 first  = tessellator.input_corner[tessellator.first_corner_index];
+    vec3 second = tessellator.input_corner[tessellator.second_corner_index];
+    vec3 near   = tessellator.intersection_point[tessellator.near_intersection_point_index];
+    vec3 far    = tessellator.intersection_point[tessellator.far_intersection_point_index];
 
-#if TESSEL_PRINT
+#if TESSEL_DEBUG_PRINT
     printf("Tessellating triangle: %f, %f, %f | %f, %f, %f | %f, %f, %f\n", ext.x, ext.y, ext.z, first.x, first.y, first.z, second.x, second.y, second.z);
 
     printf("    Near: %f, %f, %f | %f, %f, %f\n", near.x, near.y, near.z, far.x, far.y, far.z);
-    
+
     printf("    Barycentric: %f, %f, %f | %f, %f, %f\n", tessellator.barycentric_coefficients[tessellator.near_intersection_point_index][tessellator.extension_corner_index],
            tessellator.barycentric_coefficients[tessellator.near_intersection_point_index][tessellator.first_corner_index],
            tessellator.barycentric_coefficients[tessellator.near_intersection_point_index][tessellator.second_corner_index],
@@ -323,7 +323,7 @@ s64 tessellate(Triangle *input, Triangle *clip, Resizable_Array<Triangle> *outpu
            tessellator.barycentric_coefficients[tessellator.far_intersection_point_index][tessellator.first_corner_index],
            tessellator.barycentric_coefficients[tessellator.far_intersection_point_index][tessellator.second_corner_index]);
 #endif
-    
+
     //
     // Now finally generate the new triangles. Dead triangles will be caught in generate_new_triangle.
     // The 'near' point essentially splits the input triangle into three subtriangles, where
@@ -332,12 +332,12 @@ s64 tessellate(Triangle *input, Triangle *clip, Resizable_Array<Triangle> *outpu
     // subtriangle into three more sub-subtriangles, resulting in a total of 5 new triangles (minus the
     // empty one caught by generate_new_triangle).
     //
-    
+
     tessellator.generated_triangle_count = 0;
 
     if(far_point_inside_outer_triangle(&tessellator, tessellator.first_corner_index, tessellator.second_corner_index, tessellator.extension_corner_index)) {
         // The far point is inside the triangle (near, first, second).
-#if TESSEL_PRINT
+#if TESSEL_DEBUG_PRINT
         printf("    First - Second\n");
 #endif
         generate_new_triangle(&tessellator, ext, first, near);
@@ -347,7 +347,7 @@ s64 tessellate(Triangle *input, Triangle *clip, Resizable_Array<Triangle> *outpu
         generate_new_triangle(&tessellator, near, far, second);
     } else if(far_point_inside_outer_triangle(&tessellator, tessellator.extension_corner_index, tessellator.first_corner_index, tessellator.second_corner_index)) {
         // The far point is inside the triangle (near, ext, first)
-#if TESSEL_PRINT
+#if TESSEL_DEBUG_PRINT
         printf("    Ext - First\n");
 #endif
         generate_new_triangle(&tessellator, ext, second, near);
@@ -358,7 +358,7 @@ s64 tessellate(Triangle *input, Triangle *clip, Resizable_Array<Triangle> *outpu
     } else {
         // The far point must be inside the triangle (near, second, extension)
         assert(far_point_inside_outer_triangle(&tessellator, tessellator.second_corner_index, tessellator.extension_corner_index, tessellator.first_corner_index));
-#if TESSEL_PRINT
+#if TESSEL_DEBUG_PRINT
         printf("    Ext - Second\n");
 #endif
         generate_new_triangle(&tessellator, ext, first, near);

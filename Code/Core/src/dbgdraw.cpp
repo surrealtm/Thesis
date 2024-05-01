@@ -39,10 +39,12 @@ static f32 dbg_octree_depth_thickness_map[] = {
 	0.02f,
 };
 
-const f32 dbg_anchor_radius = 0.5f;
+const f32 dbg_anchor_radius                = 0.5f;
 const f32 dbg_triangle_wireframe_thickness = 0.03f;
 const f32 dbg_triangle_normal_thickness    = 0.2f;
-const f32 dbg_triangle_normal_length       = 1.f;
+const f32 dbg_axis_gizmo_thickness         = 0.2f;
+
+const real dbg_triangle_normal_length      = 1;
 
 const Dbg_Draw_Color dbg_label_color          = { 255, 255, 255, 255 };
 const Dbg_Draw_Color dbg_anchor_color         = { 255, 100, 100, 255 };
@@ -55,22 +57,57 @@ const Dbg_Draw_Color dbg_normal_color         = {  50,  50, 255, 255 };
 
 Allocator *dbg_alloc = Default_Allocator;
 
+#if CORE_SINGLE_PRECISION
+# define dbg_v3f(v) (v)
+# define dbg_qtf(q) (q)
+#else
+# define dbg_v3f(v) v3f((f32) (v).x, (f32) (v).y, (f32) (v).z)
+# define dbg_qtf(q) qtf((f32) (q).x, (f32) (q).y, (f32) (q).z, (f32) (q).w)
+#endif
+
+static
+void debug_draw_line(Dbg_Internal_Draw_Data &_internal, vec3 p0, vec3 p1, f32 thickness, Dbg_Draw_Color color) {
+    _internal.lines.add({ dbg_v3f(p0), dbg_v3f(p1), thickness, color.r, color.g, color.b });
+}
+
+static
+void debug_draw_triangle(Dbg_Internal_Draw_Data &_internal, Triangle *triangle, Dbg_Draw_Color color) {
+	_internal.triangles.add({ dbg_v3f(triangle->p0), dbg_v3f(triangle->p1), dbg_v3f(triangle->p2), color.r, color.g, color.b, color.a });
+
+    if(_internal.draw_normals) {
+        vec3 center = (triangle->p0 + triangle->p1 + triangle->p2) / static_cast<real>(3.);
+        vec3 normal = triangle->n * dbg_triangle_normal_length;
+        _internal.lines.add({ dbg_v3f(center), dbg_v3f(center + normal), dbg_triangle_normal_thickness, dbg_normal_color.r, dbg_normal_color.g, dbg_normal_color.b });
+    }
+}
+
+static
+void debug_draw_triangle_wireframe(Dbg_Internal_Draw_Data &_internal, Triangle *triangle, Dbg_Draw_Color color, f32 thickness) {
+	_internal.lines.add({ dbg_v3f(triangle->p0), dbg_v3f(triangle->p1), thickness, color.r, color.g, color.b });
+    _internal.lines.add({ dbg_v3f(triangle->p1), dbg_v3f(triangle->p2), thickness, color.r, color.g, color.b });
+    _internal.lines.add({ dbg_v3f(triangle->p2), dbg_v3f(triangle->p0), thickness, color.r, color.g, color.b });
+
+    if(_internal.draw_normals) {
+        vec3 center = (triangle->p0 + triangle->p1 + triangle->p2) / static_cast<real>(3.);
+        vec3 normal = triangle->n * dbg_triangle_normal_length;
+        _internal.lines.add({ dbg_v3f(center), dbg_v3f(center + normal), dbg_triangle_normal_thickness, dbg_normal_color.r, dbg_normal_color.g, dbg_normal_color.b });
+    }
+}
+
 static
 void debug_draw_octree(Dbg_Internal_Draw_Data &_internal, Octree *node, Octree_Child_Index child_index, u8 depth) {
-	v3f p00 = node->center + v3f(-node->half_size.x, -node->half_size.y, -node->half_size.z),
-		p01 = node->center + v3f( node->half_size.x, -node->half_size.y, -node->half_size.z),
-		p02 = node->center + v3f( node->half_size.x, -node->half_size.y,  node->half_size.z),
-		p03 = node->center + v3f(-node->half_size.x, -node->half_size.y,  node->half_size.z);
+	vec3 p00 = node->center + vec3(-node->half_size.x, -node->half_size.y, -node->half_size.z),
+		p01 = node->center + vec3( node->half_size.x, -node->half_size.y, -node->half_size.z),
+		p02 = node->center + vec3( node->half_size.x, -node->half_size.y,  node->half_size.z),
+		p03 = node->center + vec3(-node->half_size.x, -node->half_size.y,  node->half_size.z);
 
-	v3f p10 = node->center + v3f(-node->half_size.x,  node->half_size.y, -node->half_size.z),
-		p11 = node->center + v3f( node->half_size.x,  node->half_size.y, -node->half_size.z),
-		p12 = node->center + v3f( node->half_size.x,  node->half_size.y,  node->half_size.z),
-		p13 = node->center + v3f(-node->half_size.x,  node->half_size.y,  node->half_size.z);
+	vec3 p10 = node->center + vec3(-node->half_size.x,  node->half_size.y, -node->half_size.z),
+		p11 = node->center + vec3( node->half_size.x,  node->half_size.y, -node->half_size.z),
+		p12 = node->center + vec3( node->half_size.x,  node->half_size.y,  node->half_size.z),
+		p13 = node->center + vec3(-node->half_size.x,  node->half_size.y,  node->half_size.z);
 
 	const f32 thickness = dbg_octree_depth_thickness_map[min(depth, ARRAY_SIZE(dbg_octree_depth_thickness_map) - 1)];
 	const Dbg_Draw_Color color = dbg_octree_depth_color_map[min(depth, ARRAY_SIZE(dbg_octree_depth_color_map) - 1)];
-
-#define line(p0, p1) _internal.lines.add({ p0, p1, thickness, color.r, color.g, color.b })
 	
 	b8 px = child_index == OCTREE_CHILD_COUNT ||  (child_index & OCTREE_CHILD_px_flag);
 	b8 nx = child_index == OCTREE_CHILD_COUNT || !(child_index & OCTREE_CHILD_px_flag);
@@ -79,52 +116,22 @@ void debug_draw_octree(Dbg_Internal_Draw_Data &_internal, Octree *node, Octree_C
 	b8 pz = child_index == OCTREE_CHILD_COUNT ||  (child_index & OCTREE_CHILD_pz_flag);
 	b8 nz = child_index == OCTREE_CHILD_COUNT || !(child_index & OCTREE_CHILD_pz_flag);
 	
-	if(pz || py) line(p00, p01);
-	if(pz || ny) line(p10, p11);
-
-	if(nx || py) line(p01, p02);
-	if(nx || ny) line(p11, p12);
-
-	if(nz || py) line(p02, p03);
-	if(nz || ny) line(p12, p13);
-
-	if(px || py) line(p03, p00);
-	if(px || ny) line(p13, p10);
-
-	if(px || pz) line(p00, p10);
-	if(nx || pz) line(p01, p11);
-	if(nx || nz) line(p02, p12);
-	if(px || nz) line(p03, p13);
-
-#undef line
+	if(pz || py) debug_draw_line(_internal, p00, p01, thickness, color);
+	if(pz || ny) debug_draw_line(_internal, p10, p11, thickness, color);
+	if(nx || py) debug_draw_line(_internal, p01, p02, thickness, color);
+	if(nx || ny) debug_draw_line(_internal, p11, p12, thickness, color);
+	if(nz || py) debug_draw_line(_internal, p02, p03, thickness, color);
+	if(nz || ny) debug_draw_line(_internal, p12, p13, thickness, color);
+	if(px || py) debug_draw_line(_internal, p03, p00, thickness, color);
+	if(px || ny) debug_draw_line(_internal, p13, p10, thickness, color);
+	if(px || pz) debug_draw_line(_internal, p00, p10, thickness, color);
+	if(nx || pz) debug_draw_line(_internal, p01, p11, thickness, color);
+	if(nx || nz) debug_draw_line(_internal, p02, p12, thickness, color);
+	if(px || nz) debug_draw_line(_internal, p03, p13, thickness, color);
 
 	for(s64 i = 0; i < OCTREE_CHILD_COUNT; ++i) {
 		if(node->children[i]) debug_draw_octree(_internal, node->children[i], (Octree_Child_Index) i, depth + 1);
 	}
-}
-
-static
-void debug_draw_triangle(Dbg_Internal_Draw_Data &_internal, Triangle *triangle, Dbg_Draw_Color color) {
-	_internal.triangles.add({ triangle->p0, triangle->p1, triangle->p2, color.r, color.g, color.b, color.a });
-
-    if(_internal.draw_normals) {
-        v3f center = (triangle->p0 + triangle->p1 + triangle->p2) / 3.f;
-        v3f normal = triangle->n * dbg_triangle_normal_length;
-        _internal.lines.add({ center, center + normal, dbg_triangle_normal_thickness, dbg_normal_color.r, dbg_normal_color.g, dbg_normal_color.b });
-    }
-}
-
-static
-void debug_draw_triangle_wireframe(Dbg_Internal_Draw_Data &_internal, Triangle *triangle, Dbg_Draw_Color color, f32 thickness) {
-	_internal.lines.add({ triangle->p0, triangle->p1, thickness, color.r, color.g, color.b });
-	_internal.lines.add({ triangle->p1, triangle->p2, thickness, color.r, color.g, color.b });
-	_internal.lines.add({ triangle->p2, triangle->p0, thickness, color.r, color.g, color.b });
-
-    if(_internal.draw_normals) {
-        v3f center = (triangle->p0 + triangle->p1 + triangle->p2) / 3.f;
-        v3f normal = triangle->n * dbg_triangle_normal_length;
-        _internal.lines.add({ center, center + normal, dbg_triangle_normal_thickness, dbg_normal_color.r, dbg_normal_color.g, dbg_normal_color.b });
-    }
 }
 
 Debug_Draw_Data debug_draw_world(World *world, Debug_Draw_Options options) {
@@ -144,17 +151,17 @@ Debug_Draw_Data debug_draw_world(World *world, Debug_Draw_Options options) {
 
 	if(options & DEBUG_DRAW_Anchors) {
 		for(auto *anchor: world->anchors) {
-			_internal.spheres.add({ anchor->position, dbg_anchor_radius, dbg_anchor_color.r, dbg_anchor_color.g, dbg_anchor_color.b });
+			_internal.spheres.add({ dbg_v3f(anchor->position), dbg_anchor_radius, dbg_anchor_color.r, dbg_anchor_color.g, dbg_anchor_color.b });
 
-			if(_internal.draw_labels) _internal.texts.add({ anchor->position, anchor->dbg_name, dbg_label_color.r, dbg_label_color.g, dbg_label_color.b });
+			if(_internal.draw_labels) _internal.texts.add({ dbg_v3f(anchor->position), anchor->dbg_name, dbg_label_color.r, dbg_label_color.g, dbg_label_color.b });
 		}			
 	}
 
 	if(options & DEBUG_DRAW_Boundaries) {
 		for(auto *boundary : world->boundaries) {
-			_internal.cuboids.add({ boundary->position, boundary->dbg_half_size, boundary->dbg_rotation, dbg_boundary_color.r, dbg_boundary_color.g, dbg_boundary_color.b });
+			_internal.cuboids.add({ dbg_v3f(boundary->position), dbg_v3f(boundary->dbg_half_size), dbg_qtf(boundary->dbg_rotation), dbg_boundary_color.r, dbg_boundary_color.g, dbg_boundary_color.b });
 
-            if(_internal.draw_labels) _internal.texts.add({ boundary->position, boundary->dbg_name, dbg_label_color.r, dbg_label_color.g, dbg_label_color.b });
+            if(_internal.draw_labels) _internal.texts.add({ dbg_v3f(boundary->position), boundary->dbg_name, dbg_label_color.r, dbg_label_color.g, dbg_label_color.b });
         }
 	}
 
@@ -220,9 +227,9 @@ Debug_Draw_Data debug_draw_world(World *world, Debug_Draw_Options options) {
 	}
 
 	if(options & DEBUG_DRAW_Axis_Gizmo) {
-		_internal.lines.add({ v3f(0, 0, 0), v3f(3, 0, 0), 0.02f, 255, 0, 0 });
-		_internal.lines.add({ v3f(0, 0, 0), v3f(0, 3, 0), 0.02f, 0, 255, 0 });
-		_internal.lines.add({ v3f(0, 0, 0), v3f(0, 0, 3), 0.02f, 0, 0, 255 });
+		_internal.lines.add({ v3f(0, 0, 0), v3f(3, 0, 0), dbg_axis_gizmo_thickness, 255, 0, 0 });
+		_internal.lines.add({ v3f(0, 0, 0), v3f(0, 3, 0), dbg_axis_gizmo_thickness, 0, 255, 0 });
+		_internal.lines.add({ v3f(0, 0, 0), v3f(0, 0, 3), dbg_axis_gizmo_thickness, 0, 0, 255 });
 	}
 
 	Debug_Draw_Data data = { 0 };

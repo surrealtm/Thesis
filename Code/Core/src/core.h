@@ -37,10 +37,12 @@ constexpr real CORE_SMALL_EPSILON = 0.00001f; // :CORE_SMALL_EPSILON    For some
 typedef f64 real;
 typedef v2<f64> vec2;
 typedef v3<f64> vec3;
-typedef qt<f32> quat;
+typedef qt<f64> quat;
 constexpr real CORE_EPSILON = 0.00001; // :CORE_EPSILON
 constexpr real CORE_SMALL_EPSILON = 0.0000001; // :CORE_SMALL_EPSILON
 #endif
+
+#define real_abs(value) (((value) > 0) ? (value) : (-value))
 
 
 
@@ -54,20 +56,20 @@ enum Axis {
 };
 
 struct Triangle {
-    v3f p0, p1, p2;
-    v3f n;
+    vec3 p0, p1, p2;
+    vec3 n;
     
     Triangle() {};
-    Triangle(v3f p0, v3f p1, v3f p2, v3f n);
+    Triangle(vec3 p0, vec3 p1, vec3 p2, vec3 n);
     
-    f32 approximate_surface_area(); // This avoids a square root for performance, since we only roughly want to know whether the triangle is dead or not.
+    real approximate_surface_area(); // This avoids a square root for performance, since we only roughly want to know whether the triangle is dead or not.
     b8 is_dead();
     b8 is_fully_behind_plane(Triangle *plane);
     b8 no_point_behind_plane(Triangle *plane); // Just for assertions.
 };
 
 struct AABB {
-    v3f min, max;
+    vec3 min, max;
 };
 
 
@@ -75,7 +77,7 @@ struct AABB {
 /* ------------------------------------------------- Objects ------------------------------------------------- */
 
 struct Anchor {
-    v3f position;
+    vec3 position;
     Resizable_Array<Triangle> volume_triangles;
 
     // Only for debug drawing.
@@ -83,17 +85,17 @@ struct Anchor {
 };
 
 struct Boundary {
-    v3f position;
+    vec3 position;
+    vec3 local_scaled_axes[AXIS_COUNT]; // The three coordinate axis in the local transform (meaning: rotated) of this boundary.
+    vec3 local_unit_axes[AXIS_COUNT]; // The three coordinate axis in the local transform (meaning: rotated) of this boundary.
     AABB aabb;
-    v3f local_scaled_axes[AXIS_COUNT]; // The three coordinate axis in the local transform (meaning: rotated) of this boundary.
-    v3f local_unit_axes[AXIS_COUNT]; // The three coordinate axis in the local transform (meaning: rotated) of this boundary.
 
     Resizable_Array<Triangle> clipping_triangles; // Having this be a full-on dynamic array is pretty wasteful, since boundaries should only ever have between 1 and 3 clipping planes...  @@Speed.
 
     // Only for debug drawing.
     string dbg_name;
-    v3f dbg_half_size; // Unrotated half sizes.
-    qtf dbg_rotation;
+    vec3 dbg_half_size; // Unrotated half sizes.
+    quat dbg_rotation;
 };
 
 
@@ -125,14 +127,14 @@ enum Octree_Child_Index {
 
 struct Octree {
     u8 depth;
-    v3f center;
-    v3f half_size;
+    vec3 center;
+    vec3 half_size;
     Octree *children[OCTREE_CHILD_COUNT];
 
     Resizable_Array<Anchor*> contained_anchors;
     Resizable_Array<Boundary*> contained_boundaries;
 
-    void create(Allocator *allocator, v3f center, v3f half_size, u8 depth = 0);
+    void create(Allocator *allocator, vec3 center, vec3 half_size, u8 depth = 0);
     Octree *get_octree_for_aabb(AABB const &aabb, Allocator *allocator);
 };
 
@@ -150,7 +152,7 @@ struct World {
     Allocator pool_allocator;
     Allocator *allocator; // Usually a pointer to the pool_allocator, but can be swapped for testing...
     
-    v3f half_size; // This size is used to initialize the octree. The octree implementation does not support dynamic size changing, so this should be fixed.
+    vec3 half_size; // This size is used to initialize the octree. The octree implementation does not support dynamic size changing, so this should be fixed.
 
     // The world owns all objects that are part of this problem. These objects
     // are stored here and can then be referenced in other parts of the algorithm.
@@ -167,13 +169,13 @@ struct World {
     // for objects a lot faster.
     Octree root;
 
-    void create(v3f half_size);
+    void create(vec3 half_size);
     void destroy();
 
     void reserve_objects(s64 anchors, s64 boundaries);
     
-    Anchor *add_anchor(string name, v3f position);
-    Boundary *add_boundary(string name, v3f position, v3f size, v3f rotation);
+    Anchor *add_anchor(string name, vec3 position);
+    Boundary *add_boundary(string name, vec3 position, vec3 size, vec3 rotation);
     void add_boundary_clipping_planes(Boundary *boundary, Axis normal_axis);
     void add_centered_boundary_clipping_plane(Boundary *boundary, Axis normal_axis);
     
@@ -189,3 +191,9 @@ struct World {
     s64 dbg_step_clipping_triangle;
     s64 dbg_step_root_triangle;
 };
+
+
+
+/* ---------------------------------------------- Random Utility ---------------------------------------------- */
+
+real get_random_real_uniform(real low, real high);

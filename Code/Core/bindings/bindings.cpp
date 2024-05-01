@@ -12,14 +12,14 @@ static
 void create_random_anchors(World *world, s64 count) {
     world->reserve_objects(count, 0);
 
-    const f32 width  = world->half_size.x;
-    const f32 height = world->half_size.y;
-    const f32 length = world->half_size.z;
+    const real width  = world->half_size.x;
+    const real height = world->half_size.y;
+    const real length = world->half_size.z;
 
     for(s64 i = 0; i < count; ++i) {
-        v3f position = v3f(get_random_f32_uniform(-width, width),
-                    get_random_f32_uniform(-height, height),
-                    get_random_f32_uniform(-length, length));
+        vec3 position = vec3(get_random_real_uniform(-width, width),
+                             get_random_real_uniform(-height, height),
+                             get_random_real_uniform(-length, length));
         world->add_anchor("Anchor"_s, position);
     }
 }
@@ -72,31 +72,31 @@ extern "C" {
         tmZone("do_house_test", TM_SYSTEM_COLOR);
 
         World *world = (World *) core_allocate_world();
-        world->create(v3f(100, 10, 100));
-        world->add_anchor("Kitchen"_s, v3f(-5, -3, -5));
-        world->add_anchor("Living Room"_s, v3f(5, -3, -5));
-        world->add_anchor("Hallway"_s, v3f(-5, -3, 8.5));
-        world->add_anchor("Garden"_s, v3f(0, -3, -30));
+        world->create(vec3(100, 10, 100));
+        world->add_anchor("Kitchen"_s, vec3(-5, -3, -5));
+        world->add_anchor("Living Room"_s, vec3(5, -3, -5));
+        world->add_anchor("Hallway"_s, vec3(-5, -3, 8.5));
+        world->add_anchor("Garden"_s, vec3(0, -3, -30));
         
-        auto hallway_wall = world->add_boundary("HallwayWall"_s, v3f(-2, -3, +6), v3f(8, .25, .5), v3f(0, 0, 0));
+        auto hallway_wall = world->add_boundary("HallwayWall"_s, vec3(-2, -3, +6), vec3(8, .25, .5), vec3(0, 0, 0));
         world->add_boundary_clipping_planes(hallway_wall, AXIS_Z);
 
-        auto kitchen_wall0 = world->add_boundary("KitchenWall0"_s, v3f(0, -3, -7), v3f(.5, .25, 3), v3f(0, 0, 0));
+        auto kitchen_wall0 = world->add_boundary("KitchenWall0"_s, vec3(0, -3, -7), vec3(.5, .25, 3), vec3(0, 0, 0));
         world->add_boundary_clipping_planes(kitchen_wall0, AXIS_X);
         
-        auto kitchen_wall1 = world->add_boundary("KitchenWall1"_s, v3f(-7, -3, 0), v3f(3, .25, .5), v3f(0, 0, 0));
+        auto kitchen_wall1 = world->add_boundary("KitchenWall1"_s, vec3(-7, -3, 0), vec3(3, .25, .5), vec3(0, 0, 0));
         world->add_boundary_clipping_planes(kitchen_wall1, AXIS_Z);
         
-        auto outer_wall_north = world->add_boundary("OuterWallNorth"_s, v3f(0, -3, -10), v3f(10, .25, .5), v3f(0, 0, 0));
+        auto outer_wall_north = world->add_boundary("OuterWallNorth"_s, vec3(0, -3, -10), vec3(10, .25, .5), vec3(0, 0, 0));
         world->add_boundary_clipping_planes(outer_wall_north, AXIS_Z);
 
-        auto outer_wall_south = world->add_boundary("OuterWallSouth"_s, v3f(0, -3, +10), v3f(10, .25, .5), v3f(0, 0, 0));
+        auto outer_wall_south = world->add_boundary("OuterWallSouth"_s, vec3(0, -3, +10), vec3(10, .25, .5), vec3(0, 0, 0));
         world->add_boundary_clipping_planes(outer_wall_south, AXIS_Z);
 
-        auto outer_wall_east = world->add_boundary("OuterWallEast"_s, v3f(+10, -3, 0), v3f(.5, .25, 10), v3f(0, 0, 0));
+        auto outer_wall_east = world->add_boundary("OuterWallEast"_s, vec3(+10, -3, 0), vec3(.5, .25, 10), vec3(0, 0, 0));
         world->add_boundary_clipping_planes(outer_wall_east, AXIS_X);
 
-        auto outer_wall_west = world->add_boundary("OuterWallWest"_s, v3f(-10, -3, 0), v3f(.5, .25, 10), v3f(0, 0, 0));
+        auto outer_wall_west = world->add_boundary("OuterWallWest"_s, vec3(-10, -3, 0), vec3(.5, .25, 10), vec3(0, 0, 0));
         world->add_boundary_clipping_planes(outer_wall_west, AXIS_X);
 
         world->create_octree();
@@ -109,28 +109,28 @@ extern "C" {
         tmZone("do_octree_test", TM_SYSTEM_COLOR);
         
         World *world = (World *) core_allocate_world();
-        world->create(v3f(100, 40, 100));
+        world->create(vec3(100, 40, 100));
         
         {
             tmZone("create_random_boundaries", TM_SYSTEM_COLOR);
 
             const s64 count = 10000;
 
-            const f32 width  = world->half_size.x;
-            const f32 height = world->half_size.y;
-            const f32 length = world->half_size.z;
+            const real width  = world->half_size.x;
+            const real height = world->half_size.y;
+            const real length = world->half_size.z;
             
-            const f32 min_size = 0.01f;
-            const f32 max_size = 1.f;
+            const real min_size = 0.01f;
+            const real max_size = 1.f;
 
             world->reserve_objects(0, count);
 
             for(s64 i = 0; i < count; ++i) {
-                v3f size     = v3f(get_random_f32_uniform(min_size, max_size), get_random_f32_uniform(min_size, max_size), get_random_f32_uniform(min_size, max_size));
-                v3f position = v3f(get_random_f32_uniform(-width  + size.x, width  - size.x),
-                                    get_random_f32_uniform(-height + size.y, height - size.y),
-                                    get_random_f32_uniform(-length + size.z, length - size.z));
-                v3f rotation = v3f(0, 0, 0);
+                vec3 size     = vec3(get_random_real_uniform(min_size, max_size), get_random_real_uniform(min_size, max_size), get_random_real_uniform(min_size, max_size));
+                vec3 position = vec3(get_random_real_uniform(-width  + size.x, width  - size.x),
+                                   get_random_real_uniform(-height + size.y, height - size.y),
+                                   get_random_real_uniform(-length + size.z, length - size.z));
+                vec3 rotation = vec3(0, 0, 0);
                 world->add_boundary("Boundary"_s, position, size, rotation);
             }
         }
@@ -143,37 +143,38 @@ extern "C" {
         tmZone("do_large_volumes_test", TM_SYSTEM_COLOR);
         
         World *world = (World *) core_allocate_world();
-        world->create(v3f(100, 40, 100));
+        world->create(vec3(100, 40, 100));
         
         {
             tmZone("create_random_boundaries", TM_SYSTEM_COLOR);
 
             const s64 count = 1000;
 
-            const f32 width  = world->half_size.x;
-            const f32 height = world->half_size.y;
-            const f32 length = world->half_size.z;
+            const real width  = world->half_size.x;
+            const real height = world->half_size.y;
+            const real length = world->half_size.z;
             
-            const f32 min_size = 5.f;
-            const f32 max_size = 15.f;
+            const real min_size   = static_cast<real>(5);
+            const real max_size   = static_cast<real>(15.);
+            const real small_size = static_cast<real>(.1);
 
             world->reserve_objects(0, count);
 
             for(s64 i = 0; i < count; ++i) {
                 int small_dimension = get_random_u32(0, 3);
                 
-                v3f size;
+                vec3 size;
 
                 switch(small_dimension) {
-                case 0: size = v3f(.1f, get_random_f32_uniform(min_size, max_size), get_random_f32_uniform(min_size, max_size)); break;
-                case 1: size = v3f(get_random_f32_uniform(min_size, max_size), .1f, get_random_f32_uniform(min_size, max_size)); break;
-                case 2: size = v3f(get_random_f32_uniform(min_size, max_size), get_random_f32_uniform(min_size, max_size), .1f); break;
+                case 0: size = vec3(small_size, get_random_real_uniform(min_size, max_size), get_random_real_uniform(min_size, max_size)); break;
+                case 1: size = vec3(get_random_real_uniform(min_size, max_size), small_size, get_random_real_uniform(min_size, max_size)); break;
+                case 2: size = vec3(get_random_real_uniform(min_size, max_size), get_random_real_uniform(min_size, max_size), small_size); break;
                 }
 
-                v3f position = v3f(get_random_f32_uniform(-width  + size.x, width  - size.x),
-                                    get_random_f32_uniform(-height + size.y, height - size.y),
-                                    get_random_f32_uniform(-length + size.z, length - size.z));
-                v3f rotation = v3f(0, 0, 0);
+                vec3 position = vec3(get_random_real_uniform(-width  + size.x, width  - size.x),
+                                   get_random_real_uniform(-height + size.y, height - size.y),
+                                   get_random_real_uniform(-length + size.z, length - size.z));
+                vec3 rotation = vec3(0, 0, 0);
 
                 auto *boundary = world->add_boundary("Boundary"_s, position, size, rotation);
                 world->add_boundary_clipping_planes(boundary, (Axis) small_dimension);
@@ -194,22 +195,22 @@ extern "C" {
         tmFunction(TM_SYSTEM_COLOR);
 
         World *world = (World *) core_allocate_world();
-        world->create(v3f(50, 10, 50));
+        world->create(vec3(50, 10, 50));
 
-        Boundary *b0 = world->add_boundary("Boundary"_s, v3f(0, 0, -5), v3f(5, .5, .5), v3f(0, 0, 0));
+        Boundary *b0 = world->add_boundary("Boundary"_s, vec3(0, 0, -5), vec3(5, .5, .5), vec3(0, 0, 0));
         world->add_boundary_clipping_planes(b0, AXIS_Z);
         
-        Boundary *b1 = world->add_boundary("Boundary"_s, v3f(0, 0, +5), v3f(5, .5, .5), v3f(0, 0, 0));
+        Boundary *b1 = world->add_boundary("Boundary"_s, vec3(0, 0, +5), vec3(5, .5, .5), vec3(0, 0, 0));
         world->add_boundary_clipping_planes(b1, AXIS_Z);
 
-        Boundary *b2 = world->add_boundary("Boundary"_s, v3f(-5, 0, 0), v3f(.5, .5, 5), v3f(0, 0, 0));
+        Boundary *b2 = world->add_boundary("Boundary"_s, vec3(-5, 0, 0), vec3(.5, .5, 5), vec3(0, 0, 0));
         world->add_boundary_clipping_planes(b2, AXIS_X);
         
-        Boundary *b3 = world->add_boundary("Boundary"_s, v3f(+5, 0, 0), v3f(.5, .5, 5), v3f(0, 0, 0));
+        Boundary *b3 = world->add_boundary("Boundary"_s, vec3(+5, 0, 0), vec3(.5, .5, 5), vec3(0, 0, 0));
         world->add_boundary_clipping_planes(b3, AXIS_X);
 
-        world->add_anchor("Inside"_s, v3f(0, 0, 0));
-        world->add_anchor("Outside"_s, v3f(0, 0, -10));
+        world->add_anchor("Inside"_s, vec3(0, 0, 0));
+        world->add_anchor("Outside"_s, vec3(0, 0, -10));
 
         world->create_octree();
         world->clip_boundaries(step_into);
@@ -220,25 +221,25 @@ extern "C" {
         tmFunction(TM_SYSTEM_COLOR);
 
         World *world = (World *) core_allocate_world();
-        world->create(v3f(50, 1, 50));
+        world->create(vec3(50, 1, 50));
 
-        const s64 steps = 12;
-        const f32 radius = 10;
-        const f32 circumference = 2 * FPI * radius;
-        const f32 space_per_step = 0.5f;
+        const s64 steps          = 12;
+        const real radius         = 10;
+        const real circumference  = static_cast<real>(2 * PI * radius);
+        const real space_per_step = static_cast<real>(0.5);
 
         for(s64 i = 0; i < steps; ++i) {
-            f32 theta    = i / (f32) steps * 2 * FPI;
-            v3f position = v3f(sinf(theta) * radius, 0, cosf(theta) * radius);
-            v3f rotation = v3f(0, i / (f32) steps, 0);
-            v3f size     = v3f(circumference / steps / 2 * (1.f - space_per_step), .5f, .5f);
+            real theta    = i / static_cast<real>(steps * 2 * PI);
+            vec3 position = vec3(static_cast<real>(sin(theta)) * radius, 0, static_cast<real>(cos(theta)) * radius);
+            vec3 rotation = vec3(0, i / (real) steps, 0);
+            vec3 size     = vec3(circumference / steps / 2 * (1. - space_per_step), .5, .5);
 
             Boundary *b = world->add_boundary("Boundary"_s, position, size, rotation);
             world->add_boundary_clipping_planes(b, AXIS_Z);
         }
 
-        world->add_anchor("Inside"_s, v3f(0, 0, 0));
-        world->add_anchor("Outside"_s, v3f(0, 0, -40));
+        world->add_anchor("Inside"_s, vec3(0, 0, 0));
+        world->add_anchor("Outside"_s, vec3(0, 0, -40));
 
         world->create_octree();
         world->clip_boundaries(step_into);
@@ -249,19 +250,19 @@ extern "C" {
         tmFunction(TM_SYSTEM_COLOR);
 
         World *world = (World *) core_allocate_world();
-        world->create(v3f(50, 10, 50));
+        world->create(vec3(50, 10, 50));
 
-        Boundary *b0 = world->add_boundary("Boundary"_s, v3f(0, 0, -10), v3f(10, .5, .5), v3f(0));
+        Boundary *b0 = world->add_boundary("Boundary"_s, vec3(0, 0, -10), vec3(10, .5, .5), vec3(0));
         world->add_boundary_clipping_planes(b0, AXIS_Z);
 
-        Boundary *b1 = world->add_boundary("Boundary"_s, v3f(10, 0, 0), v3f(.5, .5, 10), v3f(0));
+        Boundary *b1 = world->add_boundary("Boundary"_s, vec3(10, 0, 0), vec3(.5, .5, 10), vec3(0));
         world->add_boundary_clipping_planes(b1, AXIS_X);
         
-        Boundary *b2 = world->add_boundary("Boundary"_s, v3f(-10, 0, 0), v3f(.5, .5, 10), v3f(0));
+        Boundary *b2 = world->add_boundary("Boundary"_s, vec3(-10, 0, 0), vec3(.5, .5, 10), vec3(0));
         world->add_boundary_clipping_planes(b2, AXIS_X);
         
-        world->add_anchor("Inside"_s, v3f(0, 0, 0));
-        world->add_anchor("Outside"_s, v3f(0, 0, -20));
+        world->add_anchor("Inside"_s, vec3(0, 0, 0));
+        world->add_anchor("Outside"_s, vec3(0, 0, -20));
         
         world->create_octree();
         world->clip_boundaries(step_into);
@@ -272,13 +273,13 @@ extern "C" {
         tmFunction(TM_SYSTEM_COLOR);
 
         World *world = (World *) core_allocate_world();
-        world->create(v3f(50, 10, 50));
+        world->create(vec3(50, 10, 50));
 
-        Boundary *boundary = world->add_boundary("Center Block"_s, v3f(0, 0, 0), v3f(5, 5, 5), v3f(0.125, 0, 0.125));
+        Boundary *boundary = world->add_boundary("Center Block"_s, vec3(0, 0, 0), vec3(5, 5, 5), vec3(0.125, 0, 0.125));
         world->add_boundary_clipping_planes(boundary, AXIS_X);
         world->add_boundary_clipping_planes(boundary, AXIS_Z);
 
-        world->add_anchor("Outside"_s, v3f(0, 0, -10));
+        world->add_anchor("Outside"_s, vec3(0, 0, -10));
         
         world->create_octree();
         world->clip_boundaries(step_into);
