@@ -4,6 +4,7 @@
 #include "../src/random.h"
 #include "../src/os_specific.h"
 #include "../src/jobs.h"
+#include "../src/math/math.h" // For FPI...
 
 #include <malloc.h>
 
@@ -35,7 +36,7 @@ Memory_Allocator_Information memory_allocator_information(string name, Allocator
 }
 
 static
-void sample_job_procedure(void *user_pointer) {
+void sample_job_procedure(void * /*user_pointer*/) {
     World_Handle handle = core_do_octree_test(false);
     //World_Handle handle = core_do_center_block_test(false);
     core_destroy_world(handle);
@@ -141,18 +142,13 @@ extern "C" {
     World_Handle core_do_large_volumes_test(b8 step_into) {
         tmZone("do_large_volumes_test", TM_SYSTEM_COLOR);
         
-        //
-        // nocheckin:
-        // There are still clipping planes going outside the world boundaries...
-        //
-
         World *world = (World *) core_allocate_world();
         world->create(v3f(100, 40, 100));
         
         {
             tmZone("create_random_boundaries", TM_SYSTEM_COLOR);
 
-            const s64 count = 1000; // nocheckin: Was 1000
+            const s64 count = 1000;
 
             const f32 width  = world->half_size.x;
             const f32 height = world->half_size.y;

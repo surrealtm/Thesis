@@ -1,7 +1,8 @@
 #include "tessel.h"
 #include "core.h"
 
-#include "math/math.h"
+#include "math/v2.h"
+#include "math/intersect.h"
 
 #define TESSEL_PRINT false // @@Ship: Remove this.
 
@@ -52,7 +53,7 @@ v3f get_barycentric_coefficient_for_corner_index(s64 index) {
 
 static inline
 b8 points_almost_identical(v3f p0, v3f p1) {
-    return fabsf(p0.x - p1.x) < TESSEL_EPSILON && fabs(p0.y - p1.y) < TESSEL_EPSILON && fabs(p0.z - p1.z) < TESSEL_EPSILON;
+    return fabsf(p0.x - p1.x) < CORE_EPSILON && fabs(p0.y - p1.y) < CORE_EPSILON && fabs(p0.z - p1.z) < CORE_EPSILON;
 }
 
 static inline
@@ -81,8 +82,8 @@ b8 far_point_inside_outer_triangle(Tessellator *tessellator, s64 c0, s64 c1, s64
 
         // Handle cases in which the point lies on the edge of a triangle, in which case we may
         // get very small positive or negative numbers.
-        b8 negative = (d0 < -F32_EPSILON) || (d1 < -F32_EPSILON) || (d2 < -F32_EPSILON);
-        b8 positive = (d0 >  F32_EPSILON) || (d1 >  F32_EPSILON) || (d2 >  F32_EPSILON);
+        b8 negative = (d0 < -CORE_SMALL_EPSILON) || (d1 < -CORE_SMALL_EPSILON) || (d2 < -CORE_SMALL_EPSILON);
+        b8 positive = (d0 >  CORE_SMALL_EPSILON) || (d1 >  CORE_SMALL_EPSILON) || (d2 >  CORE_SMALL_EPSILON);
 
         return !(negative && positive);
     }
@@ -138,7 +139,7 @@ void check_edge_against_plane(Tessellator *tessellator, v3f e0, v3f e1, Triangle
     //
 
     v3f direction = e1 - e0;
-    if(fabs(v3_dot_v3(direction, triangle->n)) < TESSEL_EPSILON) return; // @@Speed: This is done again in ray_double_sided_plane_intersection, but here we use TESSEL_EPSILON instead of F32_EPSILON, since F32_EPSILON is too small for our purposes here...
+    if(fabs(v3_dot_v3(direction, triangle->n)) < CORE_EPSILON) return; // @@Speed: This is done again in ray_double_sided_plane_intersection, but here we use CORE_EPSILON instead of F32_EPSILON, since F32_EPSILON is too small for our purposes here...
 
     f32 distance;
     b8 intersection = ray_double_sided_plane_intersection(e0, direction, triangle->p0, triangle->n, &distance);
@@ -165,7 +166,7 @@ void generate_new_triangle(Tessellator *tessellator, v3f p0, v3f p1, v3f p2) {
     v3f n = v3_cross_v3(p1 - p0, p2 - p0);
 
     f32 estimated_surface_area = v3_length2(n) / 2;
-    if(estimated_surface_area < TESSEL_EPSILON) return;
+    if(estimated_surface_area < CORE_EPSILON) return;
 
 #if TESSEL_PRINT
     printf("    Generated triangle: %f, %f, %f | %f, %f, %f | %f, %f, %f\n", p0.x, p0.y, p0.z, p1.x, p1.y, p1.z, p2.x, p2.y, p2.z);
@@ -251,8 +252,8 @@ s64 tessellate(Triangle *input, Triangle *clip, Resizable_Array<Triangle> *outpu
     */
 
     b8 intersection_point_is_corner[2] = {
-        tessellator.barycentric_coefficients[0][0] >= 1.f - F32_EPSILON || tessellator.barycentric_coefficients[0][1] >= 1.f - F32_EPSILON || tessellator.barycentric_coefficients[0][2] >= 1.f - F32_EPSILON,
-        tessellator.barycentric_coefficients[1][0] >= 1.f - F32_EPSILON || tessellator.barycentric_coefficients[1][1] >= 1.f - F32_EPSILON || tessellator.barycentric_coefficients[1][2] >= 1.f - F32_EPSILON };
+        tessellator.barycentric_coefficients[0][0] >= 1. - CORE_EPSILON || tessellator.barycentric_coefficients[0][1] >= 1. - CORE_EPSILON || tessellator.barycentric_coefficients[0][2] >= 1. - CORE_EPSILON,
+        tessellator.barycentric_coefficients[1][0] >= 1. - CORE_EPSILON || tessellator.barycentric_coefficients[1][1] >= 1. - CORE_EPSILON || tessellator.barycentric_coefficients[1][2] >= 1. - CORE_EPSILON };
 
     //
     // If both intersection points are very close to (or exactly on) the corners, then we don't bother
