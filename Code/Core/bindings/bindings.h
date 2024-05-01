@@ -13,29 +13,13 @@
 extern "C" {
     typedef void* World_Handle;
 
-    typedef struct Memory_Allocator_Information {
-        string name;
-        s64 allocation_count;
-        s64 deallocation_count;
-        s64 working_set_size; // In bytes
-        s64 peak_working_set_size; // In bytes
-    } Memory_Allocator_Information;
-    
-    typedef struct Memory_Information {
-        s64 os_working_set_size; // In bytes
-        Memory_Allocator_Information *allocators;
-        s64 allocator_count;
-    } Memory_Information;
-
-
-    
     /* --------------------------------------------- General API --------------------------------------------- */
 
-    EXPORT World_Handle core_allocate_world();
+    EXPORT World_Handle core_create_world(f64 x, f64 y, f64 z);
     EXPORT void core_destroy_world(World_Handle world);
 
     
-
+#if FOUNDATION_DEVELOPER
     /* ----------------------------------------------- Testing ----------------------------------------------- */
     
     EXPORT void core_do_world_step(World_Handle world_handle, b8 step_mode);
@@ -60,6 +44,20 @@ extern "C" {
 
     /* -----------------------------------------------Profiling ---------------------------------------------- */
 
+    typedef struct Memory_Allocator_Information {
+        string name;
+        s64 allocation_count;
+        s64 deallocation_count;
+        s64 working_set_size; // In bytes
+        s64 peak_working_set_size; // In bytes
+    } Memory_Allocator_Information;
+    
+    typedef struct Memory_Information {
+        s64 os_working_set_size; // In bytes
+        Memory_Allocator_Information *allocators;
+        s64 allocator_count;
+    } Memory_Information;
+
     EXPORT void core_begin_profiling();
     EXPORT void core_stop_profiling();
     EXPORT void core_print_profiling(b8 include_timeline);
@@ -69,4 +67,8 @@ extern "C" {
     EXPORT Memory_Information core_get_memory_information(World_Handle world_handle);
     EXPORT void core_print_memory_information(World_Handle world_handle);
     EXPORT void core_free_memory_information(Memory_Information *info);
+
+    EXPORT void core_enable_memory_tracking();
+    EXPORT void core_disable_memory_tracking();
+#endif
 }

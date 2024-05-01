@@ -7,6 +7,7 @@
 
 World_Handle :: *void;
 
+core_create_world ::  #foreign (x: f64, y: f64, z: f64) -> World_Handle;
 core_destroy_world :: #foreign (world: World_Handle);
 
 
@@ -150,3 +151,6 @@ Memory_Information :: struct {
 
 core_get_memory_information :: #foreign (world_handle: World_Handle) -> Memory_Information;
 core_free_memory_information :: #foreign (info: *Memory_Information);
+
+core_enable_memory_tracking :: #foreign ();
+core_disable_memory_tracking :: #foreign ();

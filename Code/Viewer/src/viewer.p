@@ -17,7 +17,7 @@
 #load "panels.p";
 #load "draw.p";
 
-BUILD_CORE :: true || #run compiler_command_line_option_present("build_core");
+BUILD_CORE :: false || #run compiler_command_line_option_present("build_core");
 USE_DEBUG_DLL :: false || #run compiler_command_line_option_present("debug_dll");
 
 #if USE_DEBUG_DLL {
@@ -105,7 +105,8 @@ Viewer :: struct {
     
     // Core data.
     test_name: string;
-    stepping_mode: bool;
+    stepping_mode:   bool = false;
+    memory_tracking: bool = false;
     
     world_handle: World_Handle;
     debug_draw_data: Debug_Draw_Data;    
@@ -125,7 +126,8 @@ menu_bar :: (viewer: *Viewer) {
     ui_toggle_button_with_pointer(*viewer.ui, "Views", xx *viewer.debug_draw_options_panel_state);
     ui_toggle_button_with_pointer(*viewer.ui, "Profiler", xx *viewer.profiling_panel_state);
     ui_toggle_button_with_pointer(*viewer.ui, "Memory", xx *viewer.memory_panel_state);
-
+    if viewer.world_handle && ui_button(*viewer.ui, "Destroy") destroy_test_data(viewer);
+    
     ui_set_width(*viewer.ui, .Percentage_Of_Parent, 1, 0);
     ui_spacer(*viewer.ui);
 
@@ -135,6 +137,15 @@ menu_bar :: (viewer: *Viewer) {
     }
     
     ui_toggle_button_with_pointer(*viewer.ui, "Step Mode", *viewer.stepping_mode);
+
+    ui_set_width(*viewer.ui, .Label_Size, 10, 1);
+    if ui_toggle_button_with_pointer(*viewer.ui, "Track Memory", *viewer.memory_tracking) {
+        if viewer.memory_tracking {
+            core_enable_memory_tracking();
+        } else {
+            core_disable_memory_tracking();
+        }
+    }
     
     ui_pop_height(*viewer.ui);
     ui_pop_width(*viewer.ui);
@@ -221,6 +232,8 @@ destroy_test_data :: (viewer: *Viewer) {
     core_destroy_world(viewer.world_handle);
     core_free_profiling_data(*viewer.profiling_data);
     core_free_debug_draw_data(*viewer.debug_draw_data);
+    core_free_memory_information(*viewer.memory_information);
+    viewer.world_handle = null;
 }
 
 main :: () -> s32 {

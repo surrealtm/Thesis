@@ -151,6 +151,9 @@ memory_panel :: (viewer: *Viewer) {
         
         working_set, working_set_unit := get_best_memory_unit(viewer.memory_information.os_working_set_size);
         ui_label(*viewer.ui, false, "OS working set: %*%", memory_format(working_set), memory_unit_suffix(working_set_unit));
+
+        viewer_set, viewer_set_unit := get_best_memory_unit(Default_Allocator.stats.working_set);
+        ui_label(*viewer.ui, false, "Viewer working set: %*%", memory_format(viewer_set), memory_unit_suffix(viewer_set_unit));
     }
     ui_pop_window(*viewer.ui);
 }

@@ -8,6 +8,55 @@
 
 #include <malloc.h>
 
+
+#if FOUNDATION_DEVELOPER
+static b8 memory_tracking_enabled = false;
+
+
+/* --------------------------------------------- Memory Tracking --------------------------------------------- */
+
+static
+void allocation_callback(Allocator *allocator, const void *allocator_name, void *data, u64 size) {
+    printf("[Allocation] %s : %" PRIu64 "b, 0x%016" PRIx64 "\n", (char *) allocator_name, size, (u64) data);
+}
+
+static
+void deallocation_callback(Allocator *allocator, const void *allocator_name, void *data, u64 size) {
+    printf("[Deallocation] %s : %" PRIu64 "b, 0x%016" PRIx64 "\n", (char *) allocator_name, size, (u64) data);    
+}
+
+static
+void reallocation_callback(Allocator *allocator, const void *allocator_name, void *old_data, u64 old_size, void *new_data, u64 new_size) {
+    printf("[Reallocation] %s : %" PRIu64 "b, 0x%016" PRIx64 " -> %" PRIu64 "b, 0x%016" PRIx64 "\n", (char *) allocator_name, old_size, (u64) old_data, new_size, (u64) new_data);    
+}
+
+static
+void clear_callback(Allocator *allocator, const void *allocator_name) {
+    printf("[Clear] %s\n", (char *) allocator_name);
+}
+
+static
+void set_allocation_callbacks(Allocator *allocator, const char *name) {
+    allocator->callbacks.allocation_callback   = allocation_callback;
+    allocator->callbacks.deallocation_callback = deallocation_callback;
+    allocator->callbacks.reallocation_callback = reallocation_callback;
+    allocator->callbacks.clear_callback        = clear_callback;
+    allocator->callbacks.user_pointer          = name;
+}
+
+static
+void clear_allocation_callbacks(Allocator *allocator) {
+    allocator->callbacks.allocation_callback   = null;
+    allocator->callbacks.deallocation_callback = null;
+    allocator->callbacks.reallocation_callback = null;
+    allocator->callbacks.clear_callback        = null;
+    allocator->callbacks.user_pointer          = null;
+}
+
+
+
+/* ------------------------------------------------- Helpers ------------------------------------------------- */
+
 static
 void create_random_anchors(World *world, s64 count) {
     world->reserve_objects(count, 0);
@@ -41,13 +90,21 @@ void sample_job_procedure(void * /*user_pointer*/) {
     //World_Handle handle = core_do_center_block_test(false);
     core_destroy_world(handle);
 }
+#endif
+
 
 extern "C" {
     /* --------------------------------------------- General API --------------------------------------------- */
 
-    World_Handle core_allocate_world() {
+    World_Handle core_create_world(f64 x, f64 y, f64 z) {
         World *world = (World *) Default_Allocator->allocate(sizeof(World));
         *world = World(); // Default-initialize the world.
+        world->create(vec3((real) x, (real) y, (real) z));
+
+#if FOUNDATION_DEVELOPER
+        if(memory_tracking_enabled) set_allocation_callbacks(world->allocator, "World");
+#endif
+
         return (World_Handle) world;
     }
 
@@ -60,7 +117,7 @@ extern "C" {
     }
 
     
-    
+#if FOUNDATION_DEVELOPER
     /* ----------------------------------------------- Testing ------------------------------------------------ */
 
     void core_do_world_step(World_Handle world_handle, b8 step_mode) {
@@ -71,8 +128,7 @@ extern "C" {
     World_Handle core_do_house_test(b8 step_into) {
         tmZone("do_house_test", TM_SYSTEM_COLOR);
 
-        World *world = (World *) core_allocate_world();
-        world->create(vec3(100, 10, 100));
+        World *world = (World *) core_create_world(100, 10, 100);
         world->add_anchor("Kitchen"_s, vec3(-5, -3, -5));
         world->add_anchor("Living Room"_s, vec3(5, -3, -5));
         world->add_anchor("Hallway"_s, vec3(-5, -3, 8.5));
@@ -108,8 +164,7 @@ extern "C" {
     World_Handle core_do_octree_test(b8 step_into) {
         tmZone("do_octree_test", TM_SYSTEM_COLOR);
         
-        World *world = (World *) core_allocate_world();
-        world->create(vec3(100, 40, 100));
+        World *world = (World *) core_create_world(100, 40, 100);
         
         {
             tmZone("create_random_boundaries", TM_SYSTEM_COLOR);
@@ -142,8 +197,7 @@ extern "C" {
     World_Handle core_do_large_volumes_test(b8 step_into) {
         tmZone("do_large_volumes_test", TM_SYSTEM_COLOR);
         
-        World *world = (World *) core_allocate_world();
-        world->create(vec3(100, 40, 100));
+        World *world = (World *) core_create_world(100, 40, 100);
         
         {
             tmZone("create_random_boundaries", TM_SYSTEM_COLOR);
@@ -194,8 +248,7 @@ extern "C" {
     World_Handle core_do_cutout_test(b8 step_into) {
         tmFunction(TM_SYSTEM_COLOR);
 
-        World *world = (World *) core_allocate_world();
-        world->create(vec3(50, 10, 50));
+        World *world = (World *) core_create_world(50, 10, 50);
 
         Boundary *b0 = world->add_boundary("Boundary"_s, vec3(0, 0, -5), vec3(5, .5, .5), vec3(0, 0, 0));
         world->add_boundary_clipping_planes(b0, AXIS_Z);
@@ -220,10 +273,9 @@ extern "C" {
     World_Handle core_do_circle_test(b8 step_into) {
         tmFunction(TM_SYSTEM_COLOR);
 
-        World *world = (World *) core_allocate_world();
-        world->create(vec3(50, 1, 50));
+        World *world = (World *) core_create_world(50, 1, 50);
 
-        const s64 steps          = 12;
+        const s64 steps           = 12;
         const real radius         = 10;
         const real circumference  = static_cast<real>(2 * PI * radius);
         const real space_per_step = static_cast<real>(0.5);
@@ -249,8 +301,7 @@ extern "C" {
     World_Handle core_do_u_shape_test(b8 step_into) {
         tmFunction(TM_SYSTEM_COLOR);
 
-        World *world = (World *) core_allocate_world();
-        world->create(vec3(50, 10, 50));
+        World *world = (World *) core_create_world(50, 10, 50);
 
         Boundary *b0 = world->add_boundary("Boundary"_s, vec3(0, 0, -10), vec3(10, .5, .5), vec3(0));
         world->add_boundary_clipping_planes(b0, AXIS_Z);
@@ -272,8 +323,7 @@ extern "C" {
     World_Handle core_do_center_block_test(b8 step_into) {
         tmFunction(TM_SYSTEM_COLOR);
 
-        World *world = (World *) core_allocate_world();
-        world->create(vec3(50, 10, 50));
+        World *world = (World *) core_create_world(50, 10, 50);
 
         Boundary *boundary = world->add_boundary("Center Block"_s, vec3(0, 0, 0), vec3(5, 5, 5), vec3(0.125, 0, 0.125));
         world->add_boundary_clipping_planes(boundary, AXIS_X);
@@ -339,6 +389,7 @@ extern "C" {
 
     void core_free_profiling_data(Timing_Data *data) {
         tmFreeData(data);
+        _tmDestroy(); // This is called at termination of the viewer, so make sure we don't leak any bytes even if telemetry has been used since the last core_get_profiling_data call.
     }
 
 
@@ -378,12 +429,13 @@ extern "C" {
                 working_set_unit = get_best_memory_unit(alloc->working_set_size, &working_set);
                 peak_working_set_unit = get_best_memory_unit(alloc->peak_working_set_size, &peak_working_set);
 
-                printf("  %.*s:%-*s %8" PRId64 " Allocations, %8" PRId64 " Deallocations,     %08f%s Working Set,     %08f%s Peak Working Set.\n", (u32) alloc->name.count, alloc->name.data, (u32) max(0, 10 - alloc->name.count), "", alloc->allocation_count, alloc->deallocation_count, working_set, memory_unit_suffix(working_set_unit), peak_working_set, memory_unit_suffix(peak_working_set_unit));
+                printf("  %.*s:%-*s %8" PRId64 " Allocations, %8" PRId64 " Deallocations,     %04.3f%s Working Set,     %04.3f%s Peak Working Set.\n", (u32) alloc->name.count, alloc->name.data, (u32) max(0, 10 - alloc->name.count), "", alloc->allocation_count, alloc->deallocation_count, working_set, memory_unit_suffix(working_set_unit), peak_working_set, memory_unit_suffix(peak_working_set_unit));
             }
 
 
             f32 os_working_set;
             Memory_Unit os_working_set_unit = get_best_memory_unit(information.os_working_set_size, &os_working_set);
+            printf("\n");
             printf("OS Working Set: %08f%s\n", os_working_set, memory_unit_suffix(os_working_set_unit));
         }
 
@@ -403,10 +455,22 @@ extern "C" {
         info->allocator_count = 0;
         info->os_working_set_size = 0;
     }
+
+
+    void core_enable_memory_tracking() {
+        set_allocation_callbacks(Default_Allocator, "Heap");
+        memory_tracking_enabled = true;
+    }
+
+    void core_disable_memory_tracking() {
+        clear_allocation_callbacks(Default_Allocator);
+        memory_tracking_enabled = false;
+    }
+#endif
 }
 
 
-#if FOUNDATION_WIN32
+#if FOUNDATION_WIN32 && FOUNDATION_DEVELOPER
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 
