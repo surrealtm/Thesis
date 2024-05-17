@@ -106,8 +106,8 @@ void debug_draw_octree(Dbg_Internal_Draw_Data &_internal, Octree *node, Octree_C
 		p12 = node->center + vec3( node->half_size.x,  node->half_size.y,  node->half_size.z),
 		p13 = node->center + vec3(-node->half_size.x,  node->half_size.y,  node->half_size.z);
 
-	const f32 thickness = dbg_octree_depth_thickness_map[min(depth, ARRAY_SIZE(dbg_octree_depth_thickness_map) - 1)];
-	const Dbg_Draw_Color color = dbg_octree_depth_color_map[min(depth, ARRAY_SIZE(dbg_octree_depth_color_map) - 1)];
+	const f32 thickness = dbg_octree_depth_thickness_map[min(depth, ARRAY_COUNT(dbg_octree_depth_thickness_map) - 1)];
+	const Dbg_Draw_Color color = dbg_octree_depth_color_map[min(depth, ARRAY_COUNT(dbg_octree_depth_color_map) - 1)];
 	
 	b8 px = child_index == OCTREE_CHILD_COUNT ||  (child_index & OCTREE_CHILD_px_flag);
 	b8 nx = child_index == OCTREE_CHILD_COUNT || !(child_index & OCTREE_CHILD_px_flag);
@@ -150,18 +150,18 @@ Debug_Draw_Data debug_draw_world(World *world, Debug_Draw_Options options) {
 	}
 
 	if(options & DEBUG_DRAW_Anchors) {
-		for(auto *anchor: world->anchors) {
-			_internal.spheres.add({ dbg_v3f(anchor->position), dbg_anchor_radius, dbg_anchor_color.r, dbg_anchor_color.g, dbg_anchor_color.b });
+		for(auto &anchor: world->anchors) {
+			_internal.spheres.add({ dbg_v3f(anchor.position), dbg_anchor_radius, dbg_anchor_color.r, dbg_anchor_color.g, dbg_anchor_color.b });
 
-			if(_internal.draw_labels) _internal.texts.add({ dbg_v3f(anchor->position), anchor->dbg_name, dbg_label_color.r, dbg_label_color.g, dbg_label_color.b });
+			if(_internal.draw_labels) _internal.texts.add({ dbg_v3f(anchor.position), anchor.dbg_name, dbg_label_color.r, dbg_label_color.g, dbg_label_color.b });
 		}			
 	}
 
 	if(options & DEBUG_DRAW_Boundaries) {
-		for(auto *boundary : world->boundaries) {
-			_internal.cuboids.add({ dbg_v3f(boundary->position), dbg_v3f(boundary->dbg_half_size), dbg_qtf(boundary->dbg_rotation), dbg_boundary_color.r, dbg_boundary_color.g, dbg_boundary_color.b });
+		for(auto &boundary : world->boundaries) {
+			_internal.cuboids.add({ dbg_v3f(boundary.position), dbg_v3f(boundary.dbg_half_size), dbg_qtf(boundary.dbg_rotation), dbg_boundary_color.r, dbg_boundary_color.g, dbg_boundary_color.b });
 
-            if(_internal.draw_labels) _internal.texts.add({ dbg_v3f(boundary->position), boundary->dbg_name, dbg_label_color.r, dbg_label_color.g, dbg_label_color.b });
+            if(_internal.draw_labels) _internal.texts.add({ dbg_v3f(boundary.position), boundary.dbg_name, dbg_label_color.r, dbg_label_color.g, dbg_label_color.b });
         }
 	}
 

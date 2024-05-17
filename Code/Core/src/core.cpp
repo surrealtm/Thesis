@@ -272,20 +272,20 @@ void World::create_octree() {
     //
     // Insert all boundaries.
     //
-    for(auto *boundary : this->boundaries) {
-        Octree *octree = this->root.get_octree_for_aabb(boundary->aabb, this->allocator);
+    for(auto &boundary : this->boundaries) {
+        Octree *octree = this->root.get_octree_for_aabb(boundary.aabb, this->allocator);
         assert(octree && "Boundary Object is outside of octree bounds.");
-        octree->contained_boundaries.add(boundary);
+        octree->contained_boundaries.add(&boundary);
     }
 
     //
     // Insert all anchors.
     //
-    for(auto *anchor : this->anchors) {
-        AABB anchor_aabb = { anchor->position, anchor->position };
+    for(auto &anchor : this->anchors) {
+        AABB anchor_aabb = { anchor.position, anchor.position };
         Octree *octree = this->root.get_octree_for_aabb(anchor_aabb, this->allocator);
         assert(octree && "Boundary Object is outside of octree bounds.");
-        octree->contained_anchors.add(anchor);
+        octree->contained_anchors.add(&anchor);
     }
 }
 
