@@ -228,6 +228,10 @@ public unsafe class Core_Helpers {
     private static bool draw_data_setup = false;
     private static List<GameObject> dbg_draw_objects = new List<GameObject>();
 
+    private static Color color(u8 r, u8 g, u8 b) {
+        return new Color(r / 255.0f, g / 255.0f, b / 255.0f, 1);
+    }
+
     private static void setup_draw_helpers() {
         if(draw_data_setup) return;
 
@@ -306,7 +310,25 @@ public unsafe class Core_Helpers {
         mesh_filter.mesh = cuboid_mesh;
         
         MeshRenderer mesh_renderer = _object.AddComponent<MeshRenderer>();
-        mesh_renderer.sharedMaterial = material;
+        mesh_renderer.sharedMaterial = Material.Instantiate(material);
+        mesh_renderer.sharedMaterial.color = color;
+
+        dbg_draw_objects.Add(_object);
+    }
+
+    public static void draw_text(Vector3 position, string text, Color color) {
+        GameObject _object = new GameObject();
+        _object.name       = "DbgText";
+        _object.transform.position         = position;
+        _object.transform.localScale       = new Vector3(-0.03f, 0.03f, 0.03f); // Make this very small and the font size really large for higher quality text. The X scale is negative to flip the text, making it readable again after the LookAt when facing the camera.
+
+        TextMesh text_mesh = _object.AddComponent<TextMesh>();
+        text_mesh.text     = text;
+        text_mesh.fontSize = 100;
+        text_mesh.anchor   = TextAnchor.MiddleCenter;
+        text_mesh.font     = (Font)Resources.GetBuiltinResource (typeof(Font), "Arial.ttf");
+        text_mesh.GetComponent<Renderer>().sharedMaterial = Material.Instantiate(text_mesh.font.material);
+        text_mesh.GetComponent<Renderer>().sharedMaterial.color = color;
 
         dbg_draw_objects.Add(_object);
     }
@@ -316,11 +338,23 @@ public unsafe class Core_Helpers {
 
         Debug_Draw_Data draw_data = Core_Bindings.core_debug_draw_world(world_handle, options);
 
+        for(s64 i = 0; i < draw_data.text_count; ++i) {
+            draw_text(new Vector3(draw_data.texts[i].position.x, draw_data.texts[i].position.y, draw_data.texts[i].position.z), draw_data.texts[i].text.cs(), /*color(draw_data.texts[i].r, draw_data.texts[i].g, draw_data.texts[i].b)*/ color((u8) (i * 20), (u8) (128 + i * 20), (u8) (200 + i * 30))); // nocheckin
+        }
+
         for(s64 i = 0; i < draw_data.cuboid_count; ++i) {
-            draw_cuboid(new Vector3(draw_data.cuboids[i].position.x, draw_data.cuboids[i].position.y, draw_data.cuboids[i].position.z), new Quaternion(draw_data.cuboids[i].rotation.x, draw_data.cuboids[i].rotation.y, draw_data.cuboids[i].rotation.z, draw_data.cuboids[i].rotation.w), new Vector3(draw_data.cuboids[i].size.x, draw_data.cuboids[i].size.y, draw_data.cuboids[i].size.z), new Color(draw_data.cuboids[i].r, draw_data.cuboids[i].g, draw_data.cuboids[i].b, 255));
+            draw_cuboid(new Vector3(draw_data.cuboids[i].position.x, draw_data.cuboids[i].position.y, draw_data.cuboids[i].position.z), new Quaternion(draw_data.cuboids[i].rotation.x, draw_data.cuboids[i].rotation.y, draw_data.cuboids[i].rotation.z, draw_data.cuboids[i].rotation.w), new Vector3(draw_data.cuboids[i].size.x, draw_data.cuboids[i].size.y, draw_data.cuboids[i].size.z), color(draw_data.cuboids[i].r, draw_data.cuboids[i].g, draw_data.cuboids[i].b));
         }
         
         Core_Bindings.core_free_debug_draw_data(new Debug_Draw_Data_Handle((IntPtr) (&draw_data)));
+    }
+
+    public static void make_texts_face_the_camera(Camera camera) {
+        foreach(GameObject _object in dbg_draw_objects) {
+            if(_object.GetComponent<TextMesh>() != null) {
+                _object.transform.LookAt(camera.transform.position);
+            }
+        }
     }
 
     public static void clear_debug_draw() {
