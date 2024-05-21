@@ -1,25 +1,46 @@
 using UnityEngine;
 
 public class FPSCamera : MonoBehaviour {
-	public float Sensitivity {
-		get { return sensitivity; }
-		set { sensitivity = value; }
-	}
-	[Range(0.1f, 9f)][SerializeField] float sensitivity = 2f;
+	[Range(0.1f, 9f)]
+	[SerializeField] 
+	public float sensitivity = 2f;
+	
 	[Tooltip("Limits vertical camera rotation. Prevents the flipping that happens when rotation goes above 90.")]
-	[Range(0f, 90f)][SerializeField] float yRotationLimit = 88f;
+	[Range(0f, 90f)]
+	[SerializeField] 
+	public float pitch_clamp = 90f;
 
-	Vector2 rotation = Vector2.zero;
-	const string xAxis = "Mouse X"; //Strings in direct code generate garbage, storing and re-using them creates no garbage
-	const string yAxis = "Mouse Y";
+	[Range(0.01f, 10f)]
+	[SerializeField]
+	public float speed = 0.1f;
 
-	void Update(){
-		rotation.x += Input.GetAxis(xAxis) * sensitivity;
-		rotation.y += Input.GetAxis(yAxis) * sensitivity;
-		rotation.y = Mathf.Clamp(rotation.y, -yRotationLimit, yRotationLimit);
-		var xQuat = Quaternion.AngleAxis(rotation.x, Vector3.up);
-		var yQuat = Quaternion.AngleAxis(rotation.y, Vector3.left);
+	private Vector2 rotation = Vector2.zero;
+	private bool escaped;
 
-		transform.localRotation = xQuat * yQuat; //Quaternions seem to rotate more consistently than EulerAngles. Sensitivity seemed to change slightly at certain degrees using Euler. transform.localEulerAngles = new Vector3(-rotation.y, rotation.x, 0);
+	public void Start() {
+		this.set_escaped(!Application.isFocused);
+	}
+
+	public void set_escaped(bool _escaped) {
+		this.escaped = _escaped;
+		Cursor.visible = this.escaped;
+	}
+
+	public void Update() {
+		if(Input.GetKeyDown(KeyCode.Escape)) this.set_escaped(!this.escaped);
+
+		if(this.escaped) return;
+
+		this.rotation.x += Input.GetAxis("Mouse X") * this.sensitivity;
+		this.rotation.y += Input.GetAxis("Mouse Y") * this.sensitivity;
+
+		this.rotation.y = Mathf.Clamp(this.rotation.y, -this.pitch_clamp, this.pitch_clamp);
+		
+		var xQuat = Quaternion.AngleAxis(this.rotation.x, Vector3.up);
+		var yQuat = Quaternion.AngleAxis(this.rotation.y, Vector3.left);
+
+		this.transform.localRotation = xQuat * yQuat;
+	
+		this.transform.position += this.transform.localRotation * new Vector3(Input.GetAxis("Horizontal"), 0, Input.GetAxis("Vertical")) * this.speed;
 	}
 }

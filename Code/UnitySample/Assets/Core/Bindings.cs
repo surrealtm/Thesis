@@ -2,6 +2,7 @@
 
 using System;
 using System.Runtime.InteropServices;
+using System.Collections.Generic;
 
 using UnityEngine;
 
@@ -225,6 +226,7 @@ public unsafe class Core_Helpers {
     private static Mesh sphere_mesh;
     private static Mesh cuboid_mesh;
     private static bool draw_data_setup = false;
+    private static List<GameObject> dbg_draw_objects = new List<GameObject>();
 
     private static void setup_draw_helpers() {
         if(draw_data_setup) return;
@@ -294,16 +296,24 @@ public unsafe class Core_Helpers {
     }
 
     public static void draw_cuboid(Vector3 position, Quaternion rotation, Vector3 size, Color color) {
-        // @Incomplete: Colors are not yet working.
-        setup_draw_helpers();
-        Matrix4x4 matrix = Matrix4x4.TRS(position, rotation, size);
-        Graphics.DrawMesh(cuboid_mesh, matrix, material, 0);
+        GameObject _object = new GameObject();
+        _object.name       = "DbgCuboid";
+        _object.transform.position   = position;
+        _object.transform.rotation   = rotation;
+        _object.transform.localScale = size;
+
+        MeshFilter mesh_filter = _object.AddComponent<MeshFilter>();
+        mesh_filter.mesh = cuboid_mesh;
+        
+        MeshRenderer mesh_renderer = _object.AddComponent<MeshRenderer>();
+        mesh_renderer.sharedMaterial = material;
+
+        dbg_draw_objects.Add(_object);
     }
 
     public static void debug_draw_world(World_Handle world_handle, Debug_Draw_Options options) {
         setup_draw_helpers();
 
-        // @@Speed: We are currently re-building this every frame. We should probably cache it.
         Debug_Draw_Data draw_data = Core_Bindings.core_debug_draw_world(world_handle, options);
 
         for(s64 i = 0; i < draw_data.cuboid_count; ++i) {
@@ -311,6 +321,14 @@ public unsafe class Core_Helpers {
         }
         
         Core_Bindings.core_free_debug_draw_data(new Debug_Draw_Data_Handle((IntPtr) (&draw_data)));
+    }
+
+    public static void clear_debug_draw() {
+        foreach(GameObject obj in dbg_draw_objects) {
+            GameObject.Destroy(obj);
+        }
+
+        dbg_draw_objects.Clear();
     }
 
     public static f64 to_seconds(s64 nanoseconds) {

@@ -14,9 +14,6 @@ public class Tester : MonoBehaviour {
         this.world_handle = core_do_house_test(this.step_into);
         core_stop_profiling();
         print_profiling(true);
-    }
-        
-    public void Update() {                
         debug_draw_world(world_handle, Debug_Draw_Options.Everything);
     }
 }
