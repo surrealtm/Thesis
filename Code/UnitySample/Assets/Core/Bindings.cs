@@ -222,9 +222,6 @@ public class Core_Bindings {
 /* -------------------------------------------- Debugging Wrapper -------------------------------------------- */
 
 public unsafe class Core_Helpers {
-    private static Material material;
-    private static Mesh sphere_mesh;
-    private static Mesh cuboid_mesh;
     private static bool draw_data_setup = false;
     private static List<GameObject> dbg_draw_objects = new List<GameObject>();
 
@@ -232,86 +229,23 @@ public unsafe class Core_Helpers {
         return new Color(r / 255.0f, g / 255.0f, b / 255.0f, 1);
     }
 
-    private static void setup_draw_helpers() {
-        if(draw_data_setup) return;
-
-        //
-        // Set up the cuboid mesh.
-        //
-        {
-            Vector3[] vertices = new Vector3[] {
-                new Vector3(-1.0f, -1.0f, -1.0f), new Vector3(-1.0f, -1.0f, 1.0f),  new Vector3(-1.0f, 1.0f, 1.0f),   // Left Side
-                new Vector3(-1.0f, -1.0f, -1.0f), new Vector3(-1.0f, 1.0f, 1.0f),   new Vector3(-1.0f, 1.0f, -1.0f),  // Left Side
-                new Vector3(1.0f, 1.0f, -1.0f),   new Vector3(-1.0f, -1.0f, -1.0f), new Vector3(-1.0f, 1.0f, -1.0f),  // Back Side
-                new Vector3(1.0f, 1.0f, -1.0f),   new Vector3(1.0f, -1.0f, -1.0f),  new Vector3(-1.0f, -1.0f, -1.0f), // Back Side
-                new Vector3(1.0f, -1.0f, 1.0f),   new Vector3(-1.0f, -1.0f, -1.0f), new Vector3(1.0f, -1.0f, -1.0f),  // Bottom Side
-                new Vector3(1.0f, -1.0f, 1.0f),   new Vector3(-1.0f, -1.0f, 1.0f),  new Vector3(-1.0f, -1.0f, -1.0f), // Bottom Side
-                new Vector3(-1.0f, 1.0f, 1.0f),   new Vector3(-1.0f, -1.0f, 1.0f),  new Vector3(1.0f, -1.0f, 1.0f),   // Front Side
-                new Vector3(1.0f, 1.0f, 1.0f),    new Vector3(-1.0f, 1.0f, 1.0f),   new Vector3(1.0f, -1.0f, 1.0f),   // Front Side
-                new Vector3(1.0f, 1.0f, 1.0f),    new Vector3(1.0f, -1.0f, -1.0f),  new Vector3(1.0f, 1.0f, -1.0f),   // Right Side
-                new Vector3(1.0f, -1.0f, -1.0f),  new Vector3(1.0f, 1.0f, 1.0f),    new Vector3(1.0f, -1.0f, 1.0f),   // Right Side
-                new Vector3(1.0f, 1.0f, 1.0f),    new Vector3(1.0f, 1.0f, -1.0f),   new Vector3(-1.0f, 1.0f, -1.0f),  // Top Side
-                new Vector3(1.0f, 1.0f, 1.0f),    new Vector3(-1.0f, 1.0f, -1.0f),  new Vector3(-1.0f, 1.0f, 1.0f),   // Top Side
-            };
-
-            Vector3[] normals = new Vector3[] {
-                new Vector3(-1.0f, 0.0f, 0.0f), new Vector3(-1.0f, 0.0f, 0.0f), new Vector3(-1.0f, 0.0f, 0.0f), // Left Side
-                new Vector3(-1.0f, 0.0f, 0.0f), new Vector3(-1.0f, 0.0f, 0.0f), new Vector3(-1.0f, 0.0f, 0.0f), // Left Side
-                new Vector3(0.0f, 0.0f, -1.0f), new Vector3(0.0f, 0.0f, -1.0f), new Vector3(0.0f, 0.0f, -1.0f), // Back Side
-                new Vector3(0.0f, 0.0f, -1.0f), new Vector3(0.0f, 0.0f, -1.0f), new Vector3(0.0f, 0.0f, -1.0f), // Back Side
-                new Vector3(0.0f, -1.0f, 0.0f), new Vector3(0.0f, -1.0f, 0.0f), new Vector3(0.0f, -1.0f, 0.0f), // Bottom Side
-                new Vector3(0.0f, -1.0f, 0.0f), new Vector3(0.0f, -1.0f, 0.0f), new Vector3(0.0f, -1.0f, 0.0f), // Bottom Side
-                new Vector3(0.0f, 0.0f, 1.0f),  new Vector3(0.0f, 0.0f, 1.0f),  new Vector3(0.0f, 0.0f, 1.0f),  // Front Side
-                new Vector3(0.0f, 0.0f, 1.0f),  new Vector3(0.0f, 0.0f, 1.0f),  new Vector3(0.0f, 0.0f, 1.0f),  // Front Side
-                new Vector3(1.0f, 0.0f, 0.0f),  new Vector3(1.0f, 0.0f, 0.0f),  new Vector3(1.0f, 0.0f, 0.0f),  // Right Side
-                new Vector3(1.0f, 0.0f, 0.0f),  new Vector3(1.0f, 0.0f, 0.0f),  new Vector3(1.0f, 0.0f, 0.0f),  // Right Side
-                new Vector3(0.0f, 1.0f, 0.0f),  new Vector3(0.0f, 1.0f, 0.0f),  new Vector3(0.0f, 1.0f, 0.0f),  // Top Side
-                new Vector3(0.0f, 1.0f, 0.0f),  new Vector3(0.0f, 1.0f, 0.0f),  new Vector3(0.0f, 1.0f, 0.0f),  // Top Side
-            };
-
-            int[] indices = new int[] {
-                0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11,
-                12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23,
-                24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35,
-            };
-
-            cuboid_mesh = new Mesh();
-            cuboid_mesh.name = "CoreCuboid";
-            cuboid_mesh.SetVertices(vertices);
-            cuboid_mesh.SetNormals(normals);
-            cuboid_mesh.SetTriangles(indices, 0);
-        }
-
-        //
-        // Set up the sphere mesh.
-        //
-        {
-
-        }
-
-        //
-        // Set up the material.
-        //
-        {
-            material = new Material(Shader.Find("Standard"));
-        }
-
-        draw_data_setup = true;
+    private static Vector3 vector3(v3f v) {
+        return new Vector3(v.x, v.y, v.z);
     }
 
-    public static void draw_cuboid(Vector3 position, Quaternion rotation, Vector3 size, Color color) {
-        GameObject _object = new GameObject();
-        _object.name       = "DbgCuboid";
+    private static Quaternion quat(quatf q) {
+        return new Quaternion(q.x, q.y, q.z, q.w);
+    }
+    
+    public static void draw_primitive(PrimitiveType primitive_type, Vector3 position, Quaternion rotation, Vector3 size, Color color) {
+        GameObject _object = GameObject.CreatePrimitive(primitive_type);
+        _object.name       = "Dbg" + primitive_type;
         _object.transform.position   = position;
         _object.transform.rotation   = rotation;
-        _object.transform.localScale = size;
-
-        MeshFilter mesh_filter = _object.AddComponent<MeshFilter>();
-        mesh_filter.mesh = cuboid_mesh;
+        _object.transform.localScale = size * 2;
         
-        MeshRenderer mesh_renderer = _object.AddComponent<MeshRenderer>();
-        mesh_renderer.sharedMaterial = Material.Instantiate(material);
-        mesh_renderer.sharedMaterial.color = color;
+        MeshRenderer mesh_renderer = _object.GetComponent<MeshRenderer>();
+        mesh_renderer.material.color = color;
 
         dbg_draw_objects.Add(_object);
     }
@@ -319,31 +253,32 @@ public unsafe class Core_Helpers {
     public static void draw_text(Vector3 position, string text, Color color) {
         GameObject _object = new GameObject();
         _object.name       = "DbgText";
-        _object.transform.position         = position;
-        _object.transform.localScale       = new Vector3(-0.03f, 0.03f, 0.03f); // Make this very small and the font size really large for higher quality text. The X scale is negative to flip the text, making it readable again after the LookAt when facing the camera.
+        _object.transform.position   = position;
+        _object.transform.localScale = new Vector3(-0.03f, 0.03f, 0.03f); // Make this very small and the font size really large for higher quality text. The X scale is negative to flip the text, making it readable again after the LookAt when facing the camera.
 
         TextMesh text_mesh = _object.AddComponent<TextMesh>();
         text_mesh.text     = text;
         text_mesh.fontSize = 100;
         text_mesh.anchor   = TextAnchor.MiddleCenter;
-        text_mesh.font     = (Font)Resources.GetBuiltinResource (typeof(Font), "Arial.ttf");
-        text_mesh.GetComponent<Renderer>().sharedMaterial = Material.Instantiate(text_mesh.font.material);
-        text_mesh.GetComponent<Renderer>().sharedMaterial.color = color;
+        text_mesh.font     = (Font)Resources.GetBuiltinResource(typeof(Font), "Arial.ttf");
+        text_mesh.GetComponent<Renderer>().material.color = color;
 
         dbg_draw_objects.Add(_object);
     }
 
     public static void debug_draw_world(World_Handle world_handle, Debug_Draw_Options options) {
-        setup_draw_helpers();
-
         Debug_Draw_Data draw_data = Core_Bindings.core_debug_draw_world(world_handle, options);
 
         for(s64 i = 0; i < draw_data.text_count; ++i) {
-            draw_text(new Vector3(draw_data.texts[i].position.x, draw_data.texts[i].position.y, draw_data.texts[i].position.z), draw_data.texts[i].text.cs(), /*color(draw_data.texts[i].r, draw_data.texts[i].g, draw_data.texts[i].b)*/ color((u8) (i * 20), (u8) (128 + i * 20), (u8) (200 + i * 30))); // nocheckin
+            draw_text(vector3(draw_data.texts[i].position), draw_data.texts[i].text.cs(), color(draw_data.texts[i].r, draw_data.texts[i].g, draw_data.texts[i].b));
         }
 
         for(s64 i = 0; i < draw_data.cuboid_count; ++i) {
-            draw_cuboid(new Vector3(draw_data.cuboids[i].position.x, draw_data.cuboids[i].position.y, draw_data.cuboids[i].position.z), new Quaternion(draw_data.cuboids[i].rotation.x, draw_data.cuboids[i].rotation.y, draw_data.cuboids[i].rotation.z, draw_data.cuboids[i].rotation.w), new Vector3(draw_data.cuboids[i].size.x, draw_data.cuboids[i].size.y, draw_data.cuboids[i].size.z), color(draw_data.cuboids[i].r, draw_data.cuboids[i].g, draw_data.cuboids[i].b));
+            draw_primitive(PrimitiveType.Cube, vector3(draw_data.cuboids[i].position), quat(draw_data.cuboids[i].rotation), vector3(draw_data.cuboids[i].size), color(draw_data.cuboids[i].r, draw_data.cuboids[i].g, draw_data.cuboids[i].b));
+        }
+
+        for(s64 i = 0; i < draw_data.sphere_count; ++i) {
+            draw_primitive(PrimitiveType.Sphere, vector3(draw_data.spheres[i].position), new Quaternion(0, 0, 0, 1), new Vector3(draw_data.spheres[i].radius, draw_data.spheres[i].radius, draw_data.spheres[i].radius), color(draw_data.spheres[i].r, draw_data.spheres[i].g, draw_data.spheres[i].b));
         }
         
         Core_Bindings.core_free_debug_draw_data(new Debug_Draw_Data_Handle((IntPtr) (&draw_data)));

@@ -362,4 +362,4 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   sensitivity: 2
   pitch_clamp: 88
-  speed: 0.5
+  speed: 0.1

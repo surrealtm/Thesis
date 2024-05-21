@@ -10,9 +10,9 @@ public class FPSCamera : MonoBehaviour {
 	[SerializeField] 
 	public float pitch_clamp = 90f;
 
-	[Range(0.01f, 10f)]
+	[Range(0.01f, 1f)]
 	[SerializeField]
-	public float speed = 0.1f;
+	public float speed = 0.02f;
 
 	private Vector2 rotation = Vector2.zero;
 	private bool escaped;
@@ -23,10 +23,19 @@ public class FPSCamera : MonoBehaviour {
 
 	public void set_escaped(bool _escaped) {
 		this.escaped = _escaped;
-		Cursor.visible = this.escaped;
+
+		if(this.escaped) {
+			Cursor.visible = true;
+			Cursor.lockState = CursorLockMode.None;
+		} else {
+			Cursor.visible = false;
+			Cursor.lockState = CursorLockMode.Confined;
+		}
 	}
 
 	public void Update() {
+		Debug.Log("Visible: " + Cursor.visible);
+		
 		if(Input.GetKeyDown(KeyCode.Escape)) this.set_escaped(!this.escaped);
 
 		if(this.escaped) return;
