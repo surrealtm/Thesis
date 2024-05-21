@@ -26,6 +26,7 @@ public struct Memory_Information_Handle { System.IntPtr __handle; public Memory_
 
 /* ------------------------------------------ Debugging Information ------------------------------------------ */
 
+[Flags]
 public enum Debug_Draw_Options : uint {
     Nothing             = 0x0,
     Octree              = 0x1,
@@ -65,8 +66,7 @@ public unsafe struct Debug_Draw_Line {
 
 public unsafe struct Debug_Draw_Triangle {
     public v3f p0, p1, p2;
-    public f32 thickness;
-    public u8 r, g, b;
+    public u8 r, g, b, a;
 }
 
 public unsafe struct Debug_Draw_Text {
@@ -229,6 +229,10 @@ public unsafe class Core_Helpers {
         return new Color(r / 255.0f, g / 255.0f, b / 255.0f, 1);
     }
 
+    private static Color color(u8 r, u8 g, u8 b, u8 a) {
+        return new Color(r / 255.0f, g / 255.0f, b / 255.0f, a / 255.0f);
+    }
+
     private static Vector3 vector3(v3f v) {
         return new Vector3(v.x, v.y, v.z);
     }
@@ -266,9 +270,47 @@ public unsafe class Core_Helpers {
         dbg_draw_objects.Add(_object);
     }
 
-    public static void debug_draw_world(World_Handle world_handle, Debug_Draw_Options options) {
+    public static void debug_draw_world(World_Handle world_handle, Debug_Draw_Options options, bool clear) {
+        if(clear) clear_debug_draw();
+
         Debug_Draw_Data draw_data = Core_Bindings.core_debug_draw_world(world_handle, options);
 
+        {
+            List<Vector3> triangle_vertices = new List<Vector3>();
+            List<Color> triangle_colors = new List<Color>();
+            List<int> triangle_indices = new List<int>();
+
+            for(int i = 0; i < draw_data.triangle_count; ++i) {
+                Color _color = color(draw_data.triangles[i].r, draw_data.triangles[i].g, draw_data.triangles[i].b, draw_data.triangles[i].a);
+                triangle_vertices.Add(vector3(draw_data.triangles[i].p0));
+                triangle_vertices.Add(vector3(draw_data.triangles[i].p1));
+                triangle_vertices.Add(vector3(draw_data.triangles[i].p2));
+                triangle_colors.Add(_color);
+                triangle_colors.Add(_color);
+                triangle_colors.Add(_color);
+                triangle_indices.Add(i * 3 + 0);
+                triangle_indices.Add(i * 3 + 1);
+                triangle_indices.Add(i * 3 + 2);
+            }
+
+            Mesh triangle_mesh = new Mesh();
+            triangle_mesh.name = "DbgTriangleMesh";
+            triangle_mesh.SetVertices(triangle_vertices);
+            triangle_mesh.SetColors(triangle_colors);
+            triangle_mesh.SetTriangles(triangle_indices, 0);
+
+            GameObject _object = new GameObject();
+            _object.name = "DbgTriangles";
+
+            MeshFilter mesh_filter = _object.AddComponent<MeshFilter>();
+            mesh_filter.mesh = triangle_mesh;
+
+            MeshRenderer mesh_renderer = _object.AddComponent<MeshRenderer>();
+            mesh_renderer.material = Resources.Load<Material>("FlatMaterial");
+
+            dbg_draw_objects.Add(_object);
+        }
+        
         for(s64 i = 0; i < draw_data.text_count; ++i) {
             draw_text(vector3(draw_data.texts[i].position), draw_data.texts[i].text.cs(), color(draw_data.texts[i].r, draw_data.texts[i].g, draw_data.texts[i].b));
         }

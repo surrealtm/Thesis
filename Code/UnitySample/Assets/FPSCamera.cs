@@ -34,8 +34,6 @@ public class FPSCamera : MonoBehaviour {
 	}
 
 	public void Update() {
-		Debug.Log("Visible: " + Cursor.visible);
-		
 		if(Input.GetKeyDown(KeyCode.Escape)) this.set_escaped(!this.escaped);
 
 		if(this.escaped) return;
