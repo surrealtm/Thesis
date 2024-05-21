@@ -10,9 +10,9 @@ public class FPSCamera : MonoBehaviour {
 	[SerializeField] 
 	public float pitch_clamp = 90f;
 
-	[Range(0.01f, 1f)]
+	[Range(1.0f, 100.0f)]
 	[SerializeField]
-	public float speed = 0.02f;
+	public float speed = 10.0f;
 
 	private Vector2 rotation = Vector2.zero;
 	private bool escaped;
@@ -38,6 +38,10 @@ public class FPSCamera : MonoBehaviour {
 
 		if(this.escaped) return;
 
+		float frame_speed = 1.0f;
+		if(Input.GetKey(KeyCode.LeftShift)) frame_speed = 2.0f;
+		frame_speed *= Time.deltaTime;
+
 		this.rotation.x += Input.GetAxis("Mouse X") * this.sensitivity;
 		this.rotation.y += Input.GetAxis("Mouse Y") * this.sensitivity;
 
@@ -48,6 +52,6 @@ public class FPSCamera : MonoBehaviour {
 
 		this.transform.localRotation = xQuat * yQuat;
 	
-		this.transform.position += this.transform.localRotation * new Vector3(Input.GetAxis("Horizontal"), 0, Input.GetAxis("Vertical")) * this.speed;
+		this.transform.position += this.transform.localRotation * new Vector3(Input.GetAxis("Horizontal"), 0, Input.GetAxis("Vertical")) * this.speed * frame_speed;
 	}
 }

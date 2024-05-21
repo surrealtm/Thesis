@@ -275,7 +275,7 @@ public unsafe class Core_Helpers {
 
         Debug_Draw_Data draw_data = Core_Bindings.core_debug_draw_world(world_handle, options);
 
-        {
+        if(draw_data.triangle_count > 0) {
             List<Vector3> triangle_vertices = new List<Vector3>();
             List<Color> triangle_colors = new List<Color>();
             List<int> triangle_indices = new List<int>();
@@ -309,6 +309,39 @@ public unsafe class Core_Helpers {
             mesh_renderer.material = Resources.Load<Material>("FlatMaterial");
 
             dbg_draw_objects.Add(_object);
+        }
+
+        if(draw_data.line_count > 0) {
+            List<Vector3> line_vertices = new List<Vector3>();
+            List<Color> line_colors = new List<Color>();
+            List<int> line_indices = new List<int>();
+
+            for(int i = 0; i < draw_data.line_count; ++i) {
+                Color _color = color(draw_data.lines[i].r, draw_data.lines[i].g, draw_data.lines[i].b);
+                line_vertices.Add(vector3(draw_data.lines[i].p0));
+                line_vertices.Add(vector3(draw_data.lines[i].p1));
+                line_colors.Add(_color);
+                line_colors.Add(_color);
+                line_indices.Add(i * 2 + 0);
+                line_indices.Add(i * 2 + 1);                
+            }
+            
+            Mesh line_mesh = new Mesh();
+            line_mesh.name = "DbgLineMesh";
+            line_mesh.SetVertices(line_vertices);
+            line_mesh.SetColors(line_colors);
+            line_mesh.SetIndices(line_indices, MeshTopology.Lines, 0);
+
+            GameObject _object = new GameObject();
+            _object.name = "DbgLines";
+
+            MeshFilter mesh_filter = _object.AddComponent<MeshFilter>();
+            mesh_filter.mesh = line_mesh;
+
+            MeshRenderer mesh_renderer = _object.AddComponent<MeshRenderer>();
+            mesh_renderer.material = Resources.Load<Material>("WireframeMaterial");
+
+            dbg_draw_objects.Add(_object);            
         }
         
         for(s64 i = 0; i < draw_data.text_count; ++i) {

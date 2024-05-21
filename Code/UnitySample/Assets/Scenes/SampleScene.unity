@@ -169,6 +169,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   step_into: 0
   camera: {fileID: 963194227}
+  debug_draw_options: 4215
 --- !u!1 &705507993
 GameObject:
   m_ObjectHideFlags: 0
@@ -361,5 +362,5 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   sensitivity: 2
-  pitch_clamp: 88
-  speed: 0.1
+  pitch_clamp: 90
+  speed: 10
