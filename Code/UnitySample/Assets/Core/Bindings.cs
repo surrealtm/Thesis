@@ -152,67 +152,67 @@ public unsafe struct Memory_Information {
 
 public class Core_Bindings {
     /* --------------------------------------------- General API --------------------------------------------- */
-    [DllImport("../Core/x64/ReleaseDll/Core.dll")]
+    [DllImport("Core.dll")]
     public static extern World_Handle core_create_world(double x, double y, double z);
-    [DllImport("../Core/x64/ReleaseDll/Core.dll")]
+    [DllImport("Core.dll")]
     public static extern void core_destroy_world(World_Handle world);
 
 
 
 #if FOUNDATION_DEVELOPER
     /* ----------------------------------------------- Testing ----------------------------------------------- */
-    [DllImport("../Core/x64/ReleaseDll/Core.dll")]
+    [DllImport("Core.dll")]
     public static extern void core_do_world_step(World_Handle world_handle, bool step_mode);
 
-    [DllImport("../Core/x64/ReleaseDll/Core.dll")]
+    [DllImport("Core.dll")]
     public static extern World_Handle core_do_house_test(bool step_into);
-    [DllImport("../Core/x64/ReleaseDll/Core.dll")]
+    [DllImport("Core.dll")]
     public static extern World_Handle core_do_octree_test(bool step_into);
-    [DllImport("../Core/x64/ReleaseDll/Core.dll")]
+    [DllImport("Core.dll")]
     public static extern World_Handle core_do_large_volumes_test(bool step_into);
-    [DllImport("../Core/x64/ReleaseDll/Core.dll")]
+    [DllImport("Core.dll")]
     public static extern World_Handle core_do_cutout_test(bool step_into);
-    [DllImport("../Core/x64/ReleaseDll/Core.dll")]
+    [DllImport("Core.dll")]
     public static extern World_Handle core_do_circle_test(bool step_into);
-    [DllImport("../Core/x64/ReleaseDll/Core.dll")]
+    [DllImport("Core.dll")]
     public static extern World_Handle core_do_u_shape_test(bool step_into);
-    [DllImport("../Core/x64/ReleaseDll/Core.dll")]
+    [DllImport("Core.dll")]
     public static extern World_Handle core_do_center_block_test(bool step_into);
-    [DllImport("../Core/x64/ReleaseDll/Core.dll")]
+    [DllImport("Core.dll")]
     public static extern World_Handle core_do_jobs_test(bool step_into);
 
 
 
     /* ---------------------------------------------- Debug Draw --------------------------------------------- */
 
-    [DllImport("../Core/x64/ReleaseDll/Core.dll")]
+    [DllImport("Core.dll")]
     public static extern Debug_Draw_Data core_debug_draw_world(World_Handle world_handle, Debug_Draw_Options options);
-    [DllImport("../Core/x64/ReleaseDll/Core.dll")]
+    [DllImport("Core.dll")]
     public static extern void core_free_debug_draw_data(Debug_Draw_Data_Handle data);
 
 
 
     /* ---------------------------------------------- Profiling ---------------------------------------------- */
 
-    [DllImport("../Core/x64/ReleaseDll/Core.dll")]
+    [DllImport("Core.dll")]
     public static extern void core_begin_profiling();
-    [DllImport("../Core/x64/ReleaseDll/Core.dll")]
+    [DllImport("Core.dll")]
     public static extern void core_stop_profiling();
-    [DllImport("../Core/x64/ReleaseDll/Core.dll")]
+    [DllImport("Core.dll")]
     public static extern void core_print_profiling(bool include_timeline);
-    [DllImport("../Core/x64/ReleaseDll/Core.dll")]
+    [DllImport("Core.dll")]
     public static extern Timing_Data core_get_profiling_data();
-    [DllImport("../Core/x64/ReleaseDll/Core.dll")]
+    [DllImport("Core.dll")]
     public static extern void core_free_profiling_data(Timing_Data_Handle data);
 
-    [DllImport("../Core/x64/ReleaseDll/Core.dll")]
+    [DllImport("Core.dll")]
     public static extern Memory_Information core_get_memory_information(World_Handle world_handle);
-    [DllImport("../Core/x64/ReleaseDll/Core.dll")]
+    [DllImport("Core.dll")]
     public static extern void core_free_memory_information(Memory_Information_Handle info);
 
-    [DllImport("../Core/x64/ReleaseDll/Core.dll")]
+    [DllImport("Core.dll")]
     public static extern void core_enable_memory_tracking();
-    [DllImport("../Core/x64/ReleaseDll/Core.dll")]
+    [DllImport("Core.dll")]
     public static extern void core_disable_memory_tracking();
 #endif
 };
