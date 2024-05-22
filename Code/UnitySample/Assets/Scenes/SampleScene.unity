@@ -134,7 +134,7 @@ GameObject:
   - component: {fileID: 121223058}
   - component: {fileID: 121223059}
   m_Layer: 0
-  m_Name: CoreBindings
+  m_Name: Tester
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -170,6 +170,7 @@ MonoBehaviour:
   step_into: 0
   camera: {fileID: 963194227}
   debug_draw_options: 4215
+  test_case: 6
 --- !u!1 &705507993
 GameObject:
   m_ObjectHideFlags: 0
