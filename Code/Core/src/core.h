@@ -90,7 +90,7 @@ struct Boundary {
     vec3 local_unit_axes[AXIS_COUNT]; // The three coordinate axis in the local transform (meaning: rotated) of this boundary.
     AABB aabb;
 
-    Resizable_Array<Triangle> clipping_triangles; // Having this be a full-on dynamic array is pretty wasteful, since boundaries should only ever have between 1 and 3 clipping planes...  @@Speed.
+    Resizable_Array<Triangle> clipping_triangles;
 
     // Only for debug drawing.
     string dbg_name;
@@ -174,8 +174,10 @@ struct World {
 
     void reserve_objects(s64 anchors, s64 boundaries);
     
-    Anchor *add_anchor(string name, vec3 position);
-    Boundary *add_boundary(string name, vec3 position, vec3 size, vec3 rotation);
+    Anchor *add_anchor(vec3 position);
+    Anchor *add_anchor(string dbg_name, vec3 position);
+    Boundary *add_boundary(vec3 position, vec3 size, vec3 rotation);
+    Boundary *add_boundary(string dbg_name, vec3 position, vec3 size, vec3 rotation);
     void add_boundary_clipping_planes(Boundary *boundary, Axis normal_axis);
     void add_centered_boundary_clipping_plane(Boundary *boundary, Axis normal_axis);
     

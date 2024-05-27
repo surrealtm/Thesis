@@ -17,6 +17,8 @@ extern "C" {
 
     EXPORT World_Handle core_create_world(f64 x, f64 y, f64 z);
     EXPORT void core_destroy_world(World_Handle world);
+    EXPORT void core_add_anchor(World_Handle world, f64 x, f64 y, f64);
+    EXPORT void core_add_boundary(World_Handle world, f64 x, f64 y, f64 z, f64 hx, f64 hy, f64 hz, f64 rx, f64 ry, f64 rz);
 
     
 #if FOUNDATION_DEVELOPER

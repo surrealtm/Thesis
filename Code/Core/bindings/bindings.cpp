@@ -10,11 +10,9 @@
 
 
 #if FOUNDATION_DEVELOPER
-static b8 memory_tracking_enabled = false;
-
-
-
 /* ------------------------------------------------- Helpers ------------------------------------------------- */
+
+static b8 memory_tracking_enabled = false;
 
 static
 void create_random_anchors(World *world, s64 count) {
@@ -28,7 +26,8 @@ void create_random_anchors(World *world, s64 count) {
         vec3 position = vec3(get_random_real_uniform(-width, width),
                              get_random_real_uniform(-height, height),
                              get_random_real_uniform(-length, length));
-        world->add_anchor("Anchor"_s, position);
+        Anchor *anchor = world->add_anchor(position);
+        anchor->dbg_name = "Anchor"_s;
     }
 }
 
@@ -74,6 +73,17 @@ extern "C" {
         world->destroy();
         Default_Allocator->deallocate(world);
     }
+
+    void core_add_anchor(World_Handle world_handle, f64 x, f64 y, f64 z) {
+        World *world = (World *) world_handle;
+        world->add_anchor(vec3((real) x, (real) y, (real) z));
+    }
+
+    void core_add_boundary(World_Handle world_handle, f64 x, f64 y, f64 z, f64 hx, f64 hy, f64 hz, f64 rx, f64 ry, f64 rz) {
+        World *world = (World *) world_handle;
+        world->add_boundary(vec3((real) x, (real) y, (real) z), vec3((real) hx, (real) hy, (real) hz), vec3((real) rx, (real) ry, (real) rz));
+    }
+
 
     
 #if FOUNDATION_DEVELOPER
@@ -417,7 +427,7 @@ extern "C" {
 
 
     void core_enable_memory_tracking() {
-        set_allocation_callbacks(Default_Allocator, "Heap");
+        install_allocator_console_logger(Default_Allocator, "Heap");
         memory_tracking_enabled = true;
     }
 

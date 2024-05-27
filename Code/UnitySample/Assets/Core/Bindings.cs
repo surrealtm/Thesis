@@ -16,11 +16,17 @@ using s64 = System.Int64;
 /* ----------------------------------------------- Opaque Types ----------------------------------------------- */
 
 public struct World {}
-public struct World_Handle { System.IntPtr __handle; public World_Handle(IntPtr ptr) { __handle = ptr; } }
+
+public struct World_Handle { 
+    System.IntPtr __handle; 
+    public World_Handle(IntPtr ptr) { __handle = ptr; } 
+    public bool valid() { return this.__handle != IntPtr.Zero; } 
+    public void invalidate() { this.__handle = IntPtr.Zero; } 
+}
+
 public struct Debug_Draw_Data_Handle { System.IntPtr __handle; public Debug_Draw_Data_Handle(IntPtr ptr) { __handle = ptr; } }
 public struct Timing_Data_Handle { System.IntPtr __handle; public Timing_Data_Handle(IntPtr ptr) { __handle = ptr; } }
 public struct Memory_Information_Handle { System.IntPtr __handle; public Memory_Information_Handle(IntPtr ptr) { __handle = ptr; } }
-
 
 
 
@@ -55,7 +61,9 @@ public unsafe struct _string {
     public s64 count;
     public IntPtr data; // char *
 
-    public String cs() { return System.Runtime.InteropServices.Marshal.PtrToStringAnsi(this.data); }
+    public String cs() { 
+        return System.Runtime.InteropServices.Marshal.PtrToStringAnsi(this.data, (int) this.count);
+    }
 }
 
 public unsafe struct Debug_Draw_Line {
@@ -156,6 +164,10 @@ public class Core_Bindings {
     public static extern World_Handle core_create_world(double x, double y, double z);
     [DllImport("Core.dll")]
     public static extern void core_destroy_world(World_Handle world);
+    [DllImport("Core.dll")]
+    public static extern void core_add_anchor(double x, double y, double z);
+    [DllImport("Core.dll")]
+    public static extern void core_add_boundary(double x, double y, double z, double hx, double hy, double hz, double rx, double ry, double rz);
 
 
 
@@ -241,6 +253,8 @@ public unsafe class Core_Helpers {
         return new Quaternion(q.x, q.y, q.z, q.w);
     }
     
+
+
     public static void draw_primitive(PrimitiveType primitive_type, Vector3 position, Quaternion rotation, Vector3 size, Color color) {
         GameObject _object = GameObject.CreatePrimitive(primitive_type);
         _object.name       = "Dbg" + primitive_type;
@@ -359,14 +373,6 @@ public unsafe class Core_Helpers {
         Core_Bindings.core_free_debug_draw_data(new Debug_Draw_Data_Handle((IntPtr) (&draw_data)));
     }
 
-    public static void make_texts_face_the_camera(Camera camera) {
-        foreach(GameObject _object in dbg_draw_objects) {
-            if(_object.GetComponent<TextMesh>() != null) {
-                _object.transform.LookAt(camera.transform.position);
-            }
-        }
-    }
-
     public static void clear_debug_draw() {
         foreach(GameObject obj in dbg_draw_objects) {
             GameObject.Destroy(obj);
@@ -375,22 +381,60 @@ public unsafe class Core_Helpers {
         dbg_draw_objects.Clear();
     }
 
+
+
+    public static void make_texts_face_the_camera(Camera camera) {
+        foreach(GameObject _object in dbg_draw_objects) {
+            if(_object.GetComponent<TextMesh>() != null) {
+                _object.transform.LookAt(camera.transform.position);
+            }
+        }
+    }
+
+
+
     public static f64 to_seconds(s64 nanoseconds) {
         return (f64) nanoseconds / 1000000000.0f;
     }
 
-    public static void print_profiling(bool include_timeline) {
-        Timing_Data timing_data = Core_Bindings.core_get_profiling_data();
+    public static f64 to_megabytes(s64 bytes) {
+        return (f64) bytes / 1000000.0f;
+    }
+    
+    public static void print_profiling(World_Handle world_handle, bool include_timeline) {
+        {
+            Timing_Data timing_data = Core_Bindings.core_get_profiling_data();
 
-        Debug.Log("------------------------------ Summary: ------------------------------");
+            Debug.Log("------------------------------ Summary: ------------------------------");
 
-        for(s64 i = 0; i < timing_data.summary_count; ++i) {
-            string name = timing_data.summary[i].name.cs();
-            Debug.Log(name +  " | Exclusive: " + to_seconds(timing_data.summary[i].exclusive_time_in_nanoseconds) + "s | " + timing_data.summary[i].count + "x");
+            for(s64 i = 0; i < timing_data.summary_count; ++i) {
+                string name = timing_data.summary[i].name.cs();
+                Debug.Log(name +  " | Exclusive: " + to_seconds(timing_data.summary[i].exclusive_time_in_nanoseconds) + "s | " + timing_data.summary[i].count + "x");
+            }
+
+            Debug.Log("------------------------------ Summary: ------------------------------");
+
+            Core_Bindings.core_free_profiling_data(new Timing_Data_Handle((IntPtr) (&timing_data)));
         }
+        
+        {
+            Memory_Information memory_information = Core_Bindings.core_get_memory_information(world_handle);   
+        
+            Debug.Log("------------------------------ Memory: ------------------------------");
 
-        Debug.Log("------------------------------ Summary: ------------------------------");
+            for(s64 i = 0; i < memory_information.allocator_count; ++i) {
+                Memory_Allocator_Information allocator = memory_information.allocators[i];
+                Debug.Log("  > Allocator: " + allocator.name.cs());
+                Debug.Log("       Allocations:      " + allocator.allocation_count);
+                Debug.Log("       Deallocations:    " + allocator.deallocation_count);
+                Debug.Log("       Working Set:      " + to_megabytes(allocator.working_set_size) + "mb");
+                Debug.Log("       Peak Working Set: " + to_megabytes(allocator.peak_working_set_size) + "mb");
+            }
+            
+            Debug.Log("  OS-Working-Set: " + to_megabytes(memory_information.os_working_set_size) + "mb.");
+            Debug.Log("------------------------------ Memory: ------------------------------");
 
-        Core_Bindings.core_free_profiling_data(new Timing_Data_Handle((IntPtr) (&timing_data)));
+            Core_Bindings.core_free_memory_information(new Memory_Information_Handle((IntPtr) (&memory_information)));
+        }
     }
 };

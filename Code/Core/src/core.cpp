@@ -171,18 +171,23 @@ void World::reserve_objects(s64 anchors, s64 boundaries) {
     this->boundaries.reserve(boundaries);
 }
 
-Anchor *World::add_anchor(string name, vec3 position) {
+Anchor *World::add_anchor(vec3 position) {
     tmFunction(TM_WORLD_COLOR);
 
     Anchor *anchor   = this->anchors.push();
     anchor->position = position;
     anchor->volume_triangles.allocator = this->allocator;
-    anchor->dbg_name = copy_string(this->allocator, name);
 
     return anchor;
 }
 
-Boundary *World::add_boundary(string name, vec3 position, vec3 half_size, vec3 rotation) {
+Anchor *World::add_anchor(string dbg_name, vec3 position) {
+    Anchor *anchor = this->add_anchor(position);
+    anchor->dbg_name = dbg_name;
+    return anchor;
+}
+
+Boundary *World::add_boundary(vec3 position, vec3 half_size, vec3 rotation) {
     tmFunction(TM_WORLD_COLOR);
 
     quat quaternion = qt_from_euler_turns(rotation);
@@ -198,10 +203,15 @@ Boundary *World::add_boundary(string name, vec3 position, vec3 half_size, vec3 r
     boundary->local_unit_axes[AXIS_Z]   = qt_rotate(quaternion, vec3(0, 0, 1));
     boundary->clipping_triangles.allocator = this->allocator;
 
-    boundary->dbg_name      = copy_string(this->allocator, name); // @@Speed: This seems to be veryy fucking slow...
     boundary->dbg_half_size = half_size;
     boundary->dbg_rotation  = quaternion;
 
+    return boundary;
+}
+
+Boundary *World::add_boundary(string dbg_name, vec3 position, vec3 half_size, vec3 rotation) {
+    Boundary *boundary = this->add_boundary(position, half_size, rotation);
+    boundary->dbg_name = dbg_name;
     return boundary;
 }
 
