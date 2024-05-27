@@ -13,47 +13,6 @@
 static b8 memory_tracking_enabled = false;
 
 
-/* --------------------------------------------- Memory Tracking --------------------------------------------- */
-
-static
-void allocation_callback(Allocator *allocator, const void *allocator_name, void *data, u64 size) {
-    printf("[Allocation] %s : %" PRIu64 "b, 0x%016" PRIx64 "\n", (char *) allocator_name, size, (u64) data);
-}
-
-static
-void deallocation_callback(Allocator *allocator, const void *allocator_name, void *data, u64 size) {
-    printf("[Deallocation] %s : %" PRIu64 "b, 0x%016" PRIx64 "\n", (char *) allocator_name, size, (u64) data);    
-}
-
-static
-void reallocation_callback(Allocator *allocator, const void *allocator_name, void *old_data, u64 old_size, void *new_data, u64 new_size) {
-    printf("[Reallocation] %s : %" PRIu64 "b, 0x%016" PRIx64 " -> %" PRIu64 "b, 0x%016" PRIx64 "\n", (char *) allocator_name, old_size, (u64) old_data, new_size, (u64) new_data);    
-}
-
-static
-void clear_callback(Allocator *allocator, const void *allocator_name) {
-    printf("[Clear] %s\n", (char *) allocator_name);
-}
-
-static
-void set_allocation_callbacks(Allocator *allocator, const char *name) {
-    allocator->callbacks.allocation_callback   = allocation_callback;
-    allocator->callbacks.deallocation_callback = deallocation_callback;
-    allocator->callbacks.reallocation_callback = reallocation_callback;
-    allocator->callbacks.clear_callback        = clear_callback;
-    allocator->callbacks.user_pointer          = name;
-}
-
-static
-void clear_allocation_callbacks(Allocator *allocator) {
-    allocator->callbacks.allocation_callback   = null;
-    allocator->callbacks.deallocation_callback = null;
-    allocator->callbacks.reallocation_callback = null;
-    allocator->callbacks.clear_callback        = null;
-    allocator->callbacks.user_pointer          = null;
-}
-
-
 
 /* ------------------------------------------------- Helpers ------------------------------------------------- */
 
@@ -102,7 +61,7 @@ extern "C" {
         world->create(vec3((real) x, (real) y, (real) z));
 
 #if FOUNDATION_DEVELOPER
-        if(memory_tracking_enabled) set_allocation_callbacks(world->allocator, "World");
+        if(memory_tracking_enabled) install_allocator_console_logger(world->allocator, "World");
 #endif
 
         return (World_Handle) world;
@@ -463,7 +422,7 @@ extern "C" {
     }
 
     void core_disable_memory_tracking() {
-        clear_allocation_callbacks(Default_Allocator);
+        clear_allocator_logger(Default_Allocator);
         memory_tracking_enabled = false;
     }
 #endif
