@@ -84,6 +84,7 @@ struct Anchor {
     string dbg_name;
 };
 
+// @Cleanup: Rename Boundary to Delimiter
 struct Boundary {
     vec3 position;
     vec3 local_scaled_axes[AXIS_COUNT]; // The three coordinate axis in the local transform (meaning: rotated) of this boundary.

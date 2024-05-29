@@ -62,6 +62,7 @@ public unsafe struct _string {
     public IntPtr data; // char *
 
     public String cs() { 
+        if(this.count == 0) return "";
         return System.Runtime.InteropServices.Marshal.PtrToStringAnsi(this.data, (int) this.count);
     }
 }
@@ -165,9 +166,9 @@ public class Core_Bindings {
     [DllImport("Core.dll")]
     public static extern void core_destroy_world(World_Handle world);
     [DllImport("Core.dll")]
-    public static extern void core_add_anchor(double x, double y, double z);
+    public static extern void core_add_anchor(World_Handle world, double x, double y, double z);
     [DllImport("Core.dll")]
-    public static extern void core_add_boundary(double x, double y, double z, double hx, double hy, double hz, double rx, double ry, double rz);
+    public static extern void core_add_boundary(World_Handle world, double x, double y, double z, double hx, double hy, double hz, double rx, double ry, double rz);
 
 
 
@@ -255,24 +256,63 @@ public unsafe class Core_Helpers {
     
 
 
-    public static void draw_primitive(PrimitiveType primitive_type, Vector3 position, Quaternion rotation, Vector3 size, Color color) {
+    public static World_Handle create_world_from_scene() {
+        // Determine the bounding box of this entire level so that we can
+        // speed up the world creation.
+        Bounds b = new Bounds(Vector3.zero, Vector3.zero);
+        foreach (Renderer r in UnityEngine.Object.FindObjectsOfType(typeof(Renderer))) {
+            b.Encapsulate(r.bounds);
+        }
+        
+        // The world is centered around the origin and has equal extents from there,
+        // so we must transform that here.
+        double x = (b.max.x > -b.min.x) ? b.max.x : -b.min.x;
+        double y = (b.max.y > -b.min.y) ? b.max.y : -b.min.y;
+        double z = (b.max.z > -b.min.z) ? b.max.z : -b.min.z;
+
+        World_Handle world_handle = Core_Bindings.core_create_world(x, y, z);
+
+        foreach (Anchor a in UnityEngine.Object.FindObjectsOfType(typeof(Anchor))) {
+            Transform transform = a.gameObject.transform;
+            Core_Bindings.core_add_anchor(world_handle, transform.position.x, transform.position.y, transform.position.z);
+        }
+
+        foreach (Delimiter d in UnityEngine.Object.FindObjectsOfType(typeof(Delimiter))) {
+            Renderer renderer;
+            if(!d.TryGetComponent(out renderer)) continue;
+            
+            Transform transform = d.gameObject.transform;
+            Bounds bounds = renderer.bounds;
+            Core_Bindings.core_add_boundary(world_handle, transform.position.x, transform.position.y, transform.position.z, bounds.extents.x, bounds.extents.y, bounds.extents.z, transform.eulerAngles.x, transform.eulerAngles.y, transform.eulerAngles.z);
+        }
+
+        return world_handle;
+    }
+
+
+
+    public static void draw_primitive(GameObject root, PrimitiveType primitive_type, Vector3 position, Quaternion rotation, Vector3 size, Color color) {
         GameObject _object = GameObject.CreatePrimitive(primitive_type);
         _object.name       = "Dbg" + primitive_type;
         _object.transform.position   = position;
         _object.transform.rotation   = rotation;
         _object.transform.localScale = size * 2;
-        
+        _object.transform.SetParent(root.transform);
+
         MeshRenderer mesh_renderer = _object.GetComponent<MeshRenderer>();
         mesh_renderer.material.color = color;
 
         dbg_draw_objects.Add(_object);
     }
 
-    public static void draw_text(Vector3 position, string text, Color color) {
+    public static void draw_text(GameObject root, Vector3 position, string text, Color color) {
+        if(text.Length == 0) return;
+
         GameObject _object = new GameObject();
         _object.name       = "DbgText";
         _object.transform.position   = position;
         _object.transform.localScale = new Vector3(-0.03f, 0.03f, 0.03f); // Make this very small and the font size really large for higher quality text. The X scale is negative to flip the text, making it readable again after the LookAt when facing the camera.
+        _object.transform.SetParent(root.transform);
 
         TextMesh text_mesh = _object.AddComponent<TextMesh>();
         text_mesh.text     = text;
@@ -286,6 +326,9 @@ public unsafe class Core_Helpers {
 
     public static void debug_draw_world(World_Handle world_handle, Debug_Draw_Options options, bool clear) {
         if(clear) clear_debug_draw();
+
+        GameObject root = new GameObject();
+        root.name = "DbgObjects";
 
         Debug_Draw_Data draw_data = Core_Bindings.core_debug_draw_world(world_handle, options);
 
@@ -315,6 +358,7 @@ public unsafe class Core_Helpers {
 
             GameObject _object = new GameObject();
             _object.name = "DbgTriangles";
+            _object.transform.SetParent(root.transform);
 
             MeshFilter mesh_filter = _object.AddComponent<MeshFilter>();
             mesh_filter.mesh = triangle_mesh;
@@ -348,6 +392,7 @@ public unsafe class Core_Helpers {
 
             GameObject _object = new GameObject();
             _object.name = "DbgLines";
+            _object.transform.SetParent(root.transform);
 
             MeshFilter mesh_filter = _object.AddComponent<MeshFilter>();
             mesh_filter.mesh = line_mesh;
@@ -359,15 +404,15 @@ public unsafe class Core_Helpers {
         }
         
         for(s64 i = 0; i < draw_data.text_count; ++i) {
-            draw_text(vector3(draw_data.texts[i].position), draw_data.texts[i].text.cs(), color(draw_data.texts[i].r, draw_data.texts[i].g, draw_data.texts[i].b));
+            draw_text(root, vector3(draw_data.texts[i].position), draw_data.texts[i].text.cs(), color(draw_data.texts[i].r, draw_data.texts[i].g, draw_data.texts[i].b));
         }
 
         for(s64 i = 0; i < draw_data.cuboid_count; ++i) {
-            draw_primitive(PrimitiveType.Cube, vector3(draw_data.cuboids[i].position), quat(draw_data.cuboids[i].rotation), vector3(draw_data.cuboids[i].size), color(draw_data.cuboids[i].r, draw_data.cuboids[i].g, draw_data.cuboids[i].b));
+            draw_primitive(root, PrimitiveType.Cube, vector3(draw_data.cuboids[i].position), quat(draw_data.cuboids[i].rotation), vector3(draw_data.cuboids[i].size), color(draw_data.cuboids[i].r, draw_data.cuboids[i].g, draw_data.cuboids[i].b));
         }
 
         for(s64 i = 0; i < draw_data.sphere_count; ++i) {
-            draw_primitive(PrimitiveType.Sphere, vector3(draw_data.spheres[i].position), new Quaternion(0, 0, 0, 1), new Vector3(draw_data.spheres[i].radius, draw_data.spheres[i].radius, draw_data.spheres[i].radius), color(draw_data.spheres[i].r, draw_data.spheres[i].g, draw_data.spheres[i].b));
+            draw_primitive(root, PrimitiveType.Sphere, vector3(draw_data.spheres[i].position), new Quaternion(0, 0, 0, 1), new Vector3(draw_data.spheres[i].radius, draw_data.spheres[i].radius, draw_data.spheres[i].radius), color(draw_data.spheres[i].r, draw_data.spheres[i].g, draw_data.spheres[i].b));
         }
         
         Core_Bindings.core_free_debug_draw_data(new Debug_Draw_Data_Handle((IntPtr) (&draw_data)));
