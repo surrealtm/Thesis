@@ -14,11 +14,19 @@ extern "C" {
     typedef void* World_Handle;
 
     /* --------------------------------------------- General API --------------------------------------------- */
+    
+    enum Axis_Index {
+        AXIS_INDEX_X = 0,
+        AXIS_INDEX_Y = 1,
+        AXIS_INDEX_Z = 2,
+    };
 
     EXPORT World_Handle core_create_world(f64 x, f64 y, f64 z);
     EXPORT void core_destroy_world(World_Handle world);
-    EXPORT void core_add_anchor(World_Handle world, f64 x, f64 y, f64);
-    EXPORT void core_add_boundary(World_Handle world, f64 x, f64 y, f64 z, f64 hx, f64 hy, f64 hz, f64 rx, f64 ry, f64 rz);
+    EXPORT s64 core_add_anchor(World_Handle world, f64 x, f64 y, f64);
+    EXPORT s64 core_add_delimiter(World_Handle world, f64 x, f64 y, f64 z, f64 hx, f64 hy, f64 hz, f64 rx, f64 ry, f64 rz);
+    EXPORT void core_add_delimiter_clipping_planes(World_Handle world, s64 delimiter_index, s64 axis_index);
+    EXPORT void core_calculate_volumes(World_Handle world);
 
     
 #if FOUNDATION_DEVELOPER

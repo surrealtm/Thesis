@@ -84,11 +84,10 @@ struct Anchor {
     string dbg_name;
 };
 
-// @Cleanup: Rename Boundary to Delimiter
-struct Boundary {
+struct Delimiter {
     vec3 position;
-    vec3 local_scaled_axes[AXIS_COUNT]; // The three coordinate axis in the local transform (meaning: rotated) of this boundary.
-    vec3 local_unit_axes[AXIS_COUNT]; // The three coordinate axis in the local transform (meaning: rotated) of this boundary.
+    vec3 local_scaled_axes[AXIS_COUNT]; // The three coordinate axis in the local transform (meaning: rotated) of this delimiter.
+    vec3 local_unit_axes[AXIS_COUNT]; // The three coordinate axis in the local transform (meaning: rotated) of this delimiter.
     AABB aabb;
 
     Resizable_Array<Triangle> clipping_triangles;
@@ -132,8 +131,8 @@ struct Octree {
     vec3 half_size;
     Octree *children[OCTREE_CHILD_COUNT];
 
-    Resizable_Array<Anchor*> contained_anchors;
-    Resizable_Array<Boundary*> contained_boundaries;
+    Resizable_Array<Anchor *>    contained_anchors;
+    Resizable_Array<Delimiter *> contained_delimiters;
 
     void create(Allocator *allocator, vec3 center, vec3 half_size, u8 depth = 0);
     Octree *get_octree_for_aabb(AABB const &aabb, Allocator *allocator);
@@ -161,36 +160,36 @@ struct World {
     // We assume that these arrays get filled once at the start and then are never
     // modified, so that pointers to these objects are stable.
     Resizable_Array<Anchor> anchors;
-    Resizable_Array<Boundary> boundaries;
+    Resizable_Array<Delimiter> delimiters;
 
     // The clipping planes of the octree, since no volume should ever go past the dimensions of the world.
     Resizable_Array<Triangle> root_clipping_triangles;
 
-    // This octree contains pointers to anchors, boundaries and volumes, to make spatial lookup
+    // This octree contains pointers to anchors, delimiters and volumes, to make spatial lookup
     // for objects a lot faster.
     Octree root;
 
     void create(vec3 half_size);
     void destroy();
 
-    void reserve_objects(s64 anchors, s64 boundaries);
+    void reserve_objects(s64 anchors, s64 delimiters);
     
     Anchor *add_anchor(vec3 position);
     Anchor *add_anchor(string dbg_name, vec3 position);
-    Boundary *add_boundary(vec3 position, vec3 size, vec3 rotation);
-    Boundary *add_boundary(string dbg_name, vec3 position, vec3 size, vec3 rotation);
-    void add_boundary_clipping_planes(Boundary *boundary, Axis normal_axis);
-    void add_centered_boundary_clipping_plane(Boundary *boundary, Axis normal_axis);
+    Delimiter *add_delimiter(vec3 position, vec3 size, vec3 rotation);
+    Delimiter *add_delimiter(string dbg_name, vec3 position, vec3 size, vec3 rotation);
+    void add_delimiter_clipping_planes(Delimiter *delimiter, Axis normal_axis);
+    void add_centered_delimiter_clipping_plane(Delimiter *delimiter, Axis normal_axis);
     
     void create_octree();
-    void clip_boundaries(b8 single_step);
+    void clip_delimiters(b8 single_step);
 
     /* DbgStep */
 
     b8 dbg_step_initialized;
     b8 dbg_step_completed;
     b8 dbg_step_clipping_triangle_should_be_removed;
-    s64 dbg_step_boundary;
+    s64 dbg_step_delimiter;
     s64 dbg_step_clipping_triangle;
     s64 dbg_step_root_triangle;
 };

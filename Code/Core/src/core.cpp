@@ -62,7 +62,7 @@ void Octree::create(Allocator *allocator, vec3 center, vec3 half_size, u8 depth)
     memset(this->children, 0, sizeof(this->children));
 
     this->contained_anchors.allocator = allocator;
-    this->contained_boundaries.allocator = allocator;
+    this->contained_delimiters.allocator = allocator;
 }
 
 Octree *Octree::get_octree_for_aabb(AABB const &aabb, Allocator *allocator) {
@@ -127,7 +127,7 @@ void World::create(vec3 half_size) {
     //
     this->half_size = half_size;
     this->anchors.allocator    = this->allocator;
-    this->boundaries.allocator = this->allocator;
+    this->delimiters.allocator = this->allocator;
     this->root_clipping_triangles.allocator = this->allocator;
     this->root.create(this->allocator, vec3(0), this->half_size);
 
@@ -165,10 +165,10 @@ void World::destroy() {
     this->arena.destroy();
 }
 
-void World::reserve_objects(s64 anchors, s64 boundaries) {
+void World::reserve_objects(s64 anchors, s64 delimiters) {
     tmFunction(TM_WORLD_COLOR);
     this->anchors.reserve(anchors);
-    this->boundaries.reserve(boundaries);
+    this->delimiters.reserve(delimiters);
 }
 
 Anchor *World::add_anchor(vec3 position) {
@@ -187,105 +187,105 @@ Anchor *World::add_anchor(string dbg_name, vec3 position) {
     return anchor;
 }
 
-Boundary *World::add_boundary(vec3 position, vec3 half_size, vec3 rotation) {
+Delimiter *World::add_delimiter(vec3 position, vec3 half_size, vec3 rotation) {
     tmFunction(TM_WORLD_COLOR);
 
     quat quaternion = qt_from_euler_turns(rotation);
 
-    Boundary *boundary                  = this->boundaries.push();
-    boundary->position                  = position;
-    boundary->aabb                      = { position - half_size, position + half_size };
-    boundary->local_scaled_axes[AXIS_X] = qt_rotate(quaternion, vec3(half_size.x, 0, 0));
-    boundary->local_scaled_axes[AXIS_Y] = qt_rotate(quaternion, vec3(0, half_size.y, 0));
-    boundary->local_scaled_axes[AXIS_Z] = qt_rotate(quaternion, vec3(0, 0, half_size.z));
-    boundary->local_unit_axes[AXIS_X]   = qt_rotate(quaternion, vec3(1, 0, 0));
-    boundary->local_unit_axes[AXIS_Y]   = qt_rotate(quaternion, vec3(0, 1, 0));
-    boundary->local_unit_axes[AXIS_Z]   = qt_rotate(quaternion, vec3(0, 0, 1));
-    boundary->clipping_triangles.allocator = this->allocator;
+    Delimiter *delimiter                 = this->delimiters.push();
+    delimiter->position                  = position;
+    delimiter->aabb                      = { position - half_size, position + half_size };
+    delimiter->local_scaled_axes[AXIS_X] = qt_rotate(quaternion, vec3(half_size.x, 0, 0));
+    delimiter->local_scaled_axes[AXIS_Y] = qt_rotate(quaternion, vec3(0, half_size.y, 0));
+    delimiter->local_scaled_axes[AXIS_Z] = qt_rotate(quaternion, vec3(0, 0, half_size.z));
+    delimiter->local_unit_axes[AXIS_X]   = qt_rotate(quaternion, vec3(1, 0, 0));
+    delimiter->local_unit_axes[AXIS_Y]   = qt_rotate(quaternion, vec3(0, 1, 0));
+    delimiter->local_unit_axes[AXIS_Z]   = qt_rotate(quaternion, vec3(0, 0, 1));
+    delimiter->clipping_triangles.allocator = this->allocator;
 
-    boundary->dbg_half_size = half_size;
-    boundary->dbg_rotation  = quaternion;
+    delimiter->dbg_half_size = half_size;
+    delimiter->dbg_rotation  = quaternion;
 
-    return boundary;
+    return delimiter;
 }
 
-Boundary *World::add_boundary(string dbg_name, vec3 position, vec3 half_size, vec3 rotation) {
-    Boundary *boundary = this->add_boundary(position, half_size, rotation);
-    boundary->dbg_name = dbg_name;
-    return boundary;
+Delimiter *World::add_delimiter(string dbg_name, vec3 position, vec3 half_size, vec3 rotation) {
+    Delimiter *delimiter = this->add_delimiter(position, half_size, rotation);
+    delimiter->dbg_name = dbg_name;
+    return delimiter;
 }
 
-void World::add_boundary_clipping_planes(Boundary *boundary, Axis normal_axis) {
+void World::add_delimiter_clipping_planes(Delimiter *delimiter, Axis normal_axis) {
     tmFunction(TM_WORLD_COLOR);
 
     assert(normal_axis >= 0 && normal_axis < AXIS_COUNT);
 
     real extension = max(max(this->half_size.x, this->half_size.y), this->half_size.z) * 2.f; // Uniformly scale the clipping plane to cover the entire world space, before it will probably get cut down later.
 
-    vec3 a = boundary->local_scaled_axes[normal_axis];
-    vec3 n = boundary->local_unit_axes[normal_axis];
-    vec3 u = boundary->local_unit_axes[(normal_axis + 1) % 3] * extension;
-    vec3 v = boundary->local_unit_axes[(normal_axis + 2) % 3] * extension;
+    vec3 a = delimiter->local_scaled_axes[normal_axis];
+    vec3 n = delimiter->local_unit_axes[normal_axis];
+    vec3 u = delimiter->local_unit_axes[(normal_axis + 1) % 3] * extension;
+    vec3 v = delimiter->local_unit_axes[(normal_axis + 2) % 3] * extension;
 
     //
-    // A boundary owns an actual volume, which means that the clipping plane
+    // A delimiter owns an actual volume, which means that the clipping plane
     // shouldn't actually go through the center, but be aligned with the sides
     // of this volume. This, in turn, means that there should actually be two
     // clipping planes, one on each side of the axis.
     //
 
     {
-        vec3 c = boundary->position + a;
+        vec3 c = delimiter->position + a;
         vec3 p0 = c - u - v;
         vec3 p1 = c - u + v;
         vec3 p2 = c + u - v;
         vec3 p3 = c + u + v;
-        boundary->clipping_triangles.add({ p0, p3, p1, n });
-        boundary->clipping_triangles.add({ p0, p2, p3, n });
+        delimiter->clipping_triangles.add({ p0, p3, p1, n });
+        delimiter->clipping_triangles.add({ p0, p2, p3, n });
     }
 
     {
-        vec3 c = boundary->position - a;
+        vec3 c = delimiter->position - a;
         vec3 p0 = c - u - v;
         vec3 p1 = c - u + v;
         vec3 p2 = c + u - v;
         vec3 p3 = c + u + v;
-        boundary->clipping_triangles.add({ p0, p1, p3, n });
-        boundary->clipping_triangles.add({ p0, p3, p2, n });
+        delimiter->clipping_triangles.add({ p0, p1, p3, n });
+        delimiter->clipping_triangles.add({ p0, p3, p2, n });
     }
 }
 
-void World::add_centered_boundary_clipping_plane(Boundary *boundary, Axis normal_axis) {
+void World::add_centered_delimiter_clipping_plane(Delimiter *delimiter, Axis normal_axis) {
     tmFunction(TM_WORLD_COLOR);
 
     assert(normal_axis >= 0 && normal_axis < AXIS_COUNT);
 
     real extension = max(max(this->half_size.x, this->half_size.y), this->half_size.z) * 2.f; // Uniformly scale the clipping plane to cover the entire world space, before it will probably get cut down later.
 
-    vec3 a = boundary->local_scaled_axes[normal_axis];
-    vec3 n = boundary->local_unit_axes[normal_axis];
-    vec3 u = boundary->local_unit_axes[(normal_axis + 1) % 3] * extension;
-    vec3 v = boundary->local_unit_axes[(normal_axis + 2) % 3] * extension;
+    vec3 a = delimiter->local_scaled_axes[normal_axis];
+    vec3 n = delimiter->local_unit_axes[normal_axis];
+    vec3 u = delimiter->local_unit_axes[(normal_axis + 1) % 3] * extension;
+    vec3 v = delimiter->local_unit_axes[(normal_axis + 2) % 3] * extension;
 
-    vec3 c = boundary->position;
+    vec3 c = delimiter->position;
     vec3 p0 = c - u - v;
     vec3 p1 = c - u + v;
     vec3 p2 = c + u - v;
     vec3 p3 = c + u + v;
-    boundary->clipping_triangles.add({ p0, p1, p3, n });
-    boundary->clipping_triangles.add({ p0, p2, p3, n });
+    delimiter->clipping_triangles.add({ p0, p1, p3, n });
+    delimiter->clipping_triangles.add({ p0, p2, p3, n });
 }
 
 void World::create_octree() {
     tmFunction(TM_WORLD_COLOR);
 
     //
-    // Insert all boundaries.
+    // Insert all delimiters.
     //
-    for(auto &boundary : this->boundaries) {
-        Octree *octree = this->root.get_octree_for_aabb(boundary.aabb, this->allocator);
-        assert(octree && "Boundary Object is outside of octree bounds.");
-        octree->contained_boundaries.add(&boundary);
+    for(auto &delimiter : this->delimiters) {
+        Octree *octree = this->root.get_octree_for_aabb(delimiter.aabb, this->allocator);
+        assert(octree && "Delimiter Object is outside of octree bounds.");
+        octree->contained_delimiters.add(&delimiter);
     }
 
     //
@@ -294,18 +294,18 @@ void World::create_octree() {
     for(auto &anchor : this->anchors) {
         AABB anchor_aabb = { anchor.position, anchor.position };
         Octree *octree = this->root.get_octree_for_aabb(anchor_aabb, this->allocator);
-        assert(octree && "Boundary Object is outside of octree bounds.");
+        assert(octree && "Delimiter Object is outside of octree bounds.");
         octree->contained_anchors.add(&anchor);
     }
 }
 
-void World::clip_boundaries(b8 single_step) {
+void World::clip_delimiters(b8 single_step) {
     tmFunction(TM_WORLD_COLOR);
 
     if(this->dbg_step_completed) return;
 
     if(!this->dbg_step_initialized) {
-        this->dbg_step_boundary          = 0;
+        this->dbg_step_delimiter         = 0;
         this->dbg_step_clipping_triangle = 0;
         this->dbg_step_root_triangle     = 0;
         this->dbg_step_initialized       = true;
@@ -314,22 +314,22 @@ void World::clip_boundaries(b8 single_step) {
         if(single_step) return;
     }
 
-    while(this->dbg_step_boundary < this->boundaries.count) {
-        auto *boundary = &this->boundaries[this->dbg_step_boundary];
+    while(this->dbg_step_delimiter < this->delimiters.count) {
+        auto *delimiter = &this->delimiters[this->dbg_step_delimiter];
 
-        while(this->dbg_step_clipping_triangle < boundary->clipping_triangles.count) { // We are adding to this array in tessellate() and removing triangles inside this loop!
-            auto *boundary_triangle = &boundary->clipping_triangles[this->dbg_step_clipping_triangle];
+        while(this->dbg_step_clipping_triangle < delimiter->clipping_triangles.count) { // We are adding to this array in tessellate() and removing triangles inside this loop!
+            auto *delimiter_triangle = &delimiter->clipping_triangles[this->dbg_step_clipping_triangle];
 
             //
-            // Clip this boundary against the root volume.
+            // Clip this delimiter against the root volume.
             // The root triangles should act more like planes, and tessellate everything that clips
             // their plane, not just their triangle face.
             //
             while(this->dbg_step_root_triangle < this->root_clipping_triangles.count) {
                 auto *root_triangle = &this->root_clipping_triangles[this->dbg_step_root_triangle];
 
-                tessellate(boundary_triangle, root_triangle, &boundary->clipping_triangles, true); // Clip against the root plane, and not just the root triangle.
-                                                                                                          this->dbg_step_clipping_triangle_should_be_removed |= boundary_triangle->is_fully_behind_plane(root_triangle);
+                tessellate(delimiter_triangle, root_triangle, &delimiter->clipping_triangles, true); // Clip against the root plane, and not just the root triangle.
+                                                                                                          this->dbg_step_clipping_triangle_should_be_removed |= delimiter_triangle->is_fully_behind_plane(root_triangle);
 
                 ++this->dbg_step_root_triangle;
 
@@ -337,7 +337,7 @@ void World::clip_boundaries(b8 single_step) {
             }
 
             if(this->dbg_step_clipping_triangle_should_be_removed) {
-                boundary->clipping_triangles.remove(this->dbg_step_clipping_triangle);
+                delimiter->clipping_triangles.remove(this->dbg_step_clipping_triangle);
             } else {
                 ++this->dbg_step_clipping_triangle;
             }
@@ -349,7 +349,7 @@ void World::clip_boundaries(b8 single_step) {
         }
 
         this->dbg_step_clipping_triangle = 0;
-        ++this->dbg_step_boundary;
+        ++this->dbg_step_delimiter;
         if(single_step) return;
     }
 

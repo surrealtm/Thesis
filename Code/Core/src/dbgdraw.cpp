@@ -48,7 +48,7 @@ const real dbg_triangle_normal_length      = 1;
 
 const Dbg_Draw_Color dbg_label_color          = { 255, 255, 255, 255 };
 const Dbg_Draw_Color dbg_anchor_color         = { 255, 100, 100, 255 };
-const Dbg_Draw_Color dbg_boundary_color       = { 100, 100, 100, 255 };
+const Dbg_Draw_Color dbg_delimiter_color      = { 100, 100, 100, 255 };
 const Dbg_Draw_Color dbg_root_plane_color     = { 255, 193,   0, 100 };
 const Dbg_Draw_Color dbg_clipping_plane_color = { 255,  60,  50, 100 };
 const Dbg_Draw_Color dbg_volume_color         = { 215,  15, 219, 100 };
@@ -157,11 +157,11 @@ Debug_Draw_Data debug_draw_world(World *world, Debug_Draw_Options options) {
 		}			
 	}
 
-	if(options & DEBUG_DRAW_Boundaries) {
-		for(auto &boundary : world->boundaries) {
-			_internal.cuboids.add({ dbg_v3f(boundary.position), dbg_v3f(boundary.dbg_half_size), dbg_qtf(boundary.dbg_rotation), dbg_boundary_color.r, dbg_boundary_color.g, dbg_boundary_color.b });
+	if(options & DEBUG_DRAW_Delimiters) {
+		for(auto &delimiter : world->delimiters) {
+			_internal.cuboids.add({ dbg_v3f(delimiter.position), dbg_v3f(delimiter.dbg_half_size), dbg_qtf(delimiter.dbg_rotation), dbg_delimiter_color.r, dbg_delimiter_color.g, dbg_delimiter_color.b });
 
-            if(_internal.draw_labels) _internal.texts.add({ dbg_v3f(boundary.position), boundary.dbg_name, dbg_label_color.r, dbg_label_color.g, dbg_label_color.b });
+            if(_internal.draw_labels) _internal.texts.add({ dbg_v3f(delimiter.position), delimiter.dbg_name, dbg_label_color.r, dbg_label_color.g, dbg_label_color.b });
         }
 	}
 
@@ -174,12 +174,12 @@ Debug_Draw_Data debug_draw_world(World *world, Debug_Draw_Options options) {
 			}
 		}
 		
-        for(s64 i = 0; i < world->boundaries.count; ++i) {
-            Boundary *boundary = &world->boundaries[i];
-            for(s64 j = 0; j < boundary->clipping_triangles.count; ++j) {
-                b8 active = world->dbg_step_initialized && !world->dbg_step_completed && world->dbg_step_boundary == i && world->dbg_step_clipping_triangle == j;
+        for(s64 i = 0; i < world->delimiters.count; ++i) {
+            Delimiter *delimiter = &world->delimiters[i];
+            for(s64 j = 0; j < delimiter->clipping_triangles.count; ++j) {
+                b8 active = world->dbg_step_initialized && !world->dbg_step_completed && world->dbg_step_delimiter == i && world->dbg_step_clipping_triangle == j;
 				Dbg_Draw_Color color = active ? dbg_step_highlight_color : dbg_clipping_plane_color;
-                debug_draw_triangle(_internal, &boundary->clipping_triangles[j], color);
+                debug_draw_triangle(_internal, &delimiter->clipping_triangles[j], color);
 			}
         }
     }
@@ -194,13 +194,13 @@ Debug_Draw_Data debug_draw_world(World *world, Debug_Draw_Options options) {
 			}
 		}
 		
-        for(s64 i = 0; i < world->boundaries.count; ++i) {
-            Boundary *boundary = &world->boundaries[i];
-            for(s64 j = 0; j < boundary->clipping_triangles.count; ++j) {
-                b8 active = world->dbg_step_initialized && !world->dbg_step_completed && world->dbg_step_boundary == i && world->dbg_step_clipping_triangle == j;
+        for(s64 i = 0; i < world->delimiters.count; ++i) {
+            Delimiter *delimiter = &world->delimiters[i];
+            for(s64 j = 0; j < delimiter->clipping_triangles.count; ++j) {
+                b8 active = world->dbg_step_initialized && !world->dbg_step_completed && world->dbg_step_delimiter == i && world->dbg_step_clipping_triangle == j;
 				Dbg_Draw_Color color = active ? dbg_step_highlight_color : dbg_clipping_plane_color;
 				f32 thickness = active ? dbg_triangle_wireframe_thickness * 2 : dbg_triangle_wireframe_thickness;
-				debug_draw_triangle_wireframe(_internal, &boundary->clipping_triangles[j], color, thickness);
+				debug_draw_triangle_wireframe(_internal, &delimiter->clipping_triangles[j], color, thickness);
 			}
         }		
 	}

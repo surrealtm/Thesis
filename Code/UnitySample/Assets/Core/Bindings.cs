@@ -37,7 +37,7 @@ public enum Debug_Draw_Options : uint {
     Nothing             = 0x0,
     Octree              = 0x1,
     Anchors             = 0x2,
-    Boundaries          = 0x4,
+    Delimiters          = 0x4,
     Clipping_Faces      = 0x8,
     Clipping_Wireframes = 0x10,
     Volume_Faces        = 0x20,
@@ -159,6 +159,12 @@ public unsafe struct Memory_Information {
 
 /* ------------------------------------------------- Bindings ------------------------------------------------- */
 
+public enum Axis {
+    AXIS_X = 1,
+    AXIS_Y = 2,
+    AXIS_Z = 3,
+}
+
 public class Core_Bindings {
     /* --------------------------------------------- General API --------------------------------------------- */
     [DllImport("Core.dll")]
@@ -166,10 +172,14 @@ public class Core_Bindings {
     [DllImport("Core.dll")]
     public static extern void core_destroy_world(World_Handle world);
     [DllImport("Core.dll")]
-    public static extern void core_add_anchor(World_Handle world, double x, double y, double z);
+    public static extern s64 core_add_anchor(World_Handle world, double x, double y, double z);
     [DllImport("Core.dll")]
-    public static extern void core_add_boundary(World_Handle world, double x, double y, double z, double hx, double hy, double hz, double rx, double ry, double rz);
-
+    public static extern s64 core_add_delimiter(World_Handle world, double x, double y, double z, double hx, double hy, double hz, double rx, double ry, double rz);
+    [DllImport("Core.dll")]
+    public static extern void core_add_delimiter_clipping_planes(World_Handle world, s64 delimiter_index, s64 axis_index);
+    [DllImport("Core.dll")]
+    public static extern void core_calculate_volumes(World_Handle world);
+    
 
 
 #if FOUNDATION_DEVELOPER
@@ -283,8 +293,14 @@ public unsafe class Core_Helpers {
             
             Transform transform = d.gameObject.transform;
             Bounds bounds = renderer.bounds;
-            Core_Bindings.core_add_boundary(world_handle, transform.position.x, transform.position.y, transform.position.z, bounds.extents.x, bounds.extents.y, bounds.extents.z, transform.eulerAngles.x, transform.eulerAngles.y, transform.eulerAngles.z);
+            s64 index = Core_Bindings.core_add_delimiter(world_handle, transform.position.x, transform.position.y, transform.position.z, bounds.extents.x, bounds.extents.y, bounds.extents.z, transform.eulerAngles.x, transform.eulerAngles.y, transform.eulerAngles.z);
+
+            if(d.x) Core_Bindings.core_add_delimiter_clipping_planes(world_handle, index, (s64) Axis.AXIS_X);
+            if(d.y) Core_Bindings.core_add_delimiter_clipping_planes(world_handle, index, (s64) Axis.AXIS_Y);
+            if(d.z) Core_Bindings.core_add_delimiter_clipping_planes(world_handle, index, (s64) Axis.AXIS_Z);
         }
+
+        Core_Bindings.core_calculate_volumes(world_handle);
 
         return world_handle;
     }
