@@ -3,6 +3,8 @@
 
 #include "timing.h"
 #include "random.h"
+#include "math/intersect.h"
+#include "sort.h"
 
 
 
@@ -105,6 +107,54 @@ Octree *Octree::get_octree_for_aabb(AABB const &aabb, Allocator *allocator) {
     }
 
     return this->children[child_index]->get_octree_for_aabb(aabb, allocator);
+}
+
+
+
+/* ------------------------------------------- Intersection Testing ------------------------------------------- */
+
+// Adapted from: check_against_triangle in tessel.cpp
+static
+b8 check_edge_against_triangle(vec3 e0, vec3 e1, Triangle *triangle, vec3 o0, vec3 o1, f32 &nearest_distance) {
+    vec3 direction = e1 - e0;
+
+    Triangle_Intersection_Result<real> result = ray_double_sided_triangle_intersection(e0, direction, triangle->p0, triangle->p1, triangle->p2);
+
+    if(!result.intersection || result.distance < 0.f || result.distance > 1.f) return false;
+
+    vec3 intersection = e0 + direction * result.distance;
+    f32 distance = v3_length2(o0 - intersection) + v3_length2(o1 - intersection);
+
+    if(distance < nearest_distance) nearest_distance = distance;
+    
+    return true;
+}
+
+static
+void find_all_intersections(Delimiter *d0, Delimiter *d1, Resizable_Array<Delimiter_Intersection> &intersections) {
+    for(s64 i = 0; i < d0->clipping_triangles.count; ++i) {
+        for(s64 j = 0; j < d1->clipping_triangles.count; ++j) {
+            Triangle *t0 = &d0->clipping_triangles[i];
+            Triangle *t1 = &d1->clipping_triangles[j];
+
+            b8 any_intersection = false;
+            f32 nearest_distance = MAX_F32;
+
+            any_intersection |= check_edge_against_triangle(t0->p0, t0->p1, t1, d0->position, d1->position, nearest_distance);
+            any_intersection |= check_edge_against_triangle(t0->p1, t0->p2, t1, d0->position, d1->position, nearest_distance);
+            any_intersection |= check_edge_against_triangle(t0->p2, t0->p0, t1, d0->position, d1->position, nearest_distance);
+            any_intersection |= check_edge_against_triangle(t1->p0, t1->p1, t0, d0->position, d1->position, nearest_distance);
+            any_intersection |= check_edge_against_triangle(t1->p1, t1->p2, t0, d0->position, d1->position, nearest_distance);
+            any_intersection |= check_edge_against_triangle(t1->p2, t1->p0, t0, d0->position, d1->position, nearest_distance);
+
+            if(any_intersection) intersections.add({ nearest_distance, d0, d1 });
+        }
+    }
+}
+
+static
+Sort_Comparison_Result compare_delimiter_intersections(Delimiter_Intersection *lhs, Delimiter_Intersection *rhs) {
+    return (lhs->total_distance < rhs->total_distance) ? SORT_Lhs_Is_Smaller : (lhs->total_distance == rhs->total_distance ? SORT_Lhs_Equals_Rhs : SORT_Lhs_Is_Bigger);
 }
 
 
@@ -314,6 +364,9 @@ void World::clip_delimiters(b8 single_step) {
         if(single_step) return;
     }
 
+    //
+    // Clip delimiters against the root clipping planes.
+    //
     while(this->dbg_step_delimiter < this->delimiters.count) {
         auto *delimiter = &this->delimiters[this->dbg_step_delimiter];
 
@@ -353,6 +406,33 @@ void World::clip_delimiters(b8 single_step) {
         if(single_step) return;
     }
 
+    //
+    // Find all intersections between any two delimiters and store them.
+    //
+    Resizable_Array<Delimiter_Intersection> intersections;
+    intersections.allocator = this->allocator;
+
+    for(s64 i = 0; i < this->delimiters.count; ++i) {
+        for(s64 j = i + 1; j < this->delimiters.count; ++j) {
+            find_all_intersections(&this->delimiters[i], &this->delimiters[j], intersections);
+        }
+    }
+
+    //
+    // Sort the intersections array.
+    //
+    sort(intersections.data, intersections.count, compare_delimiter_intersections);    
+
+    //
+    // Solve all the intersections by clipping the two delimiters against
+    // each other (if that intersection is actually still present, but that
+    // is handled by the tessellation).
+    //
+    for(Delimiter_Intersection &all : intersections) {
+        printf("Intersection: %f, '%.*s' - '%.*s'.\n", all.total_distance, (u32) all.d0->dbg_name.count, all.d0->dbg_name.data, (u32) all.d1->dbg_name.count, all.d1->dbg_name.data);
+    }
+    
+    intersections.clear();    
     this->dbg_step_completed = true;
 }
 

@@ -296,6 +296,8 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\Foundation\src\concatenator.cpp" />
+    <ClCompile Include="..\Foundation\src\error.cpp" />
     <ClCompile Include="..\Foundation\src\fileio.cpp" />
     <ClCompile Include="..\Foundation\src\foundation.cpp" />
     <ClCompile Include="..\Foundation\src\jobs.cpp" />
@@ -306,6 +308,7 @@
     <ClCompile Include="..\Foundation\src\threads.cpp" />
     <ClCompile Include="..\Foundation\src\timing.cpp" />
     <ClCompile Include="..\Foundation\src\win32_specific.cpp" />
+    <ClCompile Include="..\Foundation\src\window.cpp" />
     <ClCompile Include="bindings\bindings.cpp" />
     <ClCompile Include="src\core.cpp" />
     <ClCompile Include="src\dbgdraw.cpp" />
@@ -313,6 +316,9 @@
     <ClCompile Include="src\tests.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\Foundation\src\concatenator.h" />
+    <ClInclude Include="..\Foundation\src\data_array.h" />
+    <ClInclude Include="..\Foundation\src\error.h" />
     <ClInclude Include="..\Foundation\src\fileio.h" />
     <ClInclude Include="..\Foundation\src\foundation.h" />
     <ClInclude Include="..\Foundation\src\hash_table.h" />
@@ -326,16 +332,20 @@
     <ClInclude Include="..\Foundation\src\memutils.h" />
     <ClInclude Include="..\Foundation\src\os_specific.h" />
     <ClInclude Include="..\Foundation\src\random.h" />
+    <ClInclude Include="..\Foundation\src\sort.h" />
     <ClInclude Include="..\Foundation\src\strings.h" />
     <ClInclude Include="..\Foundation\src\threads.h" />
     <ClInclude Include="..\Foundation\src\timing.h" />
+    <ClInclude Include="..\Foundation\src\window.h" />
     <ClInclude Include="bindings\bindings.h" />
     <ClInclude Include="src\core.h" />
     <ClInclude Include="src\dbgdraw.h" />
     <ClInclude Include="src\tessel.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\Foundation\src\data_array.inl" />
     <None Include="..\Foundation\src\hash_table.inl" />
+    <None Include="..\Foundation\src\memutils.inl" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

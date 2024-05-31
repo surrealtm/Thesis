@@ -63,6 +63,15 @@
     <ClCompile Include="src\tessel.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\Foundation\src\concatenator.cpp">
+      <Filter>Foundation</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Foundation\src\error.cpp">
+      <Filter>Foundation</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Foundation\src\window.cpp">
+      <Filter>Foundation</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Foundation\src\fileio.h">
@@ -125,9 +134,30 @@
     <ClInclude Include="src\tessel.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\Foundation\src\concatenator.h">
+      <Filter>Foundation</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Foundation\src\data_array.h">
+      <Filter>Foundation</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Foundation\src\error.h">
+      <Filter>Foundation</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Foundation\src\sort.h">
+      <Filter>Foundation</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Foundation\src\window.h">
+      <Filter>Foundation</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\Foundation\src\hash_table.inl">
+      <Filter>Foundation</Filter>
+    </None>
+    <None Include="..\Foundation\src\data_array.inl">
+      <Filter>Foundation</Filter>
+    </None>
+    <None Include="..\Foundation\src\memutils.inl">
       <Filter>Foundation</Filter>
     </None>
   </ItemGroup>

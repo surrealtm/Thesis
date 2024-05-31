@@ -98,6 +98,11 @@ struct Delimiter {
     quat dbg_rotation;
 };
 
+struct Delimiter_Intersection {
+    f32 total_distance; // The (squared) distance from this point to d0 + The (squared) distance from this point to d1.
+    Delimiter *d0, *d1;
+};
+
 
 
 /* -------------------------------------------------- Octree -------------------------------------------------- */
