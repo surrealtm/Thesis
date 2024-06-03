@@ -282,6 +282,8 @@ extern "C" {
     World_Handle core_do_u_shape_test(b8 step_into) {
         tmFunction(TM_SYSTEM_COLOR);
 
+        /*
+          // nocheckin
         World *world = (World *) core_create_world(50, 10, 50);
 
         Delimiter *b0 = world->add_delimiter("Delimiter"_s, vec3(0, 0, -10), vec3(10, .5, .5), vec3(0));
@@ -299,8 +301,25 @@ extern "C" {
         world->create_octree();
         world->clip_delimiters(step_into);
         return world;
+        */
+
+        World *world = (World *) core_create_world(50, 10, 50);
+
+        Delimiter *b0 = world->add_delimiter("Delimiter"_s, vec3(0, 0, -10), vec3(10, .5, .5), vec3(0));
+        world->add_centered_delimiter_clipping_plane(b0, AXIS_Z);
+
+        Delimiter *b1 = world->add_delimiter("Delimiter"_s, vec3(10, 0, 0), vec3(.5, .5, 10), vec3(0));
+        world->add_centered_delimiter_clipping_plane(b1, AXIS_X);
+        
+        world->add_anchor("Inside"_s, vec3(0, 0, 0));
+        world->add_anchor("Outside"_s, vec3(0, 0, -20));
+        
+        world->create_octree();
+        world->clip_delimiters(step_into);
+        return world;
+
     }
-    
+
     World_Handle core_do_center_block_test(b8 step_into) {
         tmFunction(TM_SYSTEM_COLOR);
 

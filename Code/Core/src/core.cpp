@@ -131,14 +131,15 @@ b8 check_edge_against_triangle(vec3 e0, vec3 e1, Triangle *triangle, vec3 o0, ve
 }
 
 static
-void find_all_intersections(Delimiter *d0, Delimiter *d1, Resizable_Array<Delimiter_Intersection> &intersections) {
+void find_potential_intersection(Delimiter *d0, Delimiter *d1, Resizable_Array<Delimiter_Intersection> &intersections) {
+    b8 any_intersection = false;
+    f32 nearest_distance = MAX_F32;
+
     for(s64 i = 0; i < d0->clipping_triangles.count; ++i) {
         for(s64 j = 0; j < d1->clipping_triangles.count; ++j) {
             Triangle *t0 = &d0->clipping_triangles[i];
             Triangle *t1 = &d1->clipping_triangles[j];
 
-            b8 any_intersection = false;
-            f32 nearest_distance = MAX_F32;
 
             any_intersection |= check_edge_against_triangle(t0->p0, t0->p1, t1, d0->position, d1->position, nearest_distance);
             any_intersection |= check_edge_against_triangle(t0->p1, t0->p2, t1, d0->position, d1->position, nearest_distance);
@@ -147,14 +148,35 @@ void find_all_intersections(Delimiter *d0, Delimiter *d1, Resizable_Array<Delimi
             any_intersection |= check_edge_against_triangle(t1->p1, t1->p2, t0, d0->position, d1->position, nearest_distance);
             any_intersection |= check_edge_against_triangle(t1->p2, t1->p0, t0, d0->position, d1->position, nearest_distance);
 
-            if(any_intersection) intersections.add({ nearest_distance, d0, d1 });
         }
     }
+
+    if(any_intersection) intersections.add({ nearest_distance, d0, d1 });
 }
 
 static
 Sort_Comparison_Result compare_delimiter_intersections(Delimiter_Intersection *lhs, Delimiter_Intersection *rhs) {
     return (lhs->total_distance < rhs->total_distance) ? SORT_Lhs_Is_Smaller : (lhs->total_distance == rhs->total_distance ? SORT_Lhs_Equals_Rhs : SORT_Lhs_Is_Bigger);
+}
+
+static
+void solve_delimiter_intersection(Delimiter *d0, Delimiter *d1) {
+    // @Incomplete: Add an option to the tessellator to only generate new triangles that are in "front"
+    // of the clipping triangle (or in this case, between the origin of the delimiter and the clipping triangle).
+    // Maybe use some callback for that decision?
+    for(s64 i = 0; i < d0->clipping_triangles.count; ++i) {       
+        for(s64 j = 0; j < d1->clipping_triangles.count; ++j) {
+            // There might be the slight issue that when clipping t0 first, t1 might not actually intersect
+            // with t0 anymore (due to floating point inprecision), which would be not good.
+            // Therefore we remember the original t0 here and clip t1 against that original triangle.
+            // Since triangles are very small, this shouldn't be a problem at all.
+            Triangle *t0 = &d0->clipping_triangles[i];
+            Triangle *t1 = &d1->clipping_triangles[j];
+            Triangle original_t0 = *t0;
+            tessellate(t0, t1, &d0->clipping_triangles, false);
+            tessellate(t1, &original_t0, &d1->clipping_triangles, false);
+        }
+    }
 }
 
 
@@ -300,8 +322,8 @@ void World::add_delimiter_clipping_planes(Delimiter *delimiter, Axis normal_axis
         vec3 p1 = c - u + v;
         vec3 p2 = c + u - v;
         vec3 p3 = c + u + v;
-        delimiter->clipping_triangles.add({ p0, p1, p3, n });
-        delimiter->clipping_triangles.add({ p0, p3, p2, n });
+        delimiter->clipping_triangles.add({ p0, p1, p3, -n });
+        delimiter->clipping_triangles.add({ p0, p3, p2, -n });
     }
 }
 
@@ -354,6 +376,8 @@ void World::clip_delimiters(b8 single_step) {
 
     if(this->dbg_step_completed) return;
 
+    // @Cleanup: Maybe refactor this into one big Iterator struct, which has like an 'advance' method?
+    // That might make it a bit more readable.
     if(!this->dbg_step_initialized) {
         this->dbg_step_delimiter         = 0;
         this->dbg_step_clipping_triangle = 0;
@@ -382,7 +406,7 @@ void World::clip_delimiters(b8 single_step) {
                 auto *root_triangle = &this->root_clipping_triangles[this->dbg_step_root_triangle];
 
                 tessellate(delimiter_triangle, root_triangle, &delimiter->clipping_triangles, true); // Clip against the root plane, and not just the root triangle.
-                                                                                                          this->dbg_step_clipping_triangle_should_be_removed |= delimiter_triangle->is_fully_behind_plane(root_triangle);
+                this->dbg_step_clipping_triangle_should_be_removed |= delimiter_triangle->is_fully_behind_plane(root_triangle);
 
                 ++this->dbg_step_root_triangle;
 
@@ -390,6 +414,7 @@ void World::clip_delimiters(b8 single_step) {
             }
 
             if(this->dbg_step_clipping_triangle_should_be_removed) {
+                // @Cleanup: This probably shouldn't be required anymore with the new tessellator?
                 delimiter->clipping_triangles.remove(this->dbg_step_clipping_triangle);
             } else {
                 ++this->dbg_step_clipping_triangle;
@@ -414,7 +439,7 @@ void World::clip_delimiters(b8 single_step) {
 
     for(s64 i = 0; i < this->delimiters.count; ++i) {
         for(s64 j = i + 1; j < this->delimiters.count; ++j) {
-            find_all_intersections(&this->delimiters[i], &this->delimiters[j], intersections);
+            find_potential_intersection(&this->delimiters[i], &this->delimiters[j], intersections);
         }
     }
 
@@ -430,6 +455,7 @@ void World::clip_delimiters(b8 single_step) {
     //
     for(Delimiter_Intersection &all : intersections) {
         printf("Intersection: %f, '%.*s' - '%.*s'.\n", all.total_distance, (u32) all.d0->dbg_name.count, all.d0->dbg_name.data, (u32) all.d1->dbg_name.count, all.d1->dbg_name.data);
+        solve_delimiter_intersection(all.d0, all.d1);
     }
     
     intersections.clear();    
