@@ -24,9 +24,13 @@ struct Tessellator {
 
     real barycentric_coefficients[2][3]; // The barycentric coefficients of the intersection points in relation to the input corners.
 
-    // To know whether to add a new triangle or re-use the input one.
+    Triangle_Should_Be_Clipped triangle_should_be_clipped_proc;
+    void *triangle_should_be_clipped_user_pointer;
     Triangle *input_triangle;
+    Triangle *clip_triangle;
     Resizable_Array<Triangle> *output_array;
+    
+    // To know whether to add a new triangle or re-use the input one.
     s64 generated_triangle_count;
 };
 
@@ -161,13 +165,26 @@ void generate_new_triangle(Tessellator *tessellator, vec3 p0, vec3 p1, vec3 p2) 
     // This can happen if an intersection point is on the edge of the input triangle (in which case all three
     // points are on one single line), or if two of the three points are very close to each other, etc.
     //
-    if(points_almost_identical(p0, p1) || points_almost_identical(p0, p2) || points_almost_identical(p1, p2)) return;
-
+    if(points_almost_identical(p0, p1) || points_almost_identical(p0, p2) || points_almost_identical(p1, p2)) {
+        return;
+    }
+        
     vec3 n = v3_cross_v3(p1 - p0, p2 - p0);
 
     real estimated_surface_area = v3_length2(n) / 2;
-    if(estimated_surface_area < CORE_EPSILON) return;
+    if(estimated_surface_area < CORE_EPSILON) {
+        return;
+    }
 
+    //
+    // Do some custom checking of whether this triangle should be generated at all. This heavily depends on
+    // the usage of the tessellation output, and therefore a procedure pointer is provided.
+    //
+    Triangle would_be_triangle = { p0, p1, p2, tessellator->input_triangle->n };
+    if(tessellator->triangle_should_be_clipped_proc && tessellator->triangle_should_be_clipped_proc(&would_be_triangle, tessellator->clip_triangle, tessellator->triangle_should_be_clipped_user_pointer)) {
+        return;
+    }
+    
 #if TESSEL_DEBUG_PRINT
     printf("    Generated triangle: %f, %f, %f | %f, %f, %f | %f, %f, %f\n", p0.x, p0.y, p0.z, p1.x, p1.y, p1.z, p2.x, p2.y, p2.z);
     printf("        Surface Area: %f\n", estimated_surface_area);
@@ -187,14 +204,17 @@ void generate_new_triangle(Tessellator *tessellator, vec3 p0, vec3 p1, vec3 p2) 
 }
 
 
-s64 tessellate(Triangle *input, Triangle *clip, Resizable_Array<Triangle> *output, b8 clip_against_plane) {
+s64 tessellate(Triangle *input, Triangle *clip, Resizable_Array<Triangle> *output, b8 clip_against_plane, Triangle_Should_Be_Clipped triangle_should_be_clipped_proc, void *triangle_should_be_clipped_user_pointer) {
     Tessellator tessellator;
     tessellator.input_corner[0] = input->p0;
     tessellator.input_corner[1] = input->p1;
     tessellator.input_corner[2] = input->p2;
     tessellator.input_triangle  = input;
+    tessellator.clip_triangle   = clip;
     tessellator.output_array    = output;
-
+    tessellator.triangle_should_be_clipped_proc = triangle_should_be_clipped_proc;
+    tessellator.triangle_should_be_clipped_user_pointer = triangle_should_be_clipped_user_pointer;
+    
     tessellator.intersection_count = 0;
 
     if(!clip_against_plane) {

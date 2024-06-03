@@ -160,23 +160,64 @@ Sort_Comparison_Result compare_delimiter_intersections(Delimiter_Intersection *l
 }
 
 static
-void solve_delimiter_intersection(Delimiter *d0, Delimiter *d1) {
-    // @Incomplete: Add an option to the tessellator to only generate new triangles that are in "front"
-    // of the clipping triangle (or in this case, between the origin of the delimiter and the clipping triangle).
-    // Maybe use some callback for that decision?
-    for(s64 i = 0; i < d0->clipping_triangles.count; ++i) {       
-        for(s64 j = 0; j < d1->clipping_triangles.count; ++j) {
-            // There might be the slight issue that when clipping t0 first, t1 might not actually intersect
-            // with t0 anymore (due to floating point inprecision), which would be not good.
-            // Therefore we remember the original t0 here and clip t1 against that original triangle.
-            // Since triangles are very small, this shouldn't be a problem at all.
-            Triangle *t0 = &d0->clipping_triangles[i];
-            Triangle *t1 = &d1->clipping_triangles[j];
-            Triangle original_t0 = *t0;
-            tessellate(t0, t1, &d0->clipping_triangles, false);
-            tessellate(t1, &original_t0, &d1->clipping_triangles, false);
+b8 delimiter_triangle_should_be_clipped(Triangle *generated_triangle, Triangle *clip_triangle, Delimiter *owning_delimiter) {
+    //
+    // When clipping generated triangles while solving delimiter intersections, we
+    // don't want to generate triangles that are on the other side of the clipping
+    // triangle than the origin (since that clipping triangle should exactly make this
+    // part of the input triangle disappear).
+    // Therefore, we check if the generated triangle is on the side of the clipping triangle
+    // towards the owning delimiter's origin. For that, we need to ensure the correct normal
+    // on the clip triangle (since the "actual" normal doesn't matter, just that the normal
+    // faces towards the delimiter origin).
+    //
+    Triangle adjusted_clip_triangle = *clip_triangle;
+    if(v3_dot_v3(adjusted_clip_triangle.n, owning_delimiter->position - adjusted_clip_triangle.p0) < 0.) {
+        adjusted_clip_triangle.n = -adjusted_clip_triangle.n;
+    }
+    
+    b8 should_be_clipped = generated_triangle->is_fully_behind_plane(&adjusted_clip_triangle);
+    return should_be_clipped;
+}
+
+static
+void solve_delimiter_intersection(Resizable_Array<Triangle> &triangles_to_clip, Resizable_Array<Triangle> &clipping_triangles, Delimiter *owning_delimiter) {
+    for(s64 i = 0; i < triangles_to_clip.count; ) {
+        b8 t0_should_be_removed = false;
+        Triangle *t0 = &triangles_to_clip.data[i];
+        
+        for(s64 j = 0; j < clipping_triangles.count; ++j) {
+            Triangle *t1 = &clipping_triangles[j];
+            tessellate(t0, t1, &triangles_to_clip, false, (Triangle_Should_Be_Clipped) delimiter_triangle_should_be_clipped, owning_delimiter);
+            if(delimiter_triangle_should_be_clipped(t0, t1, owning_delimiter)) t0_should_be_removed = true; // We might not intersect with this triangle but still be fully behind it, in which case we still want to clip it (by removing it) // @@Speed: Early exit?
+        }
+
+        if(t0_should_be_removed) {
+            triangles_to_clip.remove(i);
+        } else {
+            ++i;
         }
     }
+}
+
+static
+void solve_delimiter_intersection(Delimiter *d0, Delimiter *d1) {
+    //
+    // When solving this intersection, we need to remember the original d0 clipping triangles,
+    // so that we can then clip d0, and later on intersect d1 with the original d0 triangles.
+    // This needs to happen because the triangles t0 that would clip and remove the triangles
+    // t1 might not exist anymore after they have been clipped, which would lead to unexpected
+    // results.
+    //
+    Resizable_Array<Triangle> original_t0s = d0->clipping_triangles.copy();    
+
+    // Clip d0 based on the triangles of d1.
+    solve_delimiter_intersection(d0->clipping_triangles, d1->clipping_triangles, d0);
+    
+    // Clip d1 based on the original triangles of d0.
+    solve_delimiter_intersection(d1->clipping_triangles, original_t0s, d1);
+
+    original_t0s.clear();
 }
 
 
@@ -430,7 +471,7 @@ void World::clip_delimiters(b8 single_step) {
         ++this->dbg_step_delimiter;
         if(single_step) return;
     }
-
+    
     //
     // Find all intersections between any two delimiters and store them.
     //
@@ -454,7 +495,6 @@ void World::clip_delimiters(b8 single_step) {
     // is handled by the tessellation).
     //
     for(Delimiter_Intersection &all : intersections) {
-        printf("Intersection: %f, '%.*s' - '%.*s'.\n", all.total_distance, (u32) all.d0->dbg_name.count, all.d0->dbg_name.data, (u32) all.d1->dbg_name.count, all.d1->dbg_name.data);
         solve_delimiter_intersection(all.d0, all.d1);
     }
     
