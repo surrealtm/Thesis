@@ -30,9 +30,6 @@
     <ClCompile Include="..\Foundation\src\memutils.cpp">
       <Filter>Foundation</Filter>
     </ClCompile>
-    <ClCompile Include="..\Foundation\src\strings.cpp">
-      <Filter>Foundation</Filter>
-    </ClCompile>
     <ClCompile Include="..\Foundation\src\win32_specific.cpp">
       <Filter>Foundation</Filter>
     </ClCompile>
@@ -72,6 +69,9 @@
     <ClCompile Include="..\Foundation\src\window.cpp">
       <Filter>Foundation</Filter>
     </ClCompile>
+    <ClCompile Include="..\Foundation\src\string_type.cpp">
+      <Filter>Foundation</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Foundation\src\fileio.h">
@@ -84,9 +84,6 @@
       <Filter>Foundation</Filter>
     </ClInclude>
     <ClInclude Include="..\Foundation\src\os_specific.h">
-      <Filter>Foundation</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Foundation\src\strings.h">
       <Filter>Foundation</Filter>
     </ClInclude>
     <ClInclude Include="..\Foundation\src\math\math.h">
@@ -147,6 +144,9 @@
       <Filter>Foundation</Filter>
     </ClInclude>
     <ClInclude Include="..\Foundation\src\window.h">
+      <Filter>Foundation</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Foundation\src\string_type.h">
       <Filter>Foundation</Filter>
     </ClInclude>
   </ItemGroup>

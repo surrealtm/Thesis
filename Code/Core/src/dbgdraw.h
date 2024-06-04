@@ -1,7 +1,7 @@
 #pragma once
 
 #include "foundation.h"
-#include "strings.h"
+#include "string_type.h"
 #include "math/v3.h"
 #include "math/qt.h"
 

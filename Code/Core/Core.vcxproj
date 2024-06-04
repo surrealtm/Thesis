@@ -163,7 +163,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>CORE_SINGLE_PRECISION;FOUNDATION_TELEMETRY;FOUNDATION_DEVELOPER;FOUNDATION_WIN32;WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;CORE_DOUBLE_PRECISION;FOUNDATION_TELEMETRY;FOUNDATION_DEVELOPER;FOUNDATION_WIN32;WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(SolutionDir)../Foundation/src</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp14</LanguageStandard>
@@ -178,7 +178,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>CORE_SINGLE_PRECISION;FOUNDATION_TELEMETRY;FOUNDATION_DEVELOPER;FOUNDATION_WIN32;CORE_LIB;WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;CORE_DOUBLE_PRECISION;FOUNDATION_TELEMETRY;FOUNDATION_DEVELOPER;FOUNDATION_WIN32;CORE_LIB;WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(SolutionDir)../Foundation/src</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp14</LanguageStandard>
@@ -195,7 +195,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>CORE_SINGLE_PRECISION;FOUNDATION_TELEMETRY;FOUNDATION_DEVELOPER;FOUNDATION_WIN32;WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;CORE_DOUBLE_PRECISION;FOUNDATION_TELEMETRY;FOUNDATION_DEVELOPER;FOUNDATION_WIN32;WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(SolutionDir)../Foundation/src</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp14</LanguageStandard>
@@ -214,7 +214,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>CORE_SINGLE_PRECISION;FOUNDATION_TELEMETRY;FOUNDATION_DEVELOPER;FOUNDATION_WIN32;CORE_LIB;FOUNDATION_WIN32;FOUNDATION_DEVELOPER;WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;CORE_DOUBLE_PRECISION;FOUNDATION_TELEMETRY;FOUNDATION_DEVELOPER;FOUNDATION_WIN32;CORE_LIB;FOUNDATION_WIN32;FOUNDATION_DEVELOPER;WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(SolutionDir)../Foundation/src</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp14</LanguageStandard>
@@ -231,7 +231,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>CORE_SINGLE_PRECISION;FOUNDATION_TELEMETRY;FOUNDATION_DEVELOPER;FOUNDATION_WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;CORE_DOUBLE_PRECISION;FOUNDATION_TELEMETRY;FOUNDATION_DEVELOPER;FOUNDATION_WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(SolutionDir)../Foundation/src</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp14</LanguageStandard>
@@ -246,7 +246,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>CORE_SINGLE_PRECISION;FOUNDATION_TELEMETRY;FOUNDATION_DEVELOPER;FOUNDATION_WIN32;CORE_LIB;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;CORE_DOUBLE_PRECISION;FOUNDATION_TELEMETRY;FOUNDATION_DEVELOPER;FOUNDATION_WIN32;CORE_LIB;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(SolutionDir)../Foundation/src</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp14</LanguageStandard>
@@ -263,7 +263,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>CORE_SINGLE_PRECISION;FOUNDATION_TELEMETRY;FOUNDATION_DEVELOPER;FOUNDATION_WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;CORE_DOUBLE_PRECISION;FOUNDATION_TELEMETRY;FOUNDATION_DEVELOPER;FOUNDATION_WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(SolutionDir)../Foundation/src</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp14</LanguageStandard>
@@ -282,7 +282,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>CORE_SINGLE_PRECISION;FOUNDATION_TELEMETRY;FOUNDATION_DEVELOPER;FOUNDATION_WIN32;CORE_LIB;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;CORE_DOUBLE_PRECISION;FOUNDATION_TELEMETRY;FOUNDATION_DEVELOPER;FOUNDATION_WIN32;CORE_LIB;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(SolutionDir)../Foundation/src</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp14</LanguageStandard>
@@ -304,7 +304,7 @@
     <ClCompile Include="..\Foundation\src\math\intersect.cpp" />
     <ClCompile Include="..\Foundation\src\memutils.cpp" />
     <ClCompile Include="..\Foundation\src\random.cpp" />
-    <ClCompile Include="..\Foundation\src\strings.cpp" />
+    <ClCompile Include="..\Foundation\src\string_type.cpp" />
     <ClCompile Include="..\Foundation\src\threads.cpp" />
     <ClCompile Include="..\Foundation\src\timing.cpp" />
     <ClCompile Include="..\Foundation\src\win32_specific.cpp" />
@@ -333,7 +333,7 @@
     <ClInclude Include="..\Foundation\src\os_specific.h" />
     <ClInclude Include="..\Foundation\src\random.h" />
     <ClInclude Include="..\Foundation\src\sort.h" />
-    <ClInclude Include="..\Foundation\src\strings.h" />
+    <ClInclude Include="..\Foundation\src\string_type.h" />
     <ClInclude Include="..\Foundation\src\threads.h" />
     <ClInclude Include="..\Foundation\src\timing.h" />
     <ClInclude Include="..\Foundation\src\window.h" />

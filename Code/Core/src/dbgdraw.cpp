@@ -168,7 +168,7 @@ Debug_Draw_Data debug_draw_world(World *world, Debug_Draw_Options options) {
 	if(options & DEBUG_DRAW_Clipping_Faces) {
 		if(options & DEBUG_DRAW_Root_Planes) {
 			for(s64 i = 0; i < world->root_clipping_triangles.count; ++i) {
-				b8 active = world->dbg_step_initialized && !world->dbg_step_completed && world->dbg_step_root_triangle == i;
+				b8 active = false;
 				Dbg_Draw_Color color = active ? dbg_step_highlight_color : dbg_root_plane_color;
 				debug_draw_triangle(_internal, &world->root_clipping_triangles[i], color);
 			}
@@ -176,10 +176,13 @@ Debug_Draw_Data debug_draw_world(World *world, Debug_Draw_Options options) {
 		
         for(s64 i = 0; i < world->delimiters.count; ++i) {
             Delimiter *delimiter = &world->delimiters[i];
-            for(s64 j = 0; j < delimiter->clipping_triangles.count; ++j) {
-                b8 active = world->dbg_step_initialized && !world->dbg_step_completed && world->dbg_step_delimiter == i && world->dbg_step_clipping_triangle == j;
-				Dbg_Draw_Color color = active ? dbg_step_highlight_color : dbg_clipping_plane_color;
-                debug_draw_triangle(_internal, &delimiter->clipping_triangles[j], color);
+			for(s64 j = 0; j < delimiter->plane_count; ++j) {
+				Triangulated_Plane *plane = &delimiter->planes[j];
+				for(Triangle &triangle : plane->triangles) {
+					b8 active = false;
+					Dbg_Draw_Color color = active ? dbg_step_highlight_color : dbg_clipping_plane_color;
+					debug_draw_triangle(_internal, &triangle, color);
+				}
 			}
         }
     }
@@ -187,7 +190,7 @@ Debug_Draw_Data debug_draw_world(World *world, Debug_Draw_Options options) {
 	if(options & DEBUG_DRAW_Clipping_Wireframes) {
 		if(options & DEBUG_DRAW_Root_Planes) {
 			for(s64 i = 0; i < world->root_clipping_triangles.count; ++i) {
-				b8 active = world->dbg_step_initialized && !world->dbg_step_completed && world->dbg_step_root_triangle == i;
+				b8 active = false;
 				Dbg_Draw_Color color = active ? dbg_step_highlight_color : dbg_root_plane_color;
 				f32 thickness = active ? dbg_triangle_wireframe_thickness * 2 : dbg_triangle_wireframe_thickness;
 				debug_draw_triangle_wireframe(_internal, &world->root_clipping_triangles[i], color, thickness);
@@ -196,21 +199,24 @@ Debug_Draw_Data debug_draw_world(World *world, Debug_Draw_Options options) {
 		
         for(s64 i = 0; i < world->delimiters.count; ++i) {
             Delimiter *delimiter = &world->delimiters[i];
-            for(s64 j = 0; j < delimiter->clipping_triangles.count; ++j) {
-                b8 active = world->dbg_step_initialized && !world->dbg_step_completed && world->dbg_step_delimiter == i && world->dbg_step_clipping_triangle == j;
-				Dbg_Draw_Color color = active ? dbg_step_highlight_color : dbg_clipping_plane_color;
-				f32 thickness = active ? dbg_triangle_wireframe_thickness * 2 : dbg_triangle_wireframe_thickness;
-				debug_draw_triangle_wireframe(_internal, &delimiter->clipping_triangles[j], color, thickness);
-			}
+            for(s64 j = 0; j < delimiter->plane_count; ++j) {
+                Triangulated_Plane *plane = &delimiter->planes[j];
+                for(Triangle &triangle : plane->triangles) {
+                    b8 active = false;
+                    Dbg_Draw_Color color = active ? dbg_step_highlight_color : dbg_clipping_plane_color;
+                    f32 thickness = active ? dbg_triangle_wireframe_thickness * 2 : dbg_triangle_wireframe_thickness;
+                    debug_draw_triangle_wireframe(_internal, &triangle, color, thickness);
+                }
+            }
         }		
 	}
 
 	if(options & DEBUG_DRAW_Volume_Faces) {
 		for(s64 i = 0; i < world->anchors.count; ++i) {
             Anchor *anchor = &world->anchors[i];
-			for(s64 j = 0; j < anchor->volume_triangles.count; ++j) {
+			for(Triangle &triangle : anchor->triangles) {
 				Dbg_Draw_Color color = dbg_volume_color;
-				debug_draw_triangle(_internal, &anchor->volume_triangles[j], color);
+				debug_draw_triangle(_internal, &triangle, color);
 			}
 		}
 	}
@@ -218,10 +224,10 @@ Debug_Draw_Data debug_draw_world(World *world, Debug_Draw_Options options) {
 	if(options & DEBUG_DRAW_Volume_Wireframes) {
 		for(s64 i = 0; i < world->anchors.count; ++i) {
             Anchor *anchor = &world->anchors[i];
-			for(s64 j = 0; j < anchor->volume_triangles.count; ++j) {
+			for(Triangle &triangle : anchor->triangles) {
 				Dbg_Draw_Color color = dbg_volume_color;
                 f32 thickness = dbg_triangle_wireframe_thickness;
-                debug_draw_triangle_wireframe(_internal, &anchor->volume_triangles[j], color, thickness);
+                debug_draw_triangle_wireframe(_internal, &triangle, color, thickness);
 			}
 		}
 	}

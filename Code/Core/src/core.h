@@ -2,7 +2,7 @@
 
 #include "foundation.h"
 #include "memutils.h"
-#include "strings.h"
+#include "string_type.h"
 
 #include "math/v2.h"
 #include "math/v3.h"
@@ -68,6 +68,17 @@ struct Triangle {
     b8 no_point_behind_plane(Triangle *plane); // Just for assertions.
 };
 
+struct Triangulated_Plane {
+    Resizable_Array<Triangle> triangles; // @@Speed: We store the normal in each triangle, while they should all have the same normal. We should probably just store the vertices of the triangles in the list and then the normal once. We might even be able to go the index buffer route, but not sure if that's actually worth it.
+
+    // Sets up a basic triangulated plane consisting of two triangles, with the following parameters:
+    // c  -  center of the plane
+    // n  -  normal of the plane
+    // u  -  first scaled, orthogonal vector to the normal
+    // v  -  second scaled, orthogonal vector to the normal
+    void setup(Allocator *allocator, vec3 c, vec3 n, vec3 u, vec3 v);
+};
+
 struct AABB {
     vec3 min, max;
 };
@@ -78,7 +89,7 @@ struct AABB {
 
 struct Anchor {
     vec3 position;
-    Resizable_Array<Triangle> volume_triangles;
+    Resizable_Array<Triangle> triangles;
 
     // Only for debug drawing.
     string dbg_name;
@@ -90,7 +101,8 @@ struct Delimiter {
     vec3 local_unit_axes[AXIS_COUNT]; // The three coordinate axis in the local transform (meaning: rotated) of this delimiter.
     AABB aabb;
 
-    Resizable_Array<Triangle> clipping_triangles;
+    Triangulated_Plane planes[6]; // A delimiter can have at most 6 planes (two planes on each axis).
+    s64 plane_count;
 
     // Only for debug drawing.
     string dbg_name;
@@ -99,8 +111,9 @@ struct Delimiter {
 };
 
 struct Delimiter_Intersection {
-    f32 total_distance; // The (squared) distance from this point to d0 + The (squared) distance from this point to d1.
+    real total_distance; // The (squared) distance from this point to d0 + The (squared) distance from this point to d1.
     Delimiter *d0, *d1;
+    Triangulated_Plane *p0, *p1;
 };
 
 
@@ -188,15 +201,6 @@ struct World {
     
     void create_octree();
     void clip_delimiters(b8 single_step);
-
-    /* DbgStep */
-
-    b8 dbg_step_initialized;
-    b8 dbg_step_completed;
-    b8 dbg_step_clipping_triangle_should_be_removed;
-    s64 dbg_step_delimiter;
-    s64 dbg_step_clipping_triangle;
-    s64 dbg_step_root_triangle;
 };
 
 

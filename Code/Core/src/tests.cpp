@@ -1,7 +1,7 @@
 #include "../bindings/bindings.h"
 #include "../src/jobs.h"
 #include "../src/hash_table.h"
-#include "../src/strings.h"
+#include "../src/string_type.h"
 
 int main() {
     core_begin_profiling();

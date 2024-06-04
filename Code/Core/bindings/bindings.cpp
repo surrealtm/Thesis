@@ -289,9 +289,11 @@ extern "C" {
 
         Delimiter *b1 = world->add_delimiter("Delimiter"_s, vec3(10, 0, 0), vec3(.5, .5, 10), vec3(0));
         world->add_delimiter_clipping_planes(b1, AXIS_X);
-        
+
+        /* nocheckin
         Delimiter *b2 = world->add_delimiter("Delimiter"_s, vec3(-10, 0, 0), vec3(.5, .5, 10), vec3(0));
         world->add_delimiter_clipping_planes(b2, AXIS_X);
+        */
         
         world->add_anchor("Inside"_s, vec3(0, 0, 0));
         world->add_anchor("Outside"_s, vec3(0, 0, -20));

@@ -166,6 +166,9 @@ void generate_new_triangle(Tessellator *tessellator, vec3 p0, vec3 p1, vec3 p2) 
     // points are on one single line), or if two of the three points are very close to each other, etc.
     //
     if(points_almost_identical(p0, p1) || points_almost_identical(p0, p2) || points_almost_identical(p1, p2)) {
+#if TESSEL_DEBUG_PRINT
+        printf("Rejected triangle due to points being identical.\n");
+#endif
         return;
     }
         
@@ -173,6 +176,9 @@ void generate_new_triangle(Tessellator *tessellator, vec3 p0, vec3 p1, vec3 p2) 
 
     real estimated_surface_area = v3_length2(n) / 2;
     if(estimated_surface_area < CORE_EPSILON) {
+#if TESSEL_DEBUG_PRINT
+        printf("Rejected triangle due to estimated surface area being too small.\n");
+#endif
         return;
     }
 
@@ -182,6 +188,9 @@ void generate_new_triangle(Tessellator *tessellator, vec3 p0, vec3 p1, vec3 p2) 
     //
     Triangle would_be_triangle = { p0, p1, p2, tessellator->input_triangle->n };
     if(tessellator->triangle_should_be_clipped_proc && tessellator->triangle_should_be_clipped_proc(&would_be_triangle, tessellator->clip_triangle, tessellator->triangle_should_be_clipped_user_pointer)) {
+#if TESSEL_DEBUG_PRINT
+        printf("Rejected triangle due to custom decider callback.\n");
+#endif
         return;
     }
     
