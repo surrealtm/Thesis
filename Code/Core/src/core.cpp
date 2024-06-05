@@ -127,16 +127,43 @@ Octree *Octree::get_octree_for_aabb(AABB const &aabb, Allocator *allocator) {
 
 // Adapted from: check_against_triangle in tessel.cpp
 static
-b8 check_edge_against_triangle(vec3 e0, vec3 e1, Triangle &triangle, vec3 o0, vec3 o1, real &nearest_distance) {
+b8 check_edge_against_triangle(vec3 e0, vec3 e1, vec3 n, Triangle &triangle, vec3 o0, vec3 o1, real &nearest_distance) {
     vec3 direction = e1 - e0;
 
     Triangle_Intersection_Result<real> result = ray_double_sided_triangle_intersection(e0, direction, triangle.p0, triangle.p1, triangle.p2);
 
-    if(!result.intersection || result.distance < 0.f || result.distance > 1.f) return false;
+    if(!result.intersection || result.distance < 0.f || result.distance > 1.f) return false; // If the distance is not between 0 and 1, then the intersection is outside of the actual edge.
 
+    //
+    // When we find an intersection, we want a heuristic for the "distance" of that intersection
+    // to the origin points, so that we can order different intersections based on which have
+    // the highest priority (where a shorter distance means a higher priority, because the designer
+    // would expect this intersection to happen "before" the other ones).
+    //
+    // We base this distance on a sort of 2D projection of the planes, because the intersection point
+    // might be anywhere on the triangles, depending on which edges we check etc. Imagine the following
+    // scenario though (top down view):
+    //
+    // |------> x
+    // |
+    // |  |--*-------    <- z = 0
+    // v  |  |
+    // y  |  *-------    <- z = -10
+    //    |  |
+    //
+    // If we just naively took the distance between the intersection point and the origin centers, then
+    // the intersection with z = 0 might be considered closer than the one with z = -10, which isn't what
+    // the designer would expect. Therefore, to achieve this "top-down" effect, we cross the two triangles'
+    // normals to get an "Up"-vector, and take out that "Up"-vector in the deltas (in this case, ignoring
+    // the Z-axis).
+    //
     vec3 intersection = e0 + direction * result.distance;
-    real distance = v3_length2(o0 - intersection) + v3_length2(o1 - intersection);
+    vec3 _cross = v3_normalize(v3_cross_v3(n, triangle.n));    
+    vec3 delta0 = (o0 - intersection) - (o0 - intersection) * _cross;
+    vec3 delta1 = (o1 - intersection) - (o1 - intersection) * _cross;
 
+    real distance = v3_length2(delta0) + v3_length2(delta1);
+    
     if(distance < nearest_distance) nearest_distance = distance;
 
     return true;
@@ -147,24 +174,26 @@ void find_intersections(Delimiter *d0, Delimiter *d1, Resizable_Array<Delimiter_
     for(s64 i = 0; i < d0->plane_count; ++i) {
         Triangulated_Plane &p0 = d0->planes[i];
 
-        for(Triangle &t0 : p0.triangles) {
-            for(s64 j = 0; j < d1->plane_count; ++j) {
-                Triangulated_Plane &p1 = d1->planes[j];
-                b8 intersection = false;
-                real distance = MAX_F32;
+        for(s64 j = 0; j < d1->plane_count; ++j) {
+            Triangulated_Plane &p1 = d1->planes[j];
+            b8 intersection = false;
+            real distance = MAX_F32;
 
+            // @@Speed: Early exit
+            
+            for(Triangle &t0 : p0.triangles) {
                 for(Triangle &t1 : p1.triangles) {
-                    intersection |= check_edge_against_triangle(t0.p0, t0.p1, t1, d0->position, d1->position, distance);
-                    intersection |= check_edge_against_triangle(t0.p1, t0.p2, t1, d0->position, d1->position, distance);
-                    intersection |= check_edge_against_triangle(t0.p2, t0.p0, t1, d0->position, d1->position, distance);
-                    intersection |= check_edge_against_triangle(t1.p0, t1.p1, t0, d0->position, d1->position, distance);
-                    intersection |= check_edge_against_triangle(t1.p1, t1.p2, t0, d0->position, d1->position, distance);
-                    intersection |= check_edge_against_triangle(t1.p2, t1.p0, t0, d0->position, d1->position, distance);
+                    intersection |= check_edge_against_triangle(t0.p0, t0.p1, t0.n, t1, d0->position, d1->position, distance);
+                    intersection |= check_edge_against_triangle(t0.p1, t0.p2, t0.n, t1, d0->position, d1->position, distance);
+                    intersection |= check_edge_against_triangle(t0.p2, t0.p0, t0.n, t1, d0->position, d1->position, distance);
+                    intersection |= check_edge_against_triangle(t1.p0, t1.p1, t1.n, t0, d1->position, d0->position, distance);
+                    intersection |= check_edge_against_triangle(t1.p1, t1.p2, t1.n, t0, d1->position, d0->position, distance);
+                    intersection |= check_edge_against_triangle(t1.p2, t1.p0, t1.n, t0, d1->position, d0->position, distance);
                 }
+            }
 
-                if(intersection) {
-                    intersections.add({ distance, d0, d1, &p0, &p1 });
-                }
+            if(intersection) {
+                intersections.add({ distance, d0, d1, &p0, &p1 });
             }
         }
     }
@@ -399,7 +428,7 @@ void World::add_delimiter_clipping_planes(Delimiter *delimiter, Axis normal_axis
     Triangulated_Plane *p0 = &delimiter->planes[delimiter->plane_count];
     p0->setup(this->allocator, delimiter->position + a, n, u, v);
     ++delimiter->plane_count;
-
+    
     Triangulated_Plane *p1 = &delimiter->planes[delimiter->plane_count];
     p1->setup(this->allocator, delimiter->position - a, -n, u, v);
     ++delimiter->plane_count;
@@ -417,7 +446,6 @@ void World::add_centered_delimiter_clipping_plane(Delimiter *delimiter, Axis nor
     vec3 n = delimiter->local_unit_axes[normal_axis];
     vec3 u = delimiter->local_unit_axes[(normal_axis + 1) % 3] * extension;
     vec3 v = delimiter->local_unit_axes[(normal_axis + 2) % 3] * extension;
-
 
     Triangulated_Plane *p0 = &delimiter->planes[delimiter->plane_count];
     p0->setup(this->allocator, delimiter->position, n, u, v);
@@ -470,7 +498,7 @@ void World::clip_delimiters(b8 single_step) {
 
                 for(Triangle &root_triangle : this->root_clipping_triangles) {
                     tessellate(delimiter_triangle, &root_triangle, &plane->triangles, true);
-                    delimiter_triangle_should_be_clipped |= delimiter_triangle->is_fully_behind_plane(&root_triangle); // @@Speed: Early exit
+                    delimiter_triangle_should_be_clipped |= delimiter_triangle->is_fully_behind_plane(&root_triangle); // @@Speed: Early exit. @@Speed: We could pass a custom check to the tessellator for this, to prevent the creation of triangles we know are out of bounds anyway? (We still need to check this triangle though, since it won't get removed even if it is out of bounds...)
                 }
 
                 if(delimiter_triangle_should_be_clipped) {

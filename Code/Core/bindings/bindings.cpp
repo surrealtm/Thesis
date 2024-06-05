@@ -284,16 +284,14 @@ extern "C" {
 
         World *world = (World *) core_create_world(50, 10, 50);
 
-        Delimiter *b0 = world->add_delimiter("Delimiter"_s, vec3(0, 0, -10), vec3(10, .5, .5), vec3(0));
+        Delimiter *b0 = world->add_delimiter("Delimiter North"_s, vec3(0, 0, -10), vec3(10, .5, .5), vec3(0));
         world->add_delimiter_clipping_planes(b0, AXIS_Z);
-
-        Delimiter *b1 = world->add_delimiter("Delimiter"_s, vec3(10, 0, 0), vec3(.5, .5, 10), vec3(0));
+        
+        Delimiter *b1 = world->add_delimiter("Delimiter West"_s, vec3(10, 0, 0), vec3(.5, .5, 10), vec3(0));
         world->add_delimiter_clipping_planes(b1, AXIS_X);
 
-        /* nocheckin
-        Delimiter *b2 = world->add_delimiter("Delimiter"_s, vec3(-10, 0, 0), vec3(.5, .5, 10), vec3(0));
+        Delimiter *b2 = world->add_delimiter("Delimiter East"_s, vec3(-10, 0, 0), vec3(.5, .5, 10), vec3(0));
         world->add_delimiter_clipping_planes(b2, AXIS_X);
-        */
         
         world->add_anchor("Inside"_s, vec3(0, 0, 0));
         world->add_anchor("Outside"_s, vec3(0, 0, -20));
