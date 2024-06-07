@@ -129,7 +129,7 @@ void check_edge_against_triangle(Tessellator *tessellator, vec3 e0, vec3 e1, Tri
 
     // If result.distance < 0.f || result.distance > 1.f, then we do get an intersection with the
     // ray, but not inside the edge section of the ray.
-    if(!result.intersection || result.distance < 0.f || result.distance > 1.f) return;
+    if(!result.intersection || result.distance <= -CORE_SMALL_EPSILON || result.distance >= 1.f + CORE_SMALL_EPSILON) return;
 
     maybe_add_intersection_point(tessellator, e0 + direction * result.distance);
 }
@@ -150,7 +150,7 @@ void check_edge_against_plane(Tessellator *tessellator, vec3 e0, vec3 e1, Triang
 
     // If result.distance < 0.f || result.distance > 1.f, then we do get an intersection with the
     // ray, but not inside the edge section of the ray.
-    if(!intersection || distance < 0.f || distance > 1.f) return;
+    if(!intersection || distance <= -CORE_SMALL_EPSILON || distance >= 1.f + CORE_SMALL_EPSILON) return;
 
     maybe_add_intersection_point(tessellator, e0 + direction * distance);
 }
@@ -282,7 +282,8 @@ s64 tessellate(Triangle *input, Triangle *clip, Resizable_Array<Triangle> *outpu
 
     b8 intersection_point_is_corner[2] = {
         tessellator.barycentric_coefficients[0][0] >= 1. - CORE_EPSILON || tessellator.barycentric_coefficients[0][1] >= 1. - CORE_EPSILON || tessellator.barycentric_coefficients[0][2] >= 1. - CORE_EPSILON,
-        tessellator.barycentric_coefficients[1][0] >= 1. - CORE_EPSILON || tessellator.barycentric_coefficients[1][1] >= 1. - CORE_EPSILON || tessellator.barycentric_coefficients[1][2] >= 1. - CORE_EPSILON };
+        tessellator.barycentric_coefficients[1][0] >= 1. - CORE_EPSILON || tessellator.barycentric_coefficients[1][1] >= 1. - CORE_EPSILON || tessellator.barycentric_coefficients[1][2] >= 1. - CORE_EPSILON
+    };
 
     //
     // If both intersection points are very close to (or exactly on) the corners, then we don't bother
@@ -293,7 +294,7 @@ s64 tessellate(Triangle *input, Triangle *clip, Resizable_Array<Triangle> *outpu
     // corners, since the edge is on the clipping triangle...
     //
     if(intersection_point_is_corner[0] && intersection_point_is_corner[1]) return 0;
-
+    
     //
     // So there are two intersection points on the triangle. We now want to tessellate the triangle
     // so that there is an edge connecting the two intersection points. This means that, depending

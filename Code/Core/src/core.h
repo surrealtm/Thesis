@@ -64,8 +64,8 @@ struct Triangle {
     
     real approximate_surface_area(); // This avoids a square root for performance, since we only roughly want to know whether the triangle is dead or not.
     b8 is_dead();
-    b8 is_fully_behind_plane(Triangle *plane);
-    b8 no_point_behind_plane(Triangle *plane); // Just for assertions.
+    b8 all_points_in_front_of_plane(Triangle *plane);
+    b8 no_point_behind_plane(Triangle *plane);
 };
 
 struct Triangulated_Plane {
