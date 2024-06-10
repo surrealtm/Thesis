@@ -46,6 +46,7 @@ public enum Debug_Draw_Options : uint {
     Normals             = 0x2000,
     Axis_Gizmo          = 0x4000,
     Root_Planes         = 0x8000,
+    Flood_Fill          = 0x10000,
     Everything          = 0xffffffff,
 }
 

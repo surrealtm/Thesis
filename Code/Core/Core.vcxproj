@@ -312,6 +312,7 @@
     <ClCompile Include="bindings\bindings.cpp" />
     <ClCompile Include="src\core.cpp" />
     <ClCompile Include="src\dbgdraw.cpp" />
+    <ClCompile Include="src\floodfill.cpp" />
     <ClCompile Include="src\tessel.cpp" />
     <ClCompile Include="src\tests.cpp" />
   </ItemGroup>
@@ -324,7 +325,7 @@
     <ClInclude Include="..\Foundation\src\hash_table.h" />
     <ClInclude Include="..\Foundation\src\jobs.h" />
     <ClInclude Include="..\Foundation\src\math\intersect.h" />
-    <ClInclude Include="..\Foundation\src\math\math.h" />
+    <ClInclude Include="..\Foundation\src\math\maths.h" />
     <ClInclude Include="..\Foundation\src\math\qt.h" />
     <ClInclude Include="..\Foundation\src\math\v2.h" />
     <ClInclude Include="..\Foundation\src\math\v3.h" />
@@ -340,6 +341,7 @@
     <ClInclude Include="bindings\bindings.h" />
     <ClInclude Include="src\core.h" />
     <ClInclude Include="src\dbgdraw.h" />
+    <ClInclude Include="src\floodfill.h" />
     <ClInclude Include="src\tessel.h" />
   </ItemGroup>
   <ItemGroup>

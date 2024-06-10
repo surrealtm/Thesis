@@ -1,5 +1,6 @@
 #include "dbgdraw.h"
 #include "core.h"
+#include "floodfill.h"
 
 #include "memutils.h"
 
@@ -42,18 +43,20 @@ static f32 dbg_octree_depth_thickness_map[] = {
 const f32 dbg_anchor_radius                = 0.5f;
 const f32 dbg_triangle_wireframe_thickness = 0.03f;
 const f32 dbg_triangle_normal_thickness    = 0.2f;
+const f32 dbg_flood_fill_cell_thickness    = 0.03f;
 const f32 dbg_axis_gizmo_thickness         = 0.2f;
 
 const real dbg_triangle_normal_length      = 1;
 
-const Dbg_Draw_Color dbg_label_color          = { 255, 255, 255, 255 };
-const Dbg_Draw_Color dbg_anchor_color         = { 255, 100, 100, 255 };
-const Dbg_Draw_Color dbg_delimiter_color      = { 100, 100, 100, 255 };
-const Dbg_Draw_Color dbg_root_plane_color     = { 255, 193,   0, 100 };
-const Dbg_Draw_Color dbg_clipping_plane_color = { 255,  60,  50, 100 };
-const Dbg_Draw_Color dbg_volume_color         = { 215,  15, 219, 100 };
-const Dbg_Draw_Color dbg_step_highlight_color = { 255, 255, 255, 255 };
-const Dbg_Draw_Color dbg_normal_color         = {  50,  50, 255, 255 };
+const Dbg_Draw_Color dbg_label_color           = { 255, 255, 255, 255 };
+const Dbg_Draw_Color dbg_anchor_color          = { 255, 100, 100, 255 };
+const Dbg_Draw_Color dbg_delimiter_color       = { 100, 100, 100, 255 };
+const Dbg_Draw_Color dbg_root_plane_color      = { 255, 193,   0, 100 };
+const Dbg_Draw_Color dbg_clipping_plane_color  = { 255,  60,  50, 100 };
+const Dbg_Draw_Color dbg_volume_color          = { 215,  15, 219, 100 };
+const Dbg_Draw_Color dbg_flood_fill_cell_color = { 200, 200, 200, 255 };
+const Dbg_Draw_Color dbg_step_highlight_color  = { 255, 255, 255, 255 };
+const Dbg_Draw_Color dbg_normal_color          = {  50,  50, 255, 255 };
 
 Allocator *dbg_alloc = Default_Allocator;
 
@@ -95,6 +98,24 @@ void debug_draw_triangle_wireframe(Dbg_Internal_Draw_Data &_internal, Triangle *
 }
 
 static
+void debug_draw_cube_wireframe(Dbg_Internal_Draw_Data &_internal, v3f center, f32 half_size, f32 thickness, Dbg_Draw_Color color) {
+	_internal.lines.add({ center + v3f(-half_size, -half_size, -half_size), center + v3f(+half_size, -half_size, -half_size), thickness, color.r, color.g, color.b });
+	_internal.lines.add({ center + v3f(+half_size, -half_size, -half_size), center + v3f(+half_size, -half_size, +half_size), thickness, color.r, color.g, color.b });
+	_internal.lines.add({ center + v3f(+half_size, -half_size, +half_size), center + v3f(-half_size, -half_size, +half_size), thickness, color.r, color.g, color.b });
+	_internal.lines.add({ center + v3f(-half_size, -half_size, +half_size), center + v3f(-half_size, -half_size, -half_size), thickness, color.r, color.g, color.b });
+
+	_internal.lines.add({ center + v3f(-half_size, +half_size, -half_size), center + v3f(+half_size, +half_size, -half_size), thickness, color.r, color.g, color.b });
+	_internal.lines.add({ center + v3f(+half_size, +half_size, -half_size), center + v3f(+half_size, +half_size, +half_size), thickness, color.r, color.g, color.b });
+	_internal.lines.add({ center + v3f(+half_size, +half_size, +half_size), center + v3f(-half_size, +half_size, +half_size), thickness, color.r, color.g, color.b });
+	_internal.lines.add({ center + v3f(-half_size, +half_size, +half_size), center + v3f(-half_size, +half_size, -half_size), thickness, color.r, color.g, color.b });
+
+	_internal.lines.add({ center + v3f(+half_size, -half_size, +half_size), center + v3f(+half_size, +half_size, +half_size), thickness, color.r, color.g, color.b });
+	_internal.lines.add({ center + v3f(+half_size, -half_size, -half_size), center + v3f(+half_size, +half_size, -half_size), thickness, color.r, color.g, color.b });
+	_internal.lines.add({ center + v3f(-half_size, -half_size, -half_size), center + v3f(-half_size, +half_size, -half_size), thickness, color.r, color.g, color.b });
+	_internal.lines.add({ center + v3f(-half_size, -half_size, +half_size), center + v3f(-half_size, +half_size, +half_size), thickness, color.r, color.g, color.b });
+}
+
+static
 void debug_draw_octree(Dbg_Internal_Draw_Data &_internal, Octree *node, Octree_Child_Index child_index, u8 depth) {
 	vec3 p00 = node->center + vec3(-node->half_size.x, -node->half_size.y, -node->half_size.z),
 		p01 = node->center + vec3( node->half_size.x, -node->half_size.y, -node->half_size.z),
@@ -132,6 +153,58 @@ void debug_draw_octree(Dbg_Internal_Draw_Data &_internal, Octree *node, Octree_C
 	for(s64 i = 0; i < OCTREE_CHILD_COUNT; ++i) {
 		if(node->children[i]) debug_draw_octree(_internal, node->children[i], (Octree_Child_Index) i, depth + 1);
 	}
+}
+
+static
+void debug_draw_flood_fill(Dbg_Internal_Draw_Data &_internal, Flood_Fill *ff) {
+	for(s32 x = 0; x < ff->hx; ++x) {
+        for(s32 y = 0; y < ff->hy; ++y) {
+            for(s32 z = 0; z < ff->hz; ++z) {
+                v3f center = get_cell_world_space_center(ff, x, y, z);
+
+                //
+                // Draw the outline. Only draw the "required" lines to avoid a lot of overhead by duplicate lines.
+                //
+                {
+					f32 half_size        = CELL_WORLD_SPACE_SIZE / 2.f;
+					f32 thickness        = dbg_flood_fill_cell_thickness;
+					Dbg_Draw_Color color = dbg_flood_fill_cell_color;
+                    
+                    b8 endx = x + 1 == ff->hx;
+                    b8 endy = y + 1 == ff->hy;
+                    b8 endz = z + 1 == ff->hz;
+
+                    b8 startx = x == 0;
+                    b8 startz = z == 0;
+                    
+                    _internal.lines.add({ center + v3f(-half_size, -half_size, -half_size), center + v3f(+half_size, -half_size, -half_size), thickness, color.r, color.g, color.b });
+                    _internal.lines.add({ center + v3f(-half_size, -half_size, +half_size), center + v3f(-half_size, -half_size, -half_size), thickness, color.r, color.g, color.b });
+
+                    if(endx) _internal.lines.add({ center + v3f(+half_size, -half_size, -half_size), center + v3f(+half_size, -half_size, +half_size), thickness, color.r, color.g, color.b });
+                    if(endz) _internal.lines.add({ center + v3f(+half_size, -half_size, +half_size), center + v3f(-half_size, -half_size, +half_size), thickness, color.r, color.g, color.b });
+
+					if(endy) {
+						_internal.lines.add({ center + v3f(-half_size, +half_size, -half_size), center + v3f(+half_size, +half_size, -half_size), thickness, color.r, color.g, color.b });
+						_internal.lines.add({ center + v3f(-half_size, +half_size, +half_size), center + v3f(-half_size, +half_size, -half_size), thickness, color.r, color.g, color.b });
+
+						if(endx) _internal.lines.add({ center + v3f(+half_size, +half_size, -half_size), center + v3f(+half_size, +half_size, +half_size), thickness, color.r, color.g, color.b });
+						if(endz) _internal.lines.add({ center + v3f(+half_size, +half_size, +half_size), center + v3f(-half_size, +half_size, +half_size), thickness, color.r, color.g, color.b });
+					}
+                    
+                    _internal.lines.add({ center + v3f(-half_size, -half_size, -half_size), center + v3f(-half_size, +half_size, -half_size), thickness, color.r, color.g, color.b });
+
+                    if(endz || endx) _internal.lines.add({ center + v3f(+half_size, -half_size, +half_size), center + v3f(+half_size, +half_size, +half_size), thickness, color.r, color.g, color.b });
+
+                    if(endx && startz) _internal.lines.add({ center + v3f(+half_size, -half_size, -half_size), center + v3f(+half_size, +half_size, -half_size), thickness, color.r, color.g, color.b });
+                    if(endz && startx) _internal.lines.add({ center + v3f(-half_size, -half_size, +half_size), center + v3f(-half_size, +half_size, +half_size), thickness, color.r, color.g, color.b });
+                }
+
+                //
+                // Draw the center indicating the state of the cell. @Incomplete
+                //
+            }
+        }
+    }
 }
 
 Debug_Draw_Data debug_draw_world(World *world, Debug_Draw_Options options) {
@@ -232,6 +305,10 @@ Debug_Draw_Data debug_draw_world(World *world, Debug_Draw_Options options) {
 		}
 	}
 
+    if(options & DEBUG_DRAW_Flood_Fill) {
+        debug_draw_flood_fill(_internal, &world->current_flood_fill);
+    }
+    
 	if(options & DEBUG_DRAW_Axis_Gizmo) {
 		_internal.lines.add({ v3f(0, 0, 0), v3f(3, 0, 0), dbg_axis_gizmo_thickness, 255, 0, 0 });
 		_internal.lines.add({ v3f(0, 0, 0), v3f(0, 3, 0), dbg_axis_gizmo_thickness, 0, 255, 0 });
@@ -249,7 +326,8 @@ Debug_Draw_Data debug_draw_world(World *world, Debug_Draw_Options options) {
 	data.cuboid_count   = _internal.cuboids.count;
 	data.spheres        = _internal.spheres.data;
 	data.sphere_count   = _internal.spheres.count;
-	return data;
+
+    return data;
 }
 
 void free_debug_draw_data(Debug_Draw_Data *data) {

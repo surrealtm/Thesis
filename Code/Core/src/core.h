@@ -8,6 +8,7 @@
 #include "math/v3.h"
 #include "math/qt.h"
 
+#include "floodfill.h"
 
 
 /* --------------------------------------------- Telemetry Colors --------------------------------------------- */
@@ -186,7 +187,8 @@ struct World {
     // This octree contains pointers to anchors, delimiters and volumes, to make spatial lookup
     // for objects a lot faster.
     Octree root;
-
+    Flood_Fill current_flood_fill{};
+    
     void create(vec3 half_size);
     void destroy();
 
@@ -201,6 +203,7 @@ struct World {
     
     void create_octree();
     void clip_delimiters(b8 single_step);
+    void calculate_volumes();
 };
 
 

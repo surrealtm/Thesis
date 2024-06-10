@@ -543,6 +543,11 @@ void World::clip_delimiters(b8 single_step) {
     }
 }
 
+void World::calculate_volumes() {
+    deallocate_flood_fill(&this->current_flood_fill);
+    this->current_flood_fill = floodfill(this, this->allocator);
+}
+
 
 
 /* ---------------------------------------------- Random Utility ---------------------------------------------- */

@@ -20,6 +20,7 @@ enum Debug_Draw_Options {
     DEBUG_DRAW_Normals             = 0x2000, // Draw normals for clipping planes and volumes.
     DEBUG_DRAW_Axis_Gizmo          = 0x4000, // Draw a small axis indicator at the center of the world.
     DEBUG_DRAW_Root_Planes         = 0x8000,
+    DEBUG_DRAW_Flood_Fill          = 0x10000,
     DEBUG_DRAW_Everything          = 0xffffffff,
 };
 

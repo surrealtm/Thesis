@@ -72,6 +72,9 @@
     <ClCompile Include="..\Foundation\src\string_type.cpp">
       <Filter>Foundation</Filter>
     </ClCompile>
+    <ClCompile Include="src\floodfill.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Foundation\src\fileio.h">
@@ -84,9 +87,6 @@
       <Filter>Foundation</Filter>
     </ClInclude>
     <ClInclude Include="..\Foundation\src\os_specific.h">
-      <Filter>Foundation</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Foundation\src\math\math.h">
       <Filter>Foundation</Filter>
     </ClInclude>
     <ClInclude Include="..\Foundation\src\math\v2.h">
@@ -148,6 +148,12 @@
     </ClInclude>
     <ClInclude Include="..\Foundation\src\string_type.h">
       <Filter>Foundation</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Foundation\src\math\maths.h">
+      <Filter>Foundation</Filter>
+    </ClInclude>
+    <ClInclude Include="src\floodfill.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

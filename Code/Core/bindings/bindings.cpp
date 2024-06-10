@@ -4,7 +4,7 @@
 #include "../src/random.h"
 #include "../src/os_specific.h"
 #include "../src/jobs.h"
-#include "../src/math/math.h" // For FPI...
+#include "../src/math/maths.h" // For FPI...
 
 #include <malloc.h>
 
@@ -94,6 +94,7 @@ extern "C" {
     void core_calculate_volumes(World_Handle world_handle) {
         World *world = (World *) world_handle;
         world->clip_delimiters(false);
+        world->calculate_volumes();
     }
 
 
@@ -138,7 +139,8 @@ extern "C" {
 
         world->create_octree();
         world->clip_delimiters(step_into);
-        
+        world->calculate_volumes();
+
         return (World_Handle) world;
     }
 
@@ -223,6 +225,7 @@ extern "C" {
 
         world->create_octree();
         world->clip_delimiters(step_into);
+        world->calculate_volumes();
         return world;
     }
     
@@ -248,6 +251,7 @@ extern "C" {
 
         world->create_octree();
         world->clip_delimiters(step_into);
+        world->calculate_volumes();
         return world;
     }
 
@@ -276,6 +280,7 @@ extern "C" {
 
         world->create_octree();
         world->clip_delimiters(step_into);
+        world->calculate_volumes();
         return world;
     }
 
@@ -298,6 +303,7 @@ extern "C" {
         
         world->create_octree();
         world->clip_delimiters(step_into);
+        world->calculate_volumes();
         return world;
     }
 
@@ -314,6 +320,7 @@ extern "C" {
         
         world->create_octree();
         world->clip_delimiters(step_into);
+        world->calculate_volumes();
         return world;
     }
 
