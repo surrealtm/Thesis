@@ -58,6 +58,9 @@ const Dbg_Draw_Color dbg_flood_fill_cell_color = { 200, 200, 200, 255 };
 const Dbg_Draw_Color dbg_step_highlight_color  = { 255, 255, 255, 255 };
 const Dbg_Draw_Color dbg_normal_color          = {  50,  50, 255, 255 };
 
+const Dbg_Draw_Color dbg_cell_flooded_color = { 0, 255, 255, 255 };
+const Dbg_Draw_Color dbg_cell_frontier_color = { 255, 0, 0, 255 };
+
 Allocator *dbg_alloc = Default_Allocator;
 
 #if CORE_SINGLE_PRECISION
@@ -156,6 +159,15 @@ void debug_draw_octree(Dbg_Internal_Draw_Data &_internal, Octree *node, Octree_C
 }
 
 static
+void debug_draw_cell_center(Dbg_Internal_Draw_Data &_internal, v3f center, Dbg_Draw_Color color) {
+    f32 half_size = .1f;
+    f32 thickness = half_size / 4.f;
+    _internal.lines.add({ center - v3f(half_size, 0.f, 0.f), center + v3f(half_size, 0.f, 0.f), thickness, color.r, color.g, color.b });
+    _internal.lines.add({ center - v3f(0.f, half_size, 0.f), center + v3f(0.f, half_size, 0.f), thickness, color.r, color.g, color.b });
+    _internal.lines.add({ center - v3f(0.f, 0.f, half_size), center + v3f(0.f, 0.f, half_size), thickness, color.r, color.g, color.b });
+}
+
+static
 void debug_draw_flood_fill(Dbg_Internal_Draw_Data &_internal, Flood_Fill *ff) {
 	for(s32 x = 0; x < ff->hx; ++x) {
         for(s32 y = 0; y < ff->hy; ++y) {
@@ -200,8 +212,22 @@ void debug_draw_flood_fill(Dbg_Internal_Draw_Data &_internal, Flood_Fill *ff) {
                 }
 
                 //
-                // Draw the center indicating the state of the cell. @Incomplete
+                // Draw the center indicating the state of the cell.
                 //
+                {
+                    Cell *cell = get_cell(ff, v3i(x, y, z));
+                    switch(cell->state) {
+                    case CELL_Untouched: break;
+
+                    case CELL_Currently_In_Frontier:
+                        debug_draw_cell_center(_internal, center, dbg_cell_frontier_color);
+                        break;
+                        
+                    case CELL_Has_Been_Flooded:
+                        debug_draw_cell_center(_internal, center, dbg_cell_flooded_color);
+                        break;
+                    }
+                }
             }
         }
     }
