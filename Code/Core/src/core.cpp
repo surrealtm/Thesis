@@ -52,11 +52,11 @@ b8 Triangle::no_point_behind_plane(Triangle *plane) {
 }
 
 
-void Triangulated_Plane::setup(Allocator *allocator, vec3 c, vec3 n, vec3 u, vec3 v) {
-    vec3 p0 = c - u - v;
-    vec3 p1 = c - u + v;
-    vec3 p2 = c + u - v;
-    vec3 p3 = c + u + v;
+void Triangulated_Plane::setup(Allocator *allocator, vec3 c, vec3 n, vec3 left, vec3 right, vec3 top, vec3 bottom) {
+    vec3 p0 = c + top    + left;
+    vec3 p1 = c + top    + right;
+    vec3 p2 = c + bottom + left;
+    vec3 p3 = c + bottom + right;
 
     this->triangles.allocator = allocator;
     this->triangles.add({ p0, p3, p1, n });
@@ -415,8 +415,8 @@ void World::add_delimiter_clipping_planes(Delimiter *delimiter, Axis normal_axis
 
     vec3 a = delimiter->local_scaled_axes[normal_axis];
     vec3 n = delimiter->local_unit_axes[normal_axis];
-    vec3 u = delimiter->local_unit_axes[(normal_axis + 1) % 3] * extension;
-    vec3 v = delimiter->local_unit_axes[(normal_axis + 2) % 3] * extension;
+    vec3 u = delimiter->local_unit_axes[(normal_axis + 1) % 3];
+    vec3 v = delimiter->local_unit_axes[(normal_axis + 2) % 3];
 
     //
     // A delimiter owns an actual volume, which means that the clipping plane
@@ -426,11 +426,11 @@ void World::add_delimiter_clipping_planes(Delimiter *delimiter, Axis normal_axis
     //
 
     Triangulated_Plane *p0 = &delimiter->planes[delimiter->plane_count];
-    p0->setup(this->allocator, delimiter->position + a, n, u, v);
+    p0->setup(this->allocator, delimiter->position + a,  n, -u * extension, u * extension, -v * extension, v * extension);
     ++delimiter->plane_count;
     
     Triangulated_Plane *p1 = &delimiter->planes[delimiter->plane_count];
-    p1->setup(this->allocator, delimiter->position - a, -n, u, v);
+    p1->setup(this->allocator, delimiter->position - a, -n, -u * extension, u * extension, -v * extension, v * extension);
     ++delimiter->plane_count;
 }
 
@@ -444,11 +444,11 @@ void World::add_centered_delimiter_clipping_plane(Delimiter *delimiter, Axis nor
 
     vec3 a = delimiter->local_scaled_axes[normal_axis];
     vec3 n = delimiter->local_unit_axes[normal_axis];
-    vec3 u = delimiter->local_unit_axes[(normal_axis + 1) % 3] * extension;
-    vec3 v = delimiter->local_unit_axes[(normal_axis + 2) % 3] * extension;
+    vec3 u = delimiter->local_unit_axes[(normal_axis + 1) % 3];
+    vec3 v = delimiter->local_unit_axes[(normal_axis + 2) % 3];
 
     Triangulated_Plane *p0 = &delimiter->planes[delimiter->plane_count];
-    p0->setup(this->allocator, delimiter->position, n, u, v);
+    p0->setup(this->allocator, delimiter->position, n, -u * extension, u * extension, -v * extension, v * extension);
     ++delimiter->plane_count;
 }
 

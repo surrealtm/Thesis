@@ -72,12 +72,7 @@ struct Triangle {
 struct Triangulated_Plane {
     Resizable_Array<Triangle> triangles; // @@Speed: We store the normal in each triangle, while they should all have the same normal. We should probably just store the vertices of the triangles in the list and then the normal once. We might even be able to go the index buffer route, but not sure if that's actually worth it.
 
-    // Sets up a basic triangulated plane consisting of two triangles, with the following parameters:
-    // c  -  center of the plane
-    // n  -  normal of the plane
-    // u  -  first scaled, orthogonal vector to the normal
-    // v  -  second scaled, orthogonal vector to the normal
-    void setup(Allocator *allocator, vec3 c, vec3 n, vec3 u, vec3 v);
+    void setup(Allocator *allocator, vec3 c, vec3 n, vec3 left, vec3 right, vec3 top, vec3 bottom);
 };
 
 struct AABB {

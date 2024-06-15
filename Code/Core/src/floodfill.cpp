@@ -26,8 +26,6 @@ void maybe_add_cell_to_frontier(Flood_Fill *ff, v3i position) {
 
 static
 void fill_cell(Flood_Fill *ff, Cell *cell) {
-    printf("Filling cell: %d, %d, %d\n", cell->position.x, cell->position.y, cell->position.z);
-
     cell->state = CELL_Has_Been_Flooded;
 
     maybe_add_cell_to_frontier(ff, cell->position + v3i(1, 0, 0));
