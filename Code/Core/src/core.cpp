@@ -53,10 +53,10 @@ b8 Triangle::no_point_behind_plane(Triangle *plane) {
 
 
 void Triangulated_Plane::setup(Allocator *allocator, vec3 c, vec3 n, vec3 left, vec3 right, vec3 top, vec3 bottom) {
-    vec3 p0 = c + top    + left;
-    vec3 p1 = c + top    + right;
-    vec3 p2 = c + bottom + left;
-    vec3 p3 = c + bottom + right;
+    vec3 p0 = c + left  + top;
+    vec3 p1 = c + left  + bottom;
+    vec3 p2 = c + right + top;
+    vec3 p3 = c + right + bottom;
 
     this->triangles.allocator = allocator;
     this->triangles.add({ p0, p3, p1, n });
@@ -405,18 +405,26 @@ Delimiter *World::add_delimiter(string dbg_name, vec3 position, vec3 half_size, 
     return delimiter;
 }
 
-void World::add_delimiter_clipping_planes(Delimiter *delimiter, Axis normal_axis) {
+void World::add_delimiter_clipping_planes(Delimiter *delimiter, Axis normal_axis, Virtual_Extension virtual_extension) {
     tmFunction(TM_WORLD_COLOR);
 
     assert(normal_axis >= 0 && normal_axis < AXIS_COUNT);
     assert(delimiter->plane_count + 2 <= ARRAY_COUNT(delimiter->planes));
 
-    real extension = max(max(this->half_size.x, this->half_size.y), this->half_size.z) * 2.f; // Uniformly scale the clipping plane to cover the entire world space, before it will probably get cut down later.
+    real virtual_extension_scale = max(max(this->half_size.x, this->half_size.y), this->half_size.z) * 2.f; // Uniformly scale the clipping plane to cover the entire world space, before it will probably get cut down later.
 
+    Axis u_axis = (Axis) ((normal_axis + 1) % 3);
+    Axis v_axis = (Axis) ((normal_axis + 2) % 3);
+    
     vec3 a = delimiter->local_scaled_axes[normal_axis];
     vec3 n = delimiter->local_unit_axes[normal_axis];
-    vec3 u = delimiter->local_unit_axes[(normal_axis + 1) % 3];
-    vec3 v = delimiter->local_unit_axes[(normal_axis + 2) % 3];
+    vec3 u = delimiter->local_unit_axes[u_axis];
+    vec3 v = delimiter->local_unit_axes[v_axis];
+
+    real left_extension   = virtual_extension & VIRTUAL_EXTENSION_Negative_U ? virtual_extension_scale : v3_length(delimiter->local_scaled_axes[u_axis]);
+    real right_extension  = virtual_extension & VIRTUAL_EXTENSION_Positive_U ? virtual_extension_scale : v3_length(delimiter->local_scaled_axes[u_axis]);
+    real top_extension    = virtual_extension & VIRTUAL_EXTENSION_Negative_V ? virtual_extension_scale : v3_length(delimiter->local_scaled_axes[v_axis]);
+    real bottom_extension = virtual_extension & VIRTUAL_EXTENSION_Positive_V ? virtual_extension_scale : v3_length(delimiter->local_scaled_axes[v_axis]);
 
     //
     // A delimiter owns an actual volume, which means that the clipping plane
@@ -426,29 +434,37 @@ void World::add_delimiter_clipping_planes(Delimiter *delimiter, Axis normal_axis
     //
 
     Triangulated_Plane *p0 = &delimiter->planes[delimiter->plane_count];
-    p0->setup(this->allocator, delimiter->position + a,  n, -u * extension, u * extension, -v * extension, v * extension);
+    p0->setup(this->allocator, delimiter->position + a,  n, -u * left_extension, u * right_extension, -v * top_extension, v * bottom_extension);
     ++delimiter->plane_count;
     
     Triangulated_Plane *p1 = &delimiter->planes[delimiter->plane_count];
-    p1->setup(this->allocator, delimiter->position - a, -n, -u * extension, u * extension, -v * extension, v * extension);
+    p1->setup(this->allocator, delimiter->position - a, -n, -u * left_extension, u * right_extension, -v * top_extension, v * bottom_extension);
     ++delimiter->plane_count;
 }
 
-void World::add_centered_delimiter_clipping_plane(Delimiter *delimiter, Axis normal_axis) {
+void World::add_centered_delimiter_clipping_plane(Delimiter *delimiter, Axis normal_axis, Virtual_Extension virtual_extension) {
     tmFunction(TM_WORLD_COLOR);
 
     assert(normal_axis >= 0 && normal_axis < AXIS_COUNT);
     assert(delimiter->plane_count + 1 <= ARRAY_COUNT(delimiter->planes));
 
-    real extension = max(max(this->half_size.x, this->half_size.y), this->half_size.z) * 2.f; // Uniformly scale the clipping plane to cover the entire world space, before it will probably get cut down later.
-
+    real virtual_extension_scale = max(max(this->half_size.x, this->half_size.y), this->half_size.z) * 2.f; // Uniformly scale the clipping plane to cover the entire world space, before it will probably get cut down later.
+    
+    Axis u_axis = (Axis) ((normal_axis + 1) % 3);
+    Axis v_axis = (Axis) ((normal_axis + 2) % 3);
+    
     vec3 a = delimiter->local_scaled_axes[normal_axis];
     vec3 n = delimiter->local_unit_axes[normal_axis];
     vec3 u = delimiter->local_unit_axes[(normal_axis + 1) % 3];
     vec3 v = delimiter->local_unit_axes[(normal_axis + 2) % 3];
+    
+    real left_extension   = virtual_extension & VIRTUAL_EXTENSION_Negative_U ? virtual_extension_scale : v3_length(delimiter->local_scaled_axes[u_axis]);
+    real right_extension  = virtual_extension & VIRTUAL_EXTENSION_Positive_U ? virtual_extension_scale : v3_length(delimiter->local_scaled_axes[u_axis]);
+    real top_extension    = virtual_extension & VIRTUAL_EXTENSION_Negative_V ? virtual_extension_scale : v3_length(delimiter->local_scaled_axes[v_axis]);
+    real bottom_extension = virtual_extension & VIRTUAL_EXTENSION_Positive_V ? virtual_extension_scale : v3_length(delimiter->local_scaled_axes[v_axis]);
 
     Triangulated_Plane *p0 = &delimiter->planes[delimiter->plane_count];
-    p0->setup(this->allocator, delimiter->position, n, -u * extension, u * extension, -v * extension, v * extension);
+    p0->setup(this->allocator, delimiter->position, n, -u * left_extension, u * right_extension, -v * top_extension, v * bottom_extension);
     ++delimiter->plane_count;
 }
 

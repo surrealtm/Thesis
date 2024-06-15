@@ -116,14 +116,14 @@ extern "C" {
         world->add_anchor("Hallway"_s, vec3(-5, -3, 8.5));
         world->add_anchor("Garden"_s, vec3(0, -3, -30));
         
-        auto hallway_wall = world->add_delimiter("HallwayWall"_s, vec3(-2, -3, +6), vec3(8, .25, .5), vec3(0, 0, 0));
-        world->add_delimiter_clipping_planes(hallway_wall, AXIS_Z);
+        auto hallway_wall = world->add_delimiter("HallwayWall"_s, vec3(-2, -3, +6), vec3(7.5, .25, .5), vec3(0, 0, 0));
+        world->add_delimiter_clipping_planes(hallway_wall, AXIS_Z, VIRTUAL_EXTENSION_Positive_U | VIRTUAL_EXTENSION_Positive_V | VIRTUAL_EXTENSION_Negative_V);
 
-        auto kitchen_wall0 = world->add_delimiter("KitchenWall0"_s, vec3(0, -3, -7), vec3(.5, .25, 3), vec3(0, 0, 0));
-        world->add_delimiter_clipping_planes(kitchen_wall0, AXIS_X);
+        auto kitchen_wall0 = world->add_delimiter("KitchenWall0"_s, vec3(0, -3, -7), vec3(.5, .25, 2.5), vec3(0, 0, 0));
+        world->add_delimiter_clipping_planes(kitchen_wall0, AXIS_X, VIRTUAL_EXTENSION_Positive_U | VIRTUAL_EXTENSION_Negative_U | VIRTUAL_EXTENSION_Positive_V);
         
-        auto kitchen_wall1 = world->add_delimiter("KitchenWall1"_s, vec3(-7, -3, 0), vec3(3, .25, .5), vec3(0, 0, 0));
-        world->add_delimiter_clipping_planes(kitchen_wall1, AXIS_Z);
+        auto kitchen_wall1 = world->add_delimiter("KitchenWall1"_s, vec3(-7, -3, 0), vec3(2.5, .25, .5), vec3(0, 0, 0));
+        world->add_delimiter_clipping_planes(kitchen_wall1, AXIS_Z, VIRTUAL_EXTENSION_Positive_U | VIRTUAL_EXTENSION_Positive_V | VIRTUAL_EXTENSION_Negative_V);
         
         auto outer_wall_north = world->add_delimiter("OuterWallNorth"_s, vec3(0, -3, -10), vec3(10, .25, .5), vec3(0, 0, 0));
         world->add_delimiter_clipping_planes(outer_wall_north, AXIS_Z);
@@ -136,7 +136,7 @@ extern "C" {
 
         auto outer_wall_west = world->add_delimiter("OuterWallWest"_s, vec3(-10, -3, 0), vec3(.5, .25, 10), vec3(0, 0, 0));
         world->add_delimiter_clipping_planes(outer_wall_west, AXIS_X);
-
+        
         world->create_octree();
         world->clip_delimiters(step_into);
         world->calculate_volumes();

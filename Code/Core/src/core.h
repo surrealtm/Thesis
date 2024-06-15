@@ -56,6 +56,17 @@ enum Axis {
     AXIS_COUNT = 3,
 };
 
+enum Virtual_Extension {
+    VIRTUAL_EXTENSION_None       = 0x0,
+    VIRTUAL_EXTENSION_Positive_U = 0x1,
+    VIRTUAL_EXTENSION_Negative_U = 0x2,
+    VIRTUAL_EXTENSION_Positive_V = 0x4,
+    VIRTUAL_EXTENSION_Negative_V = 0x8,
+    VIRTUAL_EXTENSION_All        = VIRTUAL_EXTENSION_Positive_U | VIRTUAL_EXTENSION_Negative_U | VIRTUAL_EXTENSION_Positive_V | VIRTUAL_EXTENSION_Negative_V,
+};
+
+BITWISE(Virtual_Extension);
+
 struct Triangle {
     vec3 p0, p1, p2;
     vec3 n;
@@ -193,8 +204,8 @@ struct World {
     Anchor *add_anchor(string dbg_name, vec3 position);
     Delimiter *add_delimiter(vec3 position, vec3 size, vec3 rotation);
     Delimiter *add_delimiter(string dbg_name, vec3 position, vec3 size, vec3 rotation);
-    void add_delimiter_clipping_planes(Delimiter *delimiter, Axis normal_axis);
-    void add_centered_delimiter_clipping_plane(Delimiter *delimiter, Axis normal_axis);
+    void add_delimiter_clipping_planes(Delimiter *delimiter, Axis normal_axis, Virtual_Extension virtual_extension = VIRTUAL_EXTENSION_All);
+    void add_centered_delimiter_clipping_plane(Delimiter *delimiter, Axis normal_axis, Virtual_Extension virtual_extension = VIRTUAL_EXTENSION_All);
     
     void create_octree();
     void clip_delimiters(b8 single_step);
