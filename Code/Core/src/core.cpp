@@ -286,13 +286,13 @@ void solve_delimiter_intersection(Delimiter_Intersection *intersection) {
     // t1 might not exist anymore after they have been clipped, which would lead to unexpected
     // results.
     //
-    Resizable_Array<Triangle> original_t0s = intersection->p0->triangles.copy();
+    Resizable_Array<Triangle> original_t0s = intersection->p0->triangles.copy(); // @@Speed: Only copy this if we actually need it later.
 
     // Clip d0 based on the triangles of d1.
-    clip_all_delimiter_triangles(intersection->p0->triangles, intersection->p1->triangles, intersection->d0);
+    if(intersection->d0->level >= intersection->d1->level) clip_all_delimiter_triangles(intersection->p0->triangles, intersection->p1->triangles, intersection->d0);
 
     // Clip d1 based on the original triangles of d0.
-    clip_all_delimiter_triangles(intersection->p1->triangles, original_t0s, intersection->d1);
+    if(intersection->d1->level >= intersection->d0->level) clip_all_delimiter_triangles(intersection->p1->triangles, original_t0s, intersection->d1);
 
     original_t0s.clear();
 }
@@ -377,7 +377,7 @@ Anchor *World::add_anchor(string dbg_name, vec3 position) {
     return anchor;
 }
 
-Delimiter *World::add_delimiter(vec3 position, vec3 half_size, vec3 rotation) {
+Delimiter *World::add_delimiter(vec3 position, vec3 half_size, vec3 rotation, u8 level) {
     tmFunction(TM_WORLD_COLOR);
 
     quat quaternion = qt_from_euler_turns(rotation);
@@ -392,15 +392,16 @@ Delimiter *World::add_delimiter(vec3 position, vec3 half_size, vec3 rotation) {
     delimiter->local_unit_axes[AXIS_Y]   = qt_rotate(quaternion, vec3(0, 1, 0));
     delimiter->local_unit_axes[AXIS_Z]   = qt_rotate(quaternion, vec3(0, 0, 1));
     delimiter->plane_count               = 0;
-
+    delimiter->level                     = level;
+    
     delimiter->dbg_half_size = half_size;
     delimiter->dbg_rotation  = quaternion;
 
     return delimiter;
 }
 
-Delimiter *World::add_delimiter(string dbg_name, vec3 position, vec3 half_size, vec3 rotation) {
-    Delimiter *delimiter = this->add_delimiter(position, half_size, rotation);
+Delimiter *World::add_delimiter(string dbg_name, vec3 position, vec3 half_size, vec3 rotation, u8 level) {
+    Delimiter *delimiter = this->add_delimiter(position, half_size, rotation, level);
     delimiter->dbg_name = copy_string(this->allocator, dbg_name);
     return delimiter;
 }

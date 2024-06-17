@@ -80,9 +80,9 @@ extern "C" {
         return world->anchors.count - 1;
     }
 
-    s64 core_add_delimiter(World_Handle world_handle, f64 x, f64 y, f64 z, f64 hx, f64 hy, f64 hz, f64 rx, f64 ry, f64 rz) {
+    s64 core_add_delimiter(World_Handle world_handle, f64 x, f64 y, f64 z, f64 hx, f64 hy, f64 hz, f64 rx, f64 ry, f64 rz, u8 level) {
         World *world = (World *) world_handle;
-        world->add_delimiter(vec3((real) x, (real) y, (real) z), vec3((real) hx, (real) hy, (real) hz), vec3((real) rx, (real) ry, (real) rz));
+        world->add_delimiter(vec3((real) x, (real) y, (real) z), vec3((real) hx, (real) hy, (real) hz), vec3((real) rx, (real) ry, (real) rz), level);
         return world->delimiters.count - 1;
     }
 
@@ -116,25 +116,25 @@ extern "C" {
         world->add_anchor("Hallway"_s, vec3(-5, -3, 8.5));
         world->add_anchor("Garden"_s, vec3(0, -3, -30));
         
-        auto hallway_wall = world->add_delimiter("HallwayWall"_s, vec3(-2, -3, +6), vec3(7.5, .25, .5), vec3(0, 0, 0));
+        auto hallway_wall = world->add_delimiter("HallwayWall"_s, vec3(-2, -3, +6), vec3(7.5, .25, .5), vec3(0, 0, 0), 1);
         world->add_delimiter_clipping_planes(hallway_wall, AXIS_Z, VIRTUAL_EXTENSION_Positive_U | VIRTUAL_EXTENSION_Positive_V | VIRTUAL_EXTENSION_Negative_V);
 
-        auto kitchen_wall0 = world->add_delimiter("KitchenWall0"_s, vec3(0, -3, -7), vec3(.5, .25, 2.5), vec3(0, 0, 0));
+        auto kitchen_wall0 = world->add_delimiter("KitchenWall0"_s, vec3(0, -3, -7), vec3(.5, .25, 2.5), vec3(0, 0, 0), 1);
         world->add_delimiter_clipping_planes(kitchen_wall0, AXIS_X, VIRTUAL_EXTENSION_Positive_U | VIRTUAL_EXTENSION_Negative_U | VIRTUAL_EXTENSION_Positive_V);
         
-        auto kitchen_wall1 = world->add_delimiter("KitchenWall1"_s, vec3(-7, -3, 0), vec3(2.5, .25, .5), vec3(0, 0, 0));
+        auto kitchen_wall1 = world->add_delimiter("KitchenWall1"_s, vec3(-7, -3, 0), vec3(2.5, .25, .5), vec3(0, 0, 0), 1);
         world->add_delimiter_clipping_planes(kitchen_wall1, AXIS_Z, VIRTUAL_EXTENSION_Positive_U | VIRTUAL_EXTENSION_Positive_V | VIRTUAL_EXTENSION_Negative_V);
         
-        auto outer_wall_north = world->add_delimiter("OuterWallNorth"_s, vec3(0, -3, -10), vec3(10, .25, .5), vec3(0, 0, 0));
+        auto outer_wall_north = world->add_delimiter("OuterWallNorth"_s, vec3(0, -3, -10), vec3(10, .25, .5), vec3(0, 0, 0), 0);
         world->add_delimiter_clipping_planes(outer_wall_north, AXIS_Z);
 
-        auto outer_wall_south = world->add_delimiter("OuterWallSouth"_s, vec3(0, -3, +10), vec3(10, .25, .5), vec3(0, 0, 0));
+        auto outer_wall_south = world->add_delimiter("OuterWallSouth"_s, vec3(0, -3, +10), vec3(10, .25, .5), vec3(0, 0, 0), 0);
         world->add_delimiter_clipping_planes(outer_wall_south, AXIS_Z);
 
-        auto outer_wall_east = world->add_delimiter("OuterWallEast"_s, vec3(+10, -3, 0), vec3(.5, .25, 10), vec3(0, 0, 0));
+        auto outer_wall_east = world->add_delimiter("OuterWallEast"_s, vec3(+10, -3, 0), vec3(.5, .25, 10), vec3(0, 0, 0), 0);
         world->add_delimiter_clipping_planes(outer_wall_east, AXIS_X);
 
-        auto outer_wall_west = world->add_delimiter("OuterWallWest"_s, vec3(-10, -3, 0), vec3(.5, .25, 10), vec3(0, 0, 0));
+        auto outer_wall_west = world->add_delimiter("OuterWallWest"_s, vec3(-10, -3, 0), vec3(.5, .25, 10), vec3(0, 0, 0), 0);
         world->add_delimiter_clipping_planes(outer_wall_west, AXIS_X);
         
         world->create_octree();
@@ -169,7 +169,7 @@ extern "C" {
                                    get_random_real_uniform(-height + size.y, height - size.y),
                                    get_random_real_uniform(-length + size.z, length - size.z));
                 vec3 rotation = vec3(0, 0, 0);
-                world->add_delimiter("Delimiter"_s, position, size, rotation);
+                world->add_delimiter("Delimiter"_s, position, size, rotation, 0);
             }
         }
         
@@ -213,7 +213,7 @@ extern "C" {
                                    get_random_real_uniform(-length + size.z, length - size.z));
                 vec3 rotation = vec3(0, 0, 0);
 
-                auto *delimiter = world->add_delimiter("Delimiter"_s, position, size, rotation);
+                auto *delimiter = world->add_delimiter("Delimiter"_s, position, size, rotation, 0);
                 world->add_delimiter_clipping_planes(delimiter, (Axis) small_dimension);
             }
         }
@@ -234,16 +234,16 @@ extern "C" {
 
         World *world = (World *) core_create_world(50, 10, 50);
 
-        Delimiter *b0 = world->add_delimiter("Delimiter"_s, vec3(0, 0, -5), vec3(5, .5, .5), vec3(0, 0, 0));
+        Delimiter *b0 = world->add_delimiter("Delimiter"_s, vec3(0, 0, -5), vec3(5, .5, .5), vec3(0, 0, 0), 0);
         world->add_delimiter_clipping_planes(b0, AXIS_Z);
         
-        Delimiter *b1 = world->add_delimiter("Delimiter"_s, vec3(0, 0, +5), vec3(5, .5, .5), vec3(0, 0, 0));
+        Delimiter *b1 = world->add_delimiter("Delimiter"_s, vec3(0, 0, +5), vec3(5, .5, .5), vec3(0, 0, 0), 0);
         world->add_delimiter_clipping_planes(b1, AXIS_Z);
 
-        Delimiter *b2 = world->add_delimiter("Delimiter"_s, vec3(-5, 0, 0), vec3(.5, .5, 5), vec3(0, 0, 0));
+        Delimiter *b2 = world->add_delimiter("Delimiter"_s, vec3(-5, 0, 0), vec3(.5, .5, 5), vec3(0, 0, 0), 0);
         world->add_delimiter_clipping_planes(b2, AXIS_X);
         
-        Delimiter *b3 = world->add_delimiter("Delimiter"_s, vec3(+5, 0, 0), vec3(.5, .5, 5), vec3(0, 0, 0));
+        Delimiter *b3 = world->add_delimiter("Delimiter"_s, vec3(+5, 0, 0), vec3(.5, .5, 5), vec3(0, 0, 0), 0);
         world->add_delimiter_clipping_planes(b3, AXIS_X);
 
         world->add_anchor("Inside"_s, vec3(0, 0, 0));
@@ -271,7 +271,7 @@ extern "C" {
             vec3 rotation = vec3(0, i / (real) steps, 0);
             vec3 size     = vec3(circumference / steps / 2 * (1. - space_per_step), .5, .5);
 
-            Delimiter *b = world->add_delimiter("Delimiter"_s, position, size, rotation);
+            Delimiter *b = world->add_delimiter("Delimiter"_s, position, size, rotation, 0);
             world->add_delimiter_clipping_planes(b, AXIS_Z);
         }
 
@@ -289,13 +289,13 @@ extern "C" {
 
         World *world = (World *) core_create_world(50, 10, 50);
 
-        Delimiter *b0 = world->add_delimiter("Delimiter North"_s, vec3(0, 0, -10), vec3(10, .5, .5), vec3(0));
+        Delimiter *b0 = world->add_delimiter("Delimiter North"_s, vec3(0, 0, -10), vec3(10, .5, .5), vec3(0), 0);
         world->add_delimiter_clipping_planes(b0, AXIS_Z);
         
-        Delimiter *b1 = world->add_delimiter("Delimiter West"_s, vec3(10, 0, 0), vec3(.5, .5, 10), vec3(0));
+        Delimiter *b1 = world->add_delimiter("Delimiter West"_s, vec3(10, 0, 0), vec3(.5, .5, 10), vec3(0), 0);
         world->add_delimiter_clipping_planes(b1, AXIS_X);
 
-        Delimiter *b2 = world->add_delimiter("Delimiter East"_s, vec3(-10, 0, 0), vec3(.5, .5, 10), vec3(0));
+        Delimiter *b2 = world->add_delimiter("Delimiter East"_s, vec3(-10, 0, 0), vec3(.5, .5, 10), vec3(0), 0);
         world->add_delimiter_clipping_planes(b2, AXIS_X);
         
         world->add_anchor("Inside"_s, vec3(0, 0, 0));
@@ -312,7 +312,7 @@ extern "C" {
 
         World *world = (World *) core_create_world(50, 10, 50);
 
-        Delimiter *delimiter = world->add_delimiter("Center Block"_s, vec3(0, 0, 0), vec3(5, 5, 5), vec3(0.125, 0, 0.125));
+        Delimiter *delimiter = world->add_delimiter("Center Block"_s, vec3(0, 0, 0), vec3(5, 5, 5), vec3(0.125, 0, 0.125), 0);
         world->add_delimiter_clipping_planes(delimiter, AXIS_X);
         world->add_delimiter_clipping_planes(delimiter, AXIS_Z);
 

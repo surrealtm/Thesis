@@ -108,6 +108,7 @@ struct Delimiter {
     vec3 local_unit_axes[AXIS_COUNT]; // The three coordinate axis in the local transform (meaning: rotated) of this delimiter.
     AABB aabb;
 
+    u8 level;
     Triangulated_Plane planes[6]; // A delimiter can have at most 6 planes (two planes on each axis).
     s64 plane_count;
 
@@ -202,8 +203,8 @@ struct World {
     
     Anchor *add_anchor(vec3 position);
     Anchor *add_anchor(string dbg_name, vec3 position);
-    Delimiter *add_delimiter(vec3 position, vec3 size, vec3 rotation);
-    Delimiter *add_delimiter(string dbg_name, vec3 position, vec3 size, vec3 rotation);
+    Delimiter *add_delimiter(vec3 position, vec3 size, vec3 rotation, u8 level);
+    Delimiter *add_delimiter(string dbg_name, vec3 position, vec3 size, vec3 rotation, u8 level);
     void add_delimiter_clipping_planes(Delimiter *delimiter, Axis normal_axis, Virtual_Extension virtual_extension = VIRTUAL_EXTENSION_All);
     void add_centered_delimiter_clipping_plane(Delimiter *delimiter, Axis normal_axis, Virtual_Extension virtual_extension = VIRTUAL_EXTENSION_All);
     
