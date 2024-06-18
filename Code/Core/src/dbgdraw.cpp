@@ -172,7 +172,7 @@ void debug_draw_flood_fill(Dbg_Internal_Draw_Data &_internal, Flood_Fill *ff) {
 	for(s32 x = 0; x < ff->hx; ++x) {
         for(s32 y = 0; y < ff->hy; ++y) {
             for(s32 z = 0; z < ff->hz; ++z) {
-                v3f center = get_cell_world_space_center(ff, x, y, z);
+                v3f center = dbg_v3f(get_cell_world_space_center(ff, x, y, z));
 
                 //
                 // Draw the outline. Only draw the "required" lines to avoid a lot of overhead by duplicate lines.

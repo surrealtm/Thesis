@@ -4,6 +4,8 @@
 #include "math/v3.h"
 #include "memutils.h"
 
+#include "typedefs.h"
+
 #define CELL_WORLD_SPACE_SIZE 1.f
 #define CELLS_PER_WORLD_SPACE_UNIT (1.f / CELL_WORLD_SPACE_SIZE)
 
@@ -28,11 +30,13 @@ struct Flood_Fill {
     s64 hx, hy, hz; // Dimensions in cells
     v3i origin; // The first cell that was flooded (in cell coordinates)
     v3i grid_center; // hx / 2, hy / 2, hz / 2
-    v3f world_space_center; // World Space Center of the cell grid.
+    vec3 world_space_center; // World Space Center of the cell grid.
     Cell *cells;
+
+    World *world;
 };
 
 Cell *get_cell(Flood_Fill *ff, v3i position);
-v3f get_cell_world_space_center(Flood_Fill *ff, s32 x, s32 y, s32 z);
+vec3 get_cell_world_space_center(Flood_Fill *ff, s32 x, s32 y, s32 z);
 Flood_Fill floodfill(World *world, Allocator *allocator);
 void deallocate_flood_fill(Flood_Fill *ff);

@@ -260,7 +260,8 @@ extern "C" {
 
         World *world = (World *) core_create_world(50, 1, 50);
 
-        const s64 steps           = 12;
+        //const s64 steps           = 12; // nocheckin
+        const s64 steps           = 3;
         const real radius         = 10;
         const real circumference  = static_cast<real>(2 * PI * radius);
         const real space_per_step = static_cast<real>(0.5);

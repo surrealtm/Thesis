@@ -561,8 +561,33 @@ void World::clip_delimiters(b8 single_step) {
 }
 
 void World::calculate_volumes() {
+    tmFunction(TM_WORLD_COLOR);
     deallocate_flood_fill(&this->current_flood_fill);
     this->current_flood_fill = floodfill(this, this->allocator);
+}
+
+b8 World::cast_ray_against_delimiters(vec3 origin, vec3 direction, real distance) {
+    tmFunction(TM_WORLD_COLOR);
+
+    // @@Speed: This can be massively improved.
+    // 1. First up, start using the octree to figure out if the ray even
+    //    goes through the octree that the delimiter is in (for that, make sure the delimiters are actually in the
+    //    correct octree though...)
+    // 2. Then, cast a single ray against the entire Triangulated_Plane before trying to intersect the individual
+    //    triangles. Again, we should be able to cull out a lot of compuation like this.
+    for(Delimiter &delimiter : this->delimiters) {
+        for(s64 i = 0; i < delimiter.plane_count; ++i) {
+            Triangulated_Plane *plane = &delimiter.planes[i];
+            for(Triangle &triangle : plane->triangles) {
+                auto result = ray_double_sided_triangle_intersection(origin, direction, triangle.p0, triangle.p1, triangle.p2);
+                if(result.intersection && result.distance >= 0.f && result.distance <= distance) { // distance isn't normalized!
+                    return true;
+                }
+            }
+        }
+    }
+
+    return false;
 }
 
 
