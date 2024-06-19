@@ -171,6 +171,8 @@ b8 check_edge_against_triangle(vec3 e0, vec3 e1, vec3 n, Triangle &triangle, vec
 
 static
 void find_intersections(Delimiter *d0, Delimiter *d1, Resizable_Array<Delimiter_Intersection> &intersections) {
+    // @@Speed: First check if the Triangulated_Planes have an intersection. If not, then there cannot be any
+    // intersection between the actual triangles.
     for(s64 i = 0; i < d0->plane_count; ++i) {
         Triangulated_Plane &p0 = d0->planes[i];
 
@@ -179,7 +181,7 @@ void find_intersections(Delimiter *d0, Delimiter *d1, Resizable_Array<Delimiter_
             b8 intersection = false;
             real distance = MAX_F32;
 
-            // @@Speed: Early exit
+            // @@Speed: Early exit.
             
             for(Triangle &t0 : p0.triangles) {
                 for(Triangle &t1 : p1.triangles) {
@@ -228,8 +230,6 @@ b8 delimiter_triangle_should_be_clipped(Triangle *generated_triangle, Triangle *
 
 static
 void clip_all_delimiter_triangles(Resizable_Array<Triangle> &triangles_to_clip, Resizable_Array<Triangle> &clipping_triangles, Delimiter *owning_delimiter) {
-    b8 any_intersections = false;
-
     //
     // First up, we tessellate all triangles on intersection, so that no triangle
     // intersects with any clipping triangle anymore. We might not find any of these
@@ -250,29 +250,7 @@ void clip_all_delimiter_triangles(Resizable_Array<Triangle> &triangles_to_clip, 
         for(s64 j = 0; j < clipping_triangles.count; ++j) {
             Triangle *t0 = &triangles_to_clip.data[i]; // This pointer might not be stable if we are growing triangles_to_clip a lot due to tessellation!
             Triangle *t1 = &clipping_triangles[j];
-            any_intersections |= tessellate(t0, t1, &triangles_to_clip, false, (Triangle_Should_Be_Clipped) delimiter_triangle_should_be_clipped, owning_delimiter) > 0;
-        }
-    }
-
-    if(false && any_intersections) { // @RemoveMe
-        for(s64 i = 0; i < triangles_to_clip.count;) {
-            b8 t0_should_be_removed = false;
-
-            for(s64 j = 0; j < clipping_triangles.count; ++j) {
-                Triangle *t0 = &triangles_to_clip.data[i];
-                Triangle *t1 = &clipping_triangles[j];
-                
-                if(delimiter_triangle_should_be_clipped(t0, t1, owning_delimiter)) {
-                    t0_should_be_removed = true; // If the triangle is fully behind the clipping triangle, then we want to remove it.
-                    break;
-                }
-            }
-
-            if(t0_should_be_removed) {
-                triangles_to_clip.remove(i);
-            } else {
-                ++i;
-            }
+            tessellate(t0, t1, &triangles_to_clip, false, (Triangle_Should_Be_Clipped) delimiter_triangle_should_be_clipped, owning_delimiter);
         }
     }
 }

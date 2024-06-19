@@ -4,7 +4,7 @@
 #include "math/v2.h"
 #include "math/intersect.h"
 
-#define TESSEL_DEBUG_PRINT false // @@Ship: Remove this.
+#define TESSEL_DEBUG_PRINT true // @@Ship: Remove this.
 
 struct Tessellator {
     // The corner points and normal of the input triangle, copied since we will modify
@@ -167,7 +167,7 @@ void generate_new_triangle(Tessellator *tessellator, vec3 p0, vec3 p1, vec3 p2) 
     //
     if(points_almost_identical(p0, p1) || points_almost_identical(p0, p2) || points_almost_identical(p1, p2)) {
 #if TESSEL_DEBUG_PRINT
-        printf("Rejected triangle due to points being identical.\n");
+        printf("    Rejected triangle due to points being identical.\n");
 #endif
         return;
     }
@@ -177,7 +177,7 @@ void generate_new_triangle(Tessellator *tessellator, vec3 p0, vec3 p1, vec3 p2) 
     real estimated_surface_area = v3_length2(n) / 2;
     if(estimated_surface_area < CORE_EPSILON) {
 #if TESSEL_DEBUG_PRINT
-        printf("Rejected triangle due to estimated surface area being too small.\n");
+        printf("    Rejected triangle due to estimated surface area being too small.\n");
 #endif
         return;
     }
@@ -189,7 +189,7 @@ void generate_new_triangle(Tessellator *tessellator, vec3 p0, vec3 p1, vec3 p2) 
     Triangle would_be_triangle = { p0, p1, p2, tessellator->input_triangle->n };
     if(tessellator->triangle_should_be_clipped_proc && tessellator->triangle_should_be_clipped_proc(&would_be_triangle, tessellator->clip_triangle, tessellator->triangle_should_be_clipped_user_pointer)) {
 #if TESSEL_DEBUG_PRINT
-        printf("Rejected triangle due to custom decider callback.\n");
+        printf("    Rejected triangle due to custom decider callback.\n");
 #endif
         return;
     }
@@ -225,6 +225,14 @@ s64 tessellate(Triangle *input, Triangle *clip, Resizable_Array<Triangle> *outpu
     tessellator.triangle_should_be_clipped_user_pointer = triangle_should_be_clipped_user_pointer;
     
     tessellator.intersection_count = 0;
+
+    //
+    // nocheckin: For some reason, the second triangle called here does not generate two intersection points.
+    // This might be because one corner point is exactly on the edge of the clipping triangle, which might
+    // cause some trouble here? I am not sure.
+    // If that is fixed, then the clipping algorithm should work better and not cause issues with 3 or 5
+    // circle_test objects.
+    //
 
     if(!clip_against_plane) {
         //
@@ -343,6 +351,7 @@ s64 tessellate(Triangle *input, Triangle *clip, Resizable_Array<Triangle> *outpu
 
 #if TESSEL_DEBUG_PRINT
     printf("Tessellating triangle: %f, %f, %f | %f, %f, %f | %f, %f, %f\n", ext.x, ext.y, ext.z, first.x, first.y, first.z, second.x, second.y, second.z);
+    printf("    Clipping triangle: %f, %f, %f | %f, %f, %f | %f, %f, %f\n", clip->p0.x, clip->p0.y, clip->p0.z, clip->p1.x, clip->p1.y, clip->p1.z, clip->p2.x, clip->p2.y, clip->p2.z);
 
     printf("    Near: %f, %f, %f | %f, %f, %f\n", near.x, near.y, near.z, far.x, far.y, far.z);
 

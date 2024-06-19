@@ -160,10 +160,10 @@ public unsafe struct Memory_Information {
 
 /* ------------------------------------------------- Bindings ------------------------------------------------- */
 
-public enum Axis {
-    AXIS_X = 1,
-    AXIS_Y = 2,
-    AXIS_Z = 3,
+public enum Axis_Index {
+    AXIS_X = 0,
+    AXIS_Y = 1,
+    AXIS_Z = 2,
 }
 
 public class Core_Bindings {
@@ -177,7 +177,7 @@ public class Core_Bindings {
     [DllImport("Core.dll")]
     public static extern s64 core_add_delimiter(World_Handle world, double x, double y, double z, double hx, double hy, double hz, double rx, double ry, double rz);
     [DllImport("Core.dll")]
-    public static extern void core_add_delimiter_clipping_planes(World_Handle world, s64 delimiter_index, s64 axis_index);
+    public static extern void core_add_delimiter_clipping_planes(World_Handle world, s64 delimiter_index, Axis_Index axis_index);
     [DllImport("Core.dll")]
     public static extern void core_calculate_volumes(World_Handle world);
     
@@ -296,9 +296,9 @@ public unsafe class Core_Helpers {
             Bounds bounds = renderer.bounds;
             s64 index = Core_Bindings.core_add_delimiter(world_handle, transform.position.x, transform.position.y, transform.position.z, bounds.extents.x, bounds.extents.y, bounds.extents.z, transform.eulerAngles.x, transform.eulerAngles.y, transform.eulerAngles.z);
 
-            if(d.x) Core_Bindings.core_add_delimiter_clipping_planes(world_handle, index, (s64) Axis.AXIS_X);
-            if(d.y) Core_Bindings.core_add_delimiter_clipping_planes(world_handle, index, (s64) Axis.AXIS_Y);
-            if(d.z) Core_Bindings.core_add_delimiter_clipping_planes(world_handle, index, (s64) Axis.AXIS_Z);
+            if(d.x) Core_Bindings.core_add_delimiter_clipping_planes(world_handle, index, Axis_Index.AXIS_X);
+            if(d.y) Core_Bindings.core_add_delimiter_clipping_planes(world_handle, index, Axis_Index.AXIS_Y);
+            if(d.z) Core_Bindings.core_add_delimiter_clipping_planes(world_handle, index, Axis_Index.AXIS_Z);
         }
 
         Core_Bindings.core_calculate_volumes(world_handle);
