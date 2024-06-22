@@ -45,6 +45,7 @@ const f32 dbg_triangle_wireframe_thickness = 0.03f;
 const f32 dbg_triangle_normal_thickness    = 0.2f;
 const f32 dbg_flood_fill_cell_thickness    = 0.03f;
 const f32 dbg_axis_gizmo_thickness         = 0.2f;
+const f32 dbg_cell_relation_thickness      = 0.1f;
 
 const real dbg_triangle_normal_length      = 1;
 
@@ -58,8 +59,9 @@ const Dbg_Draw_Color dbg_flood_fill_cell_color = { 200, 200, 200, 255 };
 const Dbg_Draw_Color dbg_step_highlight_color  = { 255, 255, 255, 255 };
 const Dbg_Draw_Color dbg_normal_color          = {  50,  50, 255, 255 };
 
-const Dbg_Draw_Color dbg_cell_flooded_color = { 0, 255, 255, 255 };
+const Dbg_Draw_Color dbg_cell_flooded_color  = { 0, 255, 255, 255 };
 const Dbg_Draw_Color dbg_cell_frontier_color = { 255, 0, 0, 255 };
+const Dbg_Draw_Color dbg_cell_relation_color = { 100, 100, 100, 255 };
 
 Allocator *dbg_alloc = Default_Allocator;
 
@@ -160,7 +162,7 @@ void debug_draw_octree(Dbg_Internal_Draw_Data &_internal, Octree *node, Octree_C
 
 static
 void debug_draw_cell_center(Dbg_Internal_Draw_Data &_internal, v3f center, Dbg_Draw_Color color) {
-    f32 half_size = .1f;
+    f32 half_size = .1f * CELL_WORLD_SPACE_SIZE;
     f32 thickness = half_size / 4.f;
     _internal.lines.add({ center - v3f(half_size, 0.f, 0.f), center + v3f(half_size, 0.f, 0.f), thickness, color.r, color.g, color.b });
     _internal.lines.add({ center - v3f(0.f, half_size, 0.f), center + v3f(0.f, half_size, 0.f), thickness, color.r, color.g, color.b });
@@ -172,7 +174,7 @@ void debug_draw_flood_fill(Dbg_Internal_Draw_Data &_internal, Flood_Fill *ff) {
 	for(s32 x = 0; x < ff->hx; ++x) {
         for(s32 y = 0; y < ff->hy; ++y) {
             for(s32 z = 0; z < ff->hz; ++z) {
-                v3f center = dbg_v3f(get_cell_world_space_center(ff, x, y, z));
+                v3f center = dbg_v3f(get_cell_world_space_center(ff, v3i(x, y, z)));
 
                 //
                 // Draw the outline. Only draw the "required" lines to avoid a lot of overhead by duplicate lines.
@@ -225,12 +227,15 @@ void debug_draw_flood_fill(Dbg_Internal_Draw_Data &_internal, Flood_Fill *ff) {
                         
                     case CELL_Has_Been_Flooded:
                         debug_draw_cell_center(_internal, center, dbg_cell_flooded_color);
+                        _internal.lines.add({ center, dbg_v3f(get_cell_world_space_center(ff, cell->added_from_cell)), dbg_cell_relation_thickness, dbg_cell_relation_color.r, dbg_cell_relation_color.r, dbg_cell_relation_color.b });
                         break;
                     }
                 }
             }
         }
     }
+
+    debug_draw_cell_center(_internal, dbg_v3f(ff->world_space_center), Dbg_Draw_Color { 255, 0, 0, 255 });
 }
 
 Debug_Draw_Data debug_draw_world(World *world, Debug_Draw_Options options) {

@@ -188,7 +188,7 @@ struct World {
     void clip_delimiters(b8 single_step);
     void calculate_volumes();
 
-    b8 cast_ray_against_delimiters(vec3 origin, vec3 direction, real distance);
+    b8 cast_ray_against_delimiters_and_root_planes(vec3 origin, vec3 direction, real distance);
 };
 
 

@@ -549,9 +549,16 @@ void World::calculate_volumes() {
     this->current_flood_fill = floodfill(this, this->allocator, anchor->position);
 }
 
-b8 World::cast_ray_against_delimiters(vec3 origin, vec3 direction, real distance) {
+b8 World::cast_ray_against_delimiters_and_root_planes(vec3 origin, vec3 direction, real distance) {
     tmFunction(TM_WORLD_COLOR);
 
+    for(Triangle &triangle : this->root_clipping_triangles) {
+        auto result = ray_double_sided_triangle_intersection(origin, direction, triangle.p0, triangle.p1, triangle.p2);
+        if(result.intersection && result.distance >= 0.f && result.distance <= distance) { // distance isn't normalized!
+            return true;
+        }        
+    }
+    
     // @@Speed: This can be massively improved.
     // 1. First up, start using the octree to figure out if the ray even
     //    goes through the octree that the delimiter is in (for that, make sure the delimiters are actually in the
@@ -569,7 +576,7 @@ b8 World::cast_ray_against_delimiters(vec3 origin, vec3 direction, real distance
             }
         }
     }
-
+    
     return false;
 }
 

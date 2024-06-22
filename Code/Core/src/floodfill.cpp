@@ -7,7 +7,7 @@
 
 static inline
 vec3 get_cell_world_space_center(Flood_Fill *ff, Cell *cell) {
-    return get_cell_world_space_center(ff, cell->position.x, cell->position.y, cell->position.z);
+    return get_cell_world_space_center(ff, cell->position);
 }
 
 static inline
@@ -15,7 +15,7 @@ b8 flood_fill_condition(Flood_Fill *ff, Cell *dst, Cell *src) {
     vec3 world_space_origin    = get_cell_world_space_center(ff, src);
     vec3 world_space_direction = get_cell_world_space_center(ff, dst) - get_cell_world_space_center(ff, src);
     
-    return !ff->world->cast_ray_against_delimiters(world_space_origin, world_space_direction, 1.f);
+    return !ff->world->cast_ray_against_delimiters_and_root_planes(world_space_origin, world_space_direction, 1.f); // World space direction is scaled to reflect the actual distance between the cells, so we only care about intersections on inside this direction vector.
 }
 
 static inline
@@ -23,6 +23,7 @@ void definitely_add_cell_to_frontier(Flood_Fill *ff, v3i position) {
     Cell *cell = get_cell(ff, position);
     cell->position = position;
     cell->state = CELL_Currently_In_Frontier;
+    cell->added_from_cell = position;
     ff->frontier.add(cell);
 }
 
@@ -32,8 +33,9 @@ void maybe_add_cell_to_frontier(Flood_Fill *ff, Cell *src, v3i position) {
 
     Cell *cell = get_cell(ff, position);
     if(cell->state != CELL_Untouched) return;
-    cell->position = position;
-
+    cell->position        = position;
+    cell->added_from_cell = src->position;
+    
     if(!flood_fill_condition(ff, cell, src)) return;
 
     cell->state = CELL_Currently_In_Frontier;
@@ -61,14 +63,14 @@ Cell *get_cell(Flood_Fill *ff, v3i position) {
     return &ff->cells[index];
 }
 
-vec3 get_cell_world_space_center(Flood_Fill *ff, s32 x, s32 y, s32 z) {
-    real xoffset = ((real) x - (real) ff->hx / 2.) * CELL_WORLD_SPACE_SIZE;
-    real yoffset = ((real) y - (real) ff->hy / 2.) * CELL_WORLD_SPACE_SIZE;
-    real zoffset = ((real) z - (real) ff->hz / 2.) * CELL_WORLD_SPACE_SIZE;
+vec3 get_cell_world_space_center(Flood_Fill *ff, v3i position) {
+    real xoffset = ((real) position.x - (real) ff->hx / 2.) * CELL_WORLD_SPACE_SIZE;
+    real yoffset = ((real) position.y - (real) ff->hy / 2.) * CELL_WORLD_SPACE_SIZE;
+    real zoffset = ((real) position.z - (real) ff->hz / 2.) * CELL_WORLD_SPACE_SIZE;
 
-    if(ff->hx % 2 == 0) xoffset += CELL_WORLD_SPACE_SIZE / 2.f;
-    if(ff->hy % 2 == 0) yoffset += CELL_WORLD_SPACE_SIZE / 2.f;
-    if(ff->hz % 2 == 0) zoffset += CELL_WORLD_SPACE_SIZE / 2.f;
+    xoffset += CELL_WORLD_SPACE_SIZE / 2.f;
+    yoffset += CELL_WORLD_SPACE_SIZE / 2.f;
+    zoffset += CELL_WORLD_SPACE_SIZE / 2.f;
 
     return ff->world_space_center + vec3(xoffset, yoffset, zoffset);
 }

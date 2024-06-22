@@ -6,7 +6,7 @@
 
 #include "typedefs.h"
 
-#define CELL_WORLD_SPACE_SIZE 1.f
+#define CELL_WORLD_SPACE_SIZE 2.5f
 #define CELLS_PER_WORLD_SPACE_UNIT (1.f / CELL_WORLD_SPACE_SIZE)
 
 struct World;
@@ -21,6 +21,8 @@ enum Cell_State {
 struct Cell {
     v3i position; // So that we can just store pointers to Cells in the frontier, and don't have to also remember the position in the frontier...   Note: This will only be filled when it is first added to the frontier!
     Cell_State state;
+
+    v3i added_from_cell; // @@Ship: Remove this.
 };
 
 struct Flood_Fill {
@@ -37,6 +39,6 @@ struct Flood_Fill {
 };
 
 Cell *get_cell(Flood_Fill *ff, v3i position);
-vec3 get_cell_world_space_center(Flood_Fill *ff, s32 x, s32 y, s32 z);
+vec3 get_cell_world_space_center(Flood_Fill *ff, v3i position);
 Flood_Fill floodfill(World *world, Allocator *allocator, vec3 world_space_center);
 void deallocate_flood_fill(Flood_Fill *ff);

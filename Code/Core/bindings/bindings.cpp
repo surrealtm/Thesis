@@ -111,8 +111,8 @@ extern "C" {
         tmZone("do_house_test", TM_SYSTEM_COLOR);
 
         World *world = (World *) core_create_world(100, 10, 100);
-        world->add_anchor("Kitchen"_s, vec3(-5, -3, -5));
         world->add_anchor("Living Room"_s, vec3(5, -3, -5));
+        world->add_anchor("Kitchen"_s, vec3(-5, -3, -5));
         world->add_anchor("Hallway"_s, vec3(-5, -3, 8.5));
         world->add_anchor("Garden"_s, vec3(0, -3, -30));
         
