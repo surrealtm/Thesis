@@ -4,7 +4,7 @@
 #include "math/v2.h"
 #include "math/intersect.h"
 
-#define TESSEL_DEBUG_PRINT true // @@Ship: Remove this.
+#define TESSEL_DEBUG_PRINT false // @@Ship: Remove this.
 
 struct Tessellator {
     // The corner points and normal of the input triangle, copied since we will modify
@@ -225,14 +225,6 @@ s64 tessellate(Triangle *input, Triangle *clip, Resizable_Array<Triangle> *outpu
     tessellator.triangle_should_be_clipped_user_pointer = triangle_should_be_clipped_user_pointer;
     
     tessellator.intersection_count = 0;
-
-    //
-    // nocheckin: For some reason, the second triangle called here does not generate two intersection points.
-    // This might be because one corner point is exactly on the edge of the clipping triangle, which might
-    // cause some trouble here? I am not sure.
-    // If that is fixed, then the clipping algorithm should work better and not cause issues with 3 or 5
-    // circle_test objects.
-    //
 
     if(!clip_against_plane) {
         //

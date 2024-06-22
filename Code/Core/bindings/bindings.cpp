@@ -260,21 +260,19 @@ extern "C" {
 
         World *world = (World *) core_create_world(50, 1, 50);
 
-        //const s64 steps           = 12; // nocheckin
-        const s64 steps           = 3;
+        const s64 steps           = 12;
         const real radius         = 10;
         const real circumference  = static_cast<real>(2 * PI * radius);
         const real space_per_step = static_cast<real>(0.5);
 
-        for(s64 i = 1; i < steps; ++i) { // nocheckin
+        for(s64 i = 0; i < steps; ++i) {
             real theta    = (i * static_cast<real>(TAU)) / static_cast<real>(steps);
             vec3 position = vec3(static_cast<real>(sin(theta)) * radius, 0, static_cast<real>(cos(theta)) * radius);
             vec3 rotation = vec3(0, i / (real) steps, 0);
             vec3 size     = vec3(circumference / steps / 2 * (1. - space_per_step), .5, .5);
 
             Delimiter *b = world->add_delimiter("Delimiter"_s, position, size, rotation, 0);
-            // world->add_delimiter_clipping_planes(b, AXIS_Z); // nocheckin
-            world->add_centered_delimiter_clipping_plane(b, AXIS_Z);
+            world->add_delimiter_clipping_planes(b, AXIS_Z);
         }
 
         world->add_anchor("Inside"_s, vec3(0, 0, 0));

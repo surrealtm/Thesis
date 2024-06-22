@@ -441,7 +441,7 @@ void World::add_centered_delimiter_clipping_plane(Delimiter *delimiter, Axis nor
     real right_extension  = virtual_extension & VIRTUAL_EXTENSION_Positive_U ? virtual_extension_scale : v3_length(delimiter->local_scaled_axes[u_axis]);
     real top_extension    = virtual_extension & VIRTUAL_EXTENSION_Negative_V ? virtual_extension_scale : v3_length(delimiter->local_scaled_axes[v_axis]);
     real bottom_extension = virtual_extension & VIRTUAL_EXTENSION_Positive_V ? virtual_extension_scale : v3_length(delimiter->local_scaled_axes[v_axis]);
-
+    
     Triangulated_Plane *p0 = &delimiter->planes[delimiter->plane_count];
     p0->setup(this->allocator, delimiter->position, n, -u * left_extension, u * right_extension, -v * top_extension, v * bottom_extension);
     ++delimiter->plane_count;
@@ -540,8 +540,13 @@ void World::clip_delimiters(b8 single_step) {
 
 void World::calculate_volumes() {
     tmFunction(TM_WORLD_COLOR);
+
+    if(this->anchors.count == 0) return;
+    
+    Anchor *anchor = &this->anchors[0];
+
     deallocate_flood_fill(&this->current_flood_fill);
-    this->current_flood_fill = floodfill(this, this->allocator);
+    this->current_flood_fill = floodfill(this, this->allocator, anchor->position);
 }
 
 b8 World::cast_ray_against_delimiters(vec3 origin, vec3 direction, real distance) {

@@ -73,14 +73,14 @@ vec3 get_cell_world_space_center(Flood_Fill *ff, s32 x, s32 y, s32 z) {
     return ff->world_space_center + vec3(xoffset, yoffset, zoffset);
 }
 
-Flood_Fill floodfill(World *world, Allocator *allocator) {
+Flood_Fill floodfill(World *world, Allocator *allocator, vec3 world_space_center) {
     Flood_Fill ff;
     ff.allocator = allocator;
     ff.hx        = (s32) ceil(world->half_size.x * CELLS_PER_WORLD_SPACE_UNIT * 2);
     ff.hy        = (s32) ceil(world->half_size.y * CELLS_PER_WORLD_SPACE_UNIT * 2);
     ff.hz        = (s32) ceil(world->half_size.z * CELLS_PER_WORLD_SPACE_UNIT * 2);
     ff.cells     = (Cell *) ff.allocator->allocate(ff.hx * ff.hy * ff.hz * sizeof(Cell));
-    ff.world_space_center = vec3(0, 0, 0);
+    ff.world_space_center = world_space_center;
     ff.frontier.allocator = allocator;
     ff.world = world;
     
