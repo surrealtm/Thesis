@@ -40,5 +40,5 @@ struct Flood_Fill {
 
 Cell *get_cell(Flood_Fill *ff, v3i position);
 vec3 get_cell_world_space_center(Flood_Fill *ff, v3i position);
-Flood_Fill floodfill(World *world, Allocator *allocator, vec3 world_space_center);
+void floodfill(Flood_Fill *ff, World *world, Allocator *allocator, vec3 world_space_center);
 void deallocate_flood_fill(Flood_Fill *ff);

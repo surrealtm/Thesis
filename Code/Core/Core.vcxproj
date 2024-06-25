@@ -313,6 +313,7 @@
     <ClCompile Include="src\core.cpp" />
     <ClCompile Include="src\dbgdraw.cpp" />
     <ClCompile Include="src\floodfill.cpp" />
+    <ClCompile Include="src\march.cpp" />
     <ClCompile Include="src\tessel.cpp" />
     <ClCompile Include="src\tests.cpp" />
   </ItemGroup>
@@ -342,6 +343,7 @@
     <ClInclude Include="src\core.h" />
     <ClInclude Include="src\dbgdraw.h" />
     <ClInclude Include="src\floodfill.h" />
+    <ClInclude Include="src\march.h" />
     <ClInclude Include="src\tessel.h" />
   </ItemGroup>
   <ItemGroup>

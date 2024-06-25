@@ -1,5 +1,7 @@
 #include "core.h"
 #include "tessel.h"
+#include "floodfill.h"
+#include "march.h"
 
 #include "timing.h"
 #include "random.h"
@@ -9,6 +11,10 @@
 
 
 /* ----------------------------------------------- 3D Geometry ----------------------------------------------- */
+
+Triangle::Triangle(vec3 p0, vec3 p1, vec3 p2) : p0(p0), p1(p1), p2(p2) {
+    this->n = v3_normalize(v3_cross_v3(p0 - p1, p0 - p2));
+}
 
 Triangle::Triangle(vec3 p0, vec3 p1, vec3 p2, vec3 n) : p0(p0), p1(p1), p2(p2), n(n) {}
 
@@ -545,8 +551,12 @@ void World::calculate_volumes() {
     
     Anchor *anchor = &this->anchors[0];
 
-    deallocate_flood_fill(&this->current_flood_fill);
-    this->current_flood_fill = floodfill(this, this->allocator, anchor->position);
+    if(this->current_flood_fill != null) deallocate_flood_fill(this->current_flood_fill);
+
+    this->current_flood_fill = this->allocator->New<Flood_Fill>();
+    floodfill(this->current_flood_fill, this, this->allocator, anchor->position);
+
+    marching_cubes(&anchor->triangles, this->current_flood_fill);
 }
 
 b8 World::cast_ray_against_delimiters_and_root_planes(vec3 origin, vec3 direction, real distance) {

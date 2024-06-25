@@ -337,7 +337,7 @@ Debug_Draw_Data debug_draw_world(World *world, Debug_Draw_Options options) {
 	}
 
     if(options & DEBUG_DRAW_Flood_Fill) {
-        debug_draw_flood_fill(_internal, &world->current_flood_fill);
+        debug_draw_flood_fill(_internal, world->current_flood_fill);
     }
     
 	if(options & DEBUG_DRAW_Axis_Gizmo) {

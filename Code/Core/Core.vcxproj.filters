@@ -75,6 +75,9 @@
     <ClCompile Include="src\floodfill.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\march.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Foundation\src\fileio.h">
@@ -153,6 +156,9 @@
       <Filter>Foundation</Filter>
     </ClInclude>
     <ClInclude Include="src\floodfill.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\march.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

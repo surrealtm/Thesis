@@ -9,7 +9,6 @@
 #include "math/qt.h"
 
 #include "typedefs.h"
-#include "floodfill.h"
 
 
 
@@ -48,6 +47,7 @@ struct Triangle {
     vec3 n;
     
     Triangle() {};
+    Triangle(vec3 p0, vec3 p1, vec3 p2);
     Triangle(vec3 p0, vec3 p1, vec3 p2, vec3 n);
     
     real approximate_surface_area(); // This avoids a square root for performance, since we only roughly want to know whether the triangle is dead or not.
@@ -170,7 +170,8 @@ struct World {
     // This octree contains pointers to anchors, delimiters and volumes, to make spatial lookup
     // for objects a lot faster.
     Octree root;
-    Flood_Fill current_flood_fill{};
+    
+    struct Flood_Fill *current_flood_fill; // Just for debug drawing.
     
     void create(vec3 half_size);
     void destroy();

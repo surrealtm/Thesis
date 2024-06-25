@@ -75,28 +75,25 @@ vec3 get_cell_world_space_center(Flood_Fill *ff, v3i position) {
     return ff->world_space_center + vec3(xoffset, yoffset, zoffset);
 }
 
-Flood_Fill floodfill(World *world, Allocator *allocator, vec3 world_space_center) {
-    Flood_Fill ff;
-    ff.allocator = allocator;
-    ff.hx        = (s32) ceil(world->half_size.x * CELLS_PER_WORLD_SPACE_UNIT * 2);
-    ff.hy        = (s32) ceil(world->half_size.y * CELLS_PER_WORLD_SPACE_UNIT * 2);
-    ff.hz        = (s32) ceil(world->half_size.z * CELLS_PER_WORLD_SPACE_UNIT * 2);
-    ff.cells     = (Cell *) ff.allocator->allocate(ff.hx * ff.hy * ff.hz * sizeof(Cell));
-    ff.world_space_center = world_space_center;
-    ff.frontier.allocator = allocator;
-    ff.world = world;
+void floodfill(Flood_Fill *ff, World *world, Allocator *allocator, vec3 world_space_center) {
+    ff->allocator = allocator;
+    ff->hx        = (s32) ceil(world->half_size.x * CELLS_PER_WORLD_SPACE_UNIT * 2);
+    ff->hy        = (s32) ceil(world->half_size.y * CELLS_PER_WORLD_SPACE_UNIT * 2);
+    ff->hz        = (s32) ceil(world->half_size.z * CELLS_PER_WORLD_SPACE_UNIT * 2);
+    ff->cells     = (Cell *) ff->allocator->allocate(ff->hx * ff->hy * ff->hz * sizeof(Cell));
+    ff->world_space_center = world_space_center;
+    ff->frontier.allocator = allocator;
+    ff->world = world;
     
-    memset(ff.cells, 0, ff.hx * ff.hy * ff.hz * sizeof(Cell));
+    memset(ff->cells, 0, ff->hx * ff->hy * ff->hz * sizeof(Cell)); // @@Speed: The allocator should guarantee zero-initialization anyway, so this seems unncessary. We probably want to reuse a Flood_Fill struct later though, so at that point it might become necessary again...
 
-    ff.origin = v3i((s32) (ff.hx / 2), (s32) (ff.hy / 2), (s32) (ff.hz / 2));
-    definitely_add_cell_to_frontier(&ff, ff.origin);
+    ff->origin = v3i((s32) (ff->hx / 2), (s32) (ff->hy / 2), (s32) (ff->hz / 2));
+    definitely_add_cell_to_frontier(ff, ff->origin);
 
-    while(ff.frontier.count) {
-        Cell *head = ff.frontier.pop_first(); // @@Speed: Pop last, that should be much more efficient. We don't care about order here, so that should not be a problem.
-        fill_cell(&ff, head);
+    while(ff->frontier.count) {
+        Cell *head = ff->frontier.pop_first(); // @@Speed: Pop last, that should be much more efficient. We don't care about order here, so that should not be a problem.
+        fill_cell(ff, head);
     }
-    
-    return ff;
 }
 
 void deallocate_flood_fill(Flood_Fill *ff) {
