@@ -114,7 +114,7 @@ extern "C" {
         world->add_anchor("Living Room"_s, vec3(5, -3, -5));
         world->add_anchor("Kitchen"_s, vec3(-5, -3, -5));
         world->add_anchor("Hallway"_s, vec3(-5, -3, 8.5));
-        world->add_anchor("Garden"_s, vec3(0, -3, -30));
+        //world->add_anchor("Garden"_s, vec3(0, -3, -30)); // nocheckin
         
         auto hallway_wall = world->add_delimiter("HallwayWall"_s, vec3(-2, -3, +6), vec3(7.5, .25, .5), vec3(0, 0, 0), 1);
         world->add_delimiter_clipping_planes(hallway_wall, AXIS_Z, VIRTUAL_EXTENSION_Positive_U | VIRTUAL_EXTENSION_Positive_V | VIRTUAL_EXTENSION_Negative_V);

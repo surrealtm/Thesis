@@ -6,8 +6,8 @@
 
 #include "typedefs.h"
 
-#define CELL_WORLD_SPACE_SIZE      1.f
-#define CELLS_PER_WORLD_SPACE_UNIT (1.f / CELL_WORLD_SPACE_SIZE)
+#define CELL_WORLD_SPACE_SIZE      2.
+#define CELLS_PER_WORLD_SPACE_UNIT (1. / CELL_WORLD_SPACE_SIZE)
 
 struct World;
 struct Allocator;

@@ -12,6 +12,15 @@ vec3 get_cell_world_space_center(Flood_Fill *ff, Cell *cell) {
 }
 
 static inline
+v3i world_space_to_cell_space(Flood_Fill *ff, vec3 world_space) {
+    vec3 relative_to_center = world_space - ff->world_space_center;
+    vec3 scaled_relative    = relative_to_center * vec3(CELLS_PER_WORLD_SPACE_UNIT);
+    return v3i((s32) clamp(round(scaled_relative.x + ff->hx / 2.), 0, ff->hx - 1),
+               (s32) clamp(round(scaled_relative.y + ff->hy / 2.), 0, ff->hy - 1),
+               (s32) clamp(round(scaled_relative.z + ff->hz / 2.), 0, ff->hz - 1));
+}
+
+static inline
 b8 flood_fill_condition(Flood_Fill *ff, Cell *dst, Cell *src) {
     vec3 world_space_origin    = get_cell_world_space_center(ff, src);
     vec3 world_space_direction = get_cell_world_space_center(ff, dst) - get_cell_world_space_center(ff, src);
@@ -86,13 +95,13 @@ void floodfill(Flood_Fill *ff, World *world, Allocator *allocator, vec3 world_sp
     ff->hy        = (s32) ceil(world->half_size.y * CELLS_PER_WORLD_SPACE_UNIT * 2);
     ff->hz        = (s32) ceil(world->half_size.z * CELLS_PER_WORLD_SPACE_UNIT * 2);
     ff->cells     = (Cell *) ff->allocator->allocate(ff->hx * ff->hy * ff->hz * sizeof(Cell));
-    ff->world_space_center = world_space_center;
+    ff->world_space_center = vec3(0); // The world is centered around (0, 0, 0) by default.
     ff->frontier.allocator = allocator;
     ff->world = world;
     
     memset(ff->cells, 0, ff->hx * ff->hy * ff->hz * sizeof(Cell)); // @@Speed: The allocator should guarantee zero-initialization anyway, so this seems unncessary. We probably want to reuse a Flood_Fill struct later though, so at that point it might become necessary again...
 
-    ff->origin = v3i((s32) (ff->hx / 2), (s32) (ff->hy / 2), (s32) (ff->hz / 2));
+    ff->origin = world_space_to_cell_space(ff, world_space_center);
     definitely_add_cell_to_frontier(ff, ff->origin);
 
     while(ff->frontier.count) {

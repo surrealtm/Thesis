@@ -291,7 +291,7 @@ void World::create(vec3 half_size) {
     //
     // Set up memory management.
     //
-    this->arena.create(16 * ONE_MEGABYTE);
+    this->arena.create(1 * ONE_GIGABYTE);
     this->pool.create(&this->arena);
     this->pool_allocator = this->pool.allocator();
     this->allocator = &this->pool_allocator;
@@ -547,16 +547,16 @@ void World::clip_delimiters(b8 single_step) {
 void World::calculate_volumes() {
     tmFunction(TM_WORLD_COLOR);
 
-    if(this->anchors.count == 0) return;
-    
-    Anchor *anchor = &this->anchors[0];
+    // @@Speed: Start reusing the Flood_Fill struct (i.e. the allocated cell field, etc.), instead of doing
+    // so fucking much memory allocation all the time.
+    for(Anchor &anchor : this->anchors) {
+        if(this->current_flood_fill != null) deallocate_flood_fill(this->current_flood_fill);
 
-    if(this->current_flood_fill != null) deallocate_flood_fill(this->current_flood_fill);
+        this->current_flood_fill = this->allocator->New<Flood_Fill>();
+        floodfill(this->current_flood_fill, this, this->allocator, anchor.position);
 
-    this->current_flood_fill = this->allocator->New<Flood_Fill>();
-    floodfill(this->current_flood_fill, this, this->allocator, anchor->position);
-
-    marching_cubes(&anchor->triangles, this->current_flood_fill);
+        marching_cubes(&anchor.triangles, this->current_flood_fill);
+    }
 }
 
 b8 World::cast_ray_against_delimiters_and_root_planes(vec3 origin, vec3 direction, real distance) {
