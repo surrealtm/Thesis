@@ -3,6 +3,7 @@
 
 #include "math/v2.h"
 #include "math/intersect.h"
+#include "timing.h"
 
 #define TESSEL_DEBUG_PRINT false // @@Ship: Remove this.
 
@@ -214,6 +215,8 @@ void generate_new_triangle(Tessellator *tessellator, vec3 p0, vec3 p1, vec3 p2) 
 
 
 s64 tessellate(Triangle *input, Triangle *clip, Resizable_Array<Triangle> *output, b8 clip_against_plane, Triangle_Should_Be_Clipped triangle_should_be_clipped_proc, void *triangle_should_be_clipped_user_pointer) {
+    tmFunction(TM_TESSEL_COLOR);
+
     Tessellator tessellator;
     tessellator.input_corner[0] = input->p0;
     tessellator.input_corner[1] = input->p1;

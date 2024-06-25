@@ -466,10 +466,12 @@ BOOL WINAPI DllMain(HINSTANCE hinstance, DWORD reason, LPVOID reserved) {
     //
     // Set up some things regarding the core library.
     //
-    tmSetColor(TM_SYSTEM_COLOR, 209, 202, 197);
-    tmSetColor(TM_WORLD_COLOR,   95, 230,  46);
-    tmSetColor(TM_OCTREE_COLOR,  46, 184, 230);
-    tmSetColor(TM_ANCHOR_COLOR, 215,  15, 219);
+    tmSetColor(TM_SYSTEM_COLOR,   209, 202, 197);
+    tmSetColor(TM_WORLD_COLOR,     95, 230,  46);
+    tmSetColor(TM_OCTREE_COLOR,    46, 184, 230);
+    tmSetColor(TM_TESSEL_COLOR,   255,   0, 224);
+    tmSetColor(TM_FLOODING_COLOR,  93,  75, 255);
+    tmSetColor(TM_MARCHING_COLOR, 255,  75,  75);
     return true;
 }
 #endif

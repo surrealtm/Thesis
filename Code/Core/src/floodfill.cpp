@@ -1,6 +1,7 @@
 #include "floodfill.h"
 #include "core.h"
 
+#include "timing.h"
 
 
 /* ---------------------------------------------- Implementation ---------------------------------------------- */
@@ -59,6 +60,8 @@ void fill_cell(Flood_Fill *ff, Cell *cell) {
 /* --------------------------------------------------- Api --------------------------------------------------- */
 
 Cell *get_cell(Flood_Fill *ff, v3i position) {
+    if(position.x < 0 || position.x >= ff->hx || position.y < 0 || position.y >= ff->hy || position.z < 0 || position.z >= ff->hz) return null;
+    
     s64 index = position.x * ff->hy * ff->hz + position.y * ff->hz + position.z;
     return &ff->cells[index];
 }
@@ -76,6 +79,8 @@ vec3 get_cell_world_space_center(Flood_Fill *ff, v3i position) {
 }
 
 void floodfill(Flood_Fill *ff, World *world, Allocator *allocator, vec3 world_space_center) {
+    tmFunction(TM_FLOODING_COLOR);
+
     ff->allocator = allocator;
     ff->hx        = (s32) ceil(world->half_size.x * CELLS_PER_WORLD_SPACE_UNIT * 2);
     ff->hy        = (s32) ceil(world->half_size.y * CELLS_PER_WORLD_SPACE_UNIT * 2);

@@ -227,7 +227,7 @@ void debug_draw_flood_fill(Dbg_Internal_Draw_Data &_internal, Flood_Fill *ff) {
                         
                     case CELL_Has_Been_Flooded:
                         debug_draw_cell_center(_internal, center, dbg_cell_flooded_color);
-                        _internal.lines.add({ center, dbg_v3f(get_cell_world_space_center(ff, cell->added_from_cell)), dbg_cell_relation_thickness, dbg_cell_relation_color.r, dbg_cell_relation_color.r, dbg_cell_relation_color.b });
+                        //_internal.lines.add({ center, dbg_v3f(get_cell_world_space_center(ff, cell->added_from_cell)), dbg_cell_relation_thickness, dbg_cell_relation_color.r, dbg_cell_relation_color.r, dbg_cell_relation_color.b }); // Draw a connection between the cell that added this cell to the frontier.
                         break;
                     }
                 }

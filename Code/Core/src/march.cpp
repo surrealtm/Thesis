@@ -1,6 +1,8 @@
 #include "march.h"
 #include "floodfill.h"
 
+#include "timing.h"
+
 //
 // Adapted from:
 // https://polycoding.net/marching-cubes/part-1/
@@ -275,8 +277,8 @@ static const s8 triangulation_lookup_table[256][16] = {
 
 static
 b8 test_position(Flood_Fill *ff, v3i position) {
-	Cell *cell = get_cell(ff, position);
-    return cell->state & CELL_Has_Been_Flooded;
+    Cell *cell = get_cell(ff, position);
+    return cell != null && cell->state & CELL_Has_Been_Flooded; // cell is null when out of bounds
 }
 
 static
@@ -313,27 +315,29 @@ void visit(Resizable_Array<Triangle> *output, Flood_Fill *ff, v3i position) {
     connection_points[11] = calculate_connection_point(ff, vertices[7], vertices[3]);
 
     // Calculate which unique cube combination to use, depending on the cell states around this position
-    u32 cube_index = 0;
-    if(test_position(ff, vertices[0])) cube_index |= 1 << 0;
-    if(test_position(ff, vertices[1])) cube_index |= 1 << 1;
-    if(test_position(ff, vertices[2])) cube_index |= 1 << 2;
-    if(test_position(ff, vertices[3])) cube_index |= 1 << 3;
-    if(test_position(ff, vertices[4])) cube_index |= 1 << 4;
-    if(test_position(ff, vertices[5])) cube_index |= 1 << 5;
-    if(test_position(ff, vertices[6])) cube_index |= 1 << 6;
-    if(test_position(ff, vertices[7])) cube_index |= 1 << 7;
+    u32 triangulation_index = 0;
+    if(test_position(ff, vertices[0])) triangulation_index |= 1 << 0;
+    if(test_position(ff, vertices[1])) triangulation_index |= 1 << 1;
+    if(test_position(ff, vertices[2])) triangulation_index |= 1 << 2;
+    if(test_position(ff, vertices[3])) triangulation_index |= 1 << 3;
+    if(test_position(ff, vertices[4])) triangulation_index |= 1 << 4;
+    if(test_position(ff, vertices[5])) triangulation_index |= 1 << 5;
+    if(test_position(ff, vertices[6])) triangulation_index |= 1 << 6;
+    if(test_position(ff, vertices[7])) triangulation_index |= 1 << 7;
 
-    const s8 *edges = triangulation_lookup_table[cube_index];
-    while(*edges != -1) {
-        output->add(Triangle { connection_points[*edges + 0], connection_points[*edges + 1], connection_points[*edges + 2] });
-        edges += 3;
+    const s8 *edges = triangulation_lookup_table[triangulation_index];
+    for(s64 i = 0; edges[i] != -1; i += 3) {
+        output->add(Triangle { connection_points[edges[i + 0]], connection_points[edges[i + 1]], connection_points[edges[i + 2]] });
     }
 }
 
 void marching_cubes(Resizable_Array<Triangle> *output, Flood_Fill *ff) {
-	for(s32 x = 0; x < ff->hx; ++x) {
-		for(s32 y = 0; y < ff->hy; ++y) {
-			for(s32 z = 0; z < ff->hz; ++z) {
+    tmFunction(TM_MARCHING_COLOR);
+
+    // The position we are iterating over here is the (-x, -y, -z) corner of the cube.
+    for(s32 x = -1; x < ff->hx; ++x) {
+		for(s32 y = -1; y < ff->hy; ++y) {
+			for(s32 z = -1; z < ff->hz; ++z) {
 				visit(output, ff, v3i(x, y, z));
 			}
 		}

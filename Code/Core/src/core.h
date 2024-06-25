@@ -14,10 +14,12 @@
 
 /* --------------------------------------------- Telemetry Colors --------------------------------------------- */
 
-#define TM_SYSTEM_COLOR 0
-#define TM_WORLD_COLOR  1
-#define TM_OCTREE_COLOR 2
-#define TM_ANCHOR_COLOR 3
+#define TM_SYSTEM_COLOR   0
+#define TM_WORLD_COLOR    1
+#define TM_OCTREE_COLOR   2
+#define TM_TESSEL_COLOR   3
+#define TM_FLOODING_COLOR 4
+#define TM_MARCHING_COLOR 5
 
 
 
