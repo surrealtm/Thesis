@@ -1,7 +1,7 @@
 #pragma once
 
 #include "foundation.h"
-#include "strings.h"
+#include "string_type.h"
 #include "math/v3.h"
 #include "math/qt.h"
 
@@ -11,15 +11,16 @@ enum Debug_Draw_Options {
     DEBUG_DRAW_Nothing             = 0x0,
     DEBUG_DRAW_Octree              = 0x1,
     DEBUG_DRAW_Anchors             = 0x2,
-    DEBUG_DRAW_Boundaries          = 0x4,
+    DEBUG_DRAW_Delimiters          = 0x4,
     DEBUG_DRAW_Clipping_Faces      = 0x8,
     DEBUG_DRAW_Clipping_Wireframes = 0x10,
     DEBUG_DRAW_Volume_Faces        = 0x20,
     DEBUG_DRAW_Volume_Wireframes   = 0x40,
-    DEBUG_DRAW_Labels              = 0x1000, // Draw hud texts for all anchors and boundaries.
+    DEBUG_DRAW_Labels              = 0x1000, // Draw hud texts for all anchors and delimiters.
     DEBUG_DRAW_Normals             = 0x2000, // Draw normals for clipping planes and volumes.
     DEBUG_DRAW_Axis_Gizmo          = 0x4000, // Draw a small axis indicator at the center of the world.
     DEBUG_DRAW_Root_Planes         = 0x8000,
+    DEBUG_DRAW_Flood_Fill          = 0x10000,
     DEBUG_DRAW_Everything          = 0xffffffff,
 };
 

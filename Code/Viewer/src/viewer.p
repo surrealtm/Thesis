@@ -114,7 +114,7 @@ Viewer :: struct {
     memory_information: Memory_Information;
     
     profiling_show_summary: bool;    
-    debug_draw_options: Debug_Draw_Options = .Octree | .Anchors | .Boundaries | .Clipping_Wireframes | .Volume_Faces | .Volume_Wireframes;
+    debug_draw_options: Debug_Draw_Options = .Octree | .Anchors | .Boundaries | .Clipping_Wireframes | .Volume_Faces | .Volume_Wireframes/* | .Flood_Fill*/;
 }
 
 
@@ -240,7 +240,7 @@ main :: () -> s32 {
     enable_high_resolution_time();
 
     viewer: Viewer;
-    create_memory_arena(*viewer.frame_arena, 4 * MEGABYTES);
+    create_memory_arena(*viewer.frame_arena, 64 * MEGABYTES);
     viewer.frame_allocator = memory_arena_allocator(*viewer.frame_arena);
     
     create_window(*viewer.window, "Viewer", WINDOW_DONT_CARE, WINDOW_DONT_CARE, WINDOW_DONT_CARE, WINDOW_DONT_CARE, .Default);

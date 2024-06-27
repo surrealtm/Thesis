@@ -16,11 +16,17 @@ using s64 = System.Int64;
 /* ----------------------------------------------- Opaque Types ----------------------------------------------- */
 
 public struct World {}
-public struct World_Handle { System.IntPtr __handle; public World_Handle(IntPtr ptr) { __handle = ptr; } }
+
+public struct World_Handle { 
+    System.IntPtr __handle; 
+    public World_Handle(IntPtr ptr) { __handle = ptr; } 
+    public bool valid() { return this.__handle != IntPtr.Zero; } 
+    public void invalidate() { this.__handle = IntPtr.Zero; } 
+}
+
 public struct Debug_Draw_Data_Handle { System.IntPtr __handle; public Debug_Draw_Data_Handle(IntPtr ptr) { __handle = ptr; } }
 public struct Timing_Data_Handle { System.IntPtr __handle; public Timing_Data_Handle(IntPtr ptr) { __handle = ptr; } }
 public struct Memory_Information_Handle { System.IntPtr __handle; public Memory_Information_Handle(IntPtr ptr) { __handle = ptr; } }
-
 
 
 
@@ -31,7 +37,7 @@ public enum Debug_Draw_Options : uint {
     Nothing             = 0x0,
     Octree              = 0x1,
     Anchors             = 0x2,
-    Boundaries          = 0x4,
+    Delimiters          = 0x4,
     Clipping_Faces      = 0x8,
     Clipping_Wireframes = 0x10,
     Volume_Faces        = 0x20,
@@ -40,6 +46,7 @@ public enum Debug_Draw_Options : uint {
     Normals             = 0x2000,
     Axis_Gizmo          = 0x4000,
     Root_Planes         = 0x8000,
+    Flood_Fill          = 0x10000,
     Everything          = 0xffffffff,
 }
 
@@ -55,7 +62,10 @@ public unsafe struct _string {
     public s64 count;
     public IntPtr data; // char *
 
-    public String cs() { return System.Runtime.InteropServices.Marshal.PtrToStringAnsi(this.data); }
+    public String cs() { 
+        if(this.count == 0) return "";
+        return System.Runtime.InteropServices.Marshal.PtrToStringAnsi(this.data, (int) this.count);
+    }
 }
 
 public unsafe struct Debug_Draw_Line {
@@ -150,13 +160,27 @@ public unsafe struct Memory_Information {
 
 /* ------------------------------------------------- Bindings ------------------------------------------------- */
 
+public enum Axis_Index {
+    AXIS_X = 0,
+    AXIS_Y = 1,
+    AXIS_Z = 2,
+}
+
 public class Core_Bindings {
     /* --------------------------------------------- General API --------------------------------------------- */
     [DllImport("Core.dll")]
     public static extern World_Handle core_create_world(double x, double y, double z);
     [DllImport("Core.dll")]
     public static extern void core_destroy_world(World_Handle world);
-
+    [DllImport("Core.dll")]
+    public static extern s64 core_add_anchor(World_Handle world, double x, double y, double z);
+    [DllImport("Core.dll")]
+    public static extern s64 core_add_delimiter(World_Handle world, double x, double y, double z, double hx, double hy, double hz, double rx, double ry, double rz);
+    [DllImport("Core.dll")]
+    public static extern void core_add_delimiter_clipping_planes(World_Handle world, s64 delimiter_index, Axis_Index axis_index);
+    [DllImport("Core.dll")]
+    public static extern void core_calculate_volumes(World_Handle world);
+    
 
 
 #if FOUNDATION_DEVELOPER
@@ -241,24 +265,71 @@ public unsafe class Core_Helpers {
         return new Quaternion(q.x, q.y, q.z, q.w);
     }
     
-    public static void draw_primitive(PrimitiveType primitive_type, Vector3 position, Quaternion rotation, Vector3 size, Color color) {
+
+
+    public static World_Handle create_world_from_scene() {
+        // Determine the bounding box of this entire level so that we can
+        // speed up the world creation.
+        Bounds b = new Bounds(Vector3.zero, Vector3.zero);
+        foreach (Renderer r in UnityEngine.Object.FindObjectsOfType(typeof(Renderer))) {
+            b.Encapsulate(r.bounds);
+        }
+        
+        // The world is centered around the origin and has equal extents from there,
+        // so we must transform that here.
+        double x = (b.max.x > -b.min.x) ? b.max.x : -b.min.x;
+        double y = (b.max.y > -b.min.y) ? b.max.y : -b.min.y;
+        double z = (b.max.z > -b.min.z) ? b.max.z : -b.min.z;
+
+        World_Handle world_handle = Core_Bindings.core_create_world(x, y, z);
+
+        foreach (Anchor a in UnityEngine.Object.FindObjectsOfType(typeof(Anchor))) {
+            Transform transform = a.gameObject.transform;
+            Core_Bindings.core_add_anchor(world_handle, transform.position.x, transform.position.y, transform.position.z);
+        }
+
+        foreach (Delimiter d in UnityEngine.Object.FindObjectsOfType(typeof(Delimiter))) {
+            Renderer renderer;
+            if(!d.TryGetComponent(out renderer)) continue;
+            
+            Transform transform = d.gameObject.transform;
+            Bounds bounds = renderer.bounds;
+            s64 index = Core_Bindings.core_add_delimiter(world_handle, transform.position.x, transform.position.y, transform.position.z, bounds.extents.x, bounds.extents.y, bounds.extents.z, transform.eulerAngles.x, transform.eulerAngles.y, transform.eulerAngles.z);
+
+            if(d.x) Core_Bindings.core_add_delimiter_clipping_planes(world_handle, index, Axis_Index.AXIS_X);
+            if(d.y) Core_Bindings.core_add_delimiter_clipping_planes(world_handle, index, Axis_Index.AXIS_Y);
+            if(d.z) Core_Bindings.core_add_delimiter_clipping_planes(world_handle, index, Axis_Index.AXIS_Z);
+        }
+
+        Core_Bindings.core_calculate_volumes(world_handle);
+
+        return world_handle;
+    }
+
+
+
+    public static void draw_primitive(GameObject root, PrimitiveType primitive_type, Vector3 position, Quaternion rotation, Vector3 size, Color color) {
         GameObject _object = GameObject.CreatePrimitive(primitive_type);
         _object.name       = "Dbg" + primitive_type;
         _object.transform.position   = position;
         _object.transform.rotation   = rotation;
         _object.transform.localScale = size * 2;
-        
+        _object.transform.SetParent(root.transform);
+
         MeshRenderer mesh_renderer = _object.GetComponent<MeshRenderer>();
         mesh_renderer.material.color = color;
 
         dbg_draw_objects.Add(_object);
     }
 
-    public static void draw_text(Vector3 position, string text, Color color) {
+    public static void draw_text(GameObject root, Vector3 position, string text, Color color) {
+        if(text.Length == 0) return;
+
         GameObject _object = new GameObject();
         _object.name       = "DbgText";
         _object.transform.position   = position;
         _object.transform.localScale = new Vector3(-0.03f, 0.03f, 0.03f); // Make this very small and the font size really large for higher quality text. The X scale is negative to flip the text, making it readable again after the LookAt when facing the camera.
+        _object.transform.SetParent(root.transform);
 
         TextMesh text_mesh = _object.AddComponent<TextMesh>();
         text_mesh.text     = text;
@@ -272,6 +343,9 @@ public unsafe class Core_Helpers {
 
     public static void debug_draw_world(World_Handle world_handle, Debug_Draw_Options options, bool clear) {
         if(clear) clear_debug_draw();
+
+        GameObject root = new GameObject();
+        root.name = "DbgObjects";
 
         Debug_Draw_Data draw_data = Core_Bindings.core_debug_draw_world(world_handle, options);
 
@@ -301,6 +375,7 @@ public unsafe class Core_Helpers {
 
             GameObject _object = new GameObject();
             _object.name = "DbgTriangles";
+            _object.transform.SetParent(root.transform);
 
             MeshFilter mesh_filter = _object.AddComponent<MeshFilter>();
             mesh_filter.mesh = triangle_mesh;
@@ -334,6 +409,7 @@ public unsafe class Core_Helpers {
 
             GameObject _object = new GameObject();
             _object.name = "DbgLines";
+            _object.transform.SetParent(root.transform);
 
             MeshFilter mesh_filter = _object.AddComponent<MeshFilter>();
             mesh_filter.mesh = line_mesh;
@@ -345,26 +421,18 @@ public unsafe class Core_Helpers {
         }
         
         for(s64 i = 0; i < draw_data.text_count; ++i) {
-            draw_text(vector3(draw_data.texts[i].position), draw_data.texts[i].text.cs(), color(draw_data.texts[i].r, draw_data.texts[i].g, draw_data.texts[i].b));
+            draw_text(root, vector3(draw_data.texts[i].position), draw_data.texts[i].text.cs(), color(draw_data.texts[i].r, draw_data.texts[i].g, draw_data.texts[i].b));
         }
 
         for(s64 i = 0; i < draw_data.cuboid_count; ++i) {
-            draw_primitive(PrimitiveType.Cube, vector3(draw_data.cuboids[i].position), quat(draw_data.cuboids[i].rotation), vector3(draw_data.cuboids[i].size), color(draw_data.cuboids[i].r, draw_data.cuboids[i].g, draw_data.cuboids[i].b));
+            draw_primitive(root, PrimitiveType.Cube, vector3(draw_data.cuboids[i].position), quat(draw_data.cuboids[i].rotation), vector3(draw_data.cuboids[i].size), color(draw_data.cuboids[i].r, draw_data.cuboids[i].g, draw_data.cuboids[i].b));
         }
 
         for(s64 i = 0; i < draw_data.sphere_count; ++i) {
-            draw_primitive(PrimitiveType.Sphere, vector3(draw_data.spheres[i].position), new Quaternion(0, 0, 0, 1), new Vector3(draw_data.spheres[i].radius, draw_data.spheres[i].radius, draw_data.spheres[i].radius), color(draw_data.spheres[i].r, draw_data.spheres[i].g, draw_data.spheres[i].b));
+            draw_primitive(root, PrimitiveType.Sphere, vector3(draw_data.spheres[i].position), new Quaternion(0, 0, 0, 1), new Vector3(draw_data.spheres[i].radius, draw_data.spheres[i].radius, draw_data.spheres[i].radius), color(draw_data.spheres[i].r, draw_data.spheres[i].g, draw_data.spheres[i].b));
         }
         
         Core_Bindings.core_free_debug_draw_data(new Debug_Draw_Data_Handle((IntPtr) (&draw_data)));
-    }
-
-    public static void make_texts_face_the_camera(Camera camera) {
-        foreach(GameObject _object in dbg_draw_objects) {
-            if(_object.GetComponent<TextMesh>() != null) {
-                _object.transform.LookAt(camera.transform.position);
-            }
-        }
     }
 
     public static void clear_debug_draw() {
@@ -375,22 +443,60 @@ public unsafe class Core_Helpers {
         dbg_draw_objects.Clear();
     }
 
+
+
+    public static void make_texts_face_the_camera(Camera camera) {
+        foreach(GameObject _object in dbg_draw_objects) {
+            if(_object.GetComponent<TextMesh>() != null) {
+                _object.transform.LookAt(camera.transform.position);
+            }
+        }
+    }
+
+
+
     public static f64 to_seconds(s64 nanoseconds) {
         return (f64) nanoseconds / 1000000000.0f;
     }
 
-    public static void print_profiling(bool include_timeline) {
-        Timing_Data timing_data = Core_Bindings.core_get_profiling_data();
+    public static f64 to_megabytes(s64 bytes) {
+        return (f64) bytes / 1000000.0f;
+    }
+    
+    public static void print_profiling(World_Handle world_handle, bool include_timeline) {
+        {
+            Timing_Data timing_data = Core_Bindings.core_get_profiling_data();
 
-        Debug.Log("------------------------------ Summary: ------------------------------");
+            Debug.Log("------------------------------ Summary: ------------------------------");
 
-        for(s64 i = 0; i < timing_data.summary_count; ++i) {
-            string name = timing_data.summary[i].name.cs();
-            Debug.Log(name +  " | Exclusive: " + to_seconds(timing_data.summary[i].exclusive_time_in_nanoseconds) + "s | " + timing_data.summary[i].count + "x");
+            for(s64 i = 0; i < timing_data.summary_count; ++i) {
+                string name = timing_data.summary[i].name.cs();
+                Debug.Log(name +  " | Exclusive: " + to_seconds(timing_data.summary[i].exclusive_time_in_nanoseconds) + "s | " + timing_data.summary[i].count + "x");
+            }
+
+            Debug.Log("------------------------------ Summary: ------------------------------");
+
+            Core_Bindings.core_free_profiling_data(new Timing_Data_Handle((IntPtr) (&timing_data)));
         }
+        
+        {
+            Memory_Information memory_information = Core_Bindings.core_get_memory_information(world_handle);   
+        
+            Debug.Log("------------------------------ Memory: ------------------------------");
 
-        Debug.Log("------------------------------ Summary: ------------------------------");
+            for(s64 i = 0; i < memory_information.allocator_count; ++i) {
+                Memory_Allocator_Information allocator = memory_information.allocators[i];
+                Debug.Log("  > Allocator: " + allocator.name.cs());
+                Debug.Log("       Allocations:      " + allocator.allocation_count);
+                Debug.Log("       Deallocations:    " + allocator.deallocation_count);
+                Debug.Log("       Working Set:      " + to_megabytes(allocator.working_set_size) + "mb");
+                Debug.Log("       Peak Working Set: " + to_megabytes(allocator.peak_working_set_size) + "mb");
+            }
+            
+            Debug.Log("  OS-Working-Set: " + to_megabytes(memory_information.os_working_set_size) + "mb.");
+            Debug.Log("------------------------------ Memory: ------------------------------");
 
-        Core_Bindings.core_free_profiling_data(new Timing_Data_Handle((IntPtr) (&timing_data)));
+            Core_Bindings.core_free_memory_information(new Memory_Information_Handle((IntPtr) (&memory_information)));
+        }
     }
 };

@@ -2,47 +2,25 @@
 
 #include "foundation.h"
 #include "memutils.h"
-#include "strings.h"
+#include "string_type.h"
 
 #include "math/v2.h"
 #include "math/v3.h"
 #include "math/qt.h"
 
+#include "typedefs.h"
+
 
 
 /* --------------------------------------------- Telemetry Colors --------------------------------------------- */
 
-#define TM_SYSTEM_COLOR 0
-#define TM_WORLD_COLOR  1
-#define TM_OCTREE_COLOR 2
-#define TM_ANCHOR_COLOR 3
+#define TM_SYSTEM_COLOR   0
+#define TM_WORLD_COLOR    1
+#define TM_OCTREE_COLOR   2
+#define TM_TESSEL_COLOR   3
+#define TM_FLOODING_COLOR 4
+#define TM_MARCHING_COLOR 5
 
-
-
-/* --------------------------------------------- Type Definitions --------------------------------------------- */
-
-//
-// This algorithm is supposed to work with both single and double floating point precision, so that the usual
-// speed / memory - accuracy tradeoff can be done by the user compiling this code. We use double precision
-// by default.
-//
-#if CORE_SINGLE_PRECISION
-typedef f32 real;
-typedef v2<f32> vec2;
-typedef v3<f32> vec3;
-typedef qt<f32> quat;
-constexpr real CORE_EPSILON = 0.001f; // :CORE_EPSILON    We have a higher floating point tolerance here than F32_EPSILON since we are talking about actual geometry units, where 1.f is roughly 1 meter semantically. Having this be smaller just leads to many different issues...
-constexpr real CORE_SMALL_EPSILON = 0.00001f; // :CORE_SMALL_EPSILON    For some specific cases, we do want higher precision checks, if we know the range of values we are talking about etc...
-#else
-typedef f64 real;
-typedef v2<f64> vec2;
-typedef v3<f64> vec3;
-typedef qt<f64> quat;
-constexpr real CORE_EPSILON = 0.00001; // :CORE_EPSILON
-constexpr real CORE_SMALL_EPSILON = 0.0000001; // :CORE_SMALL_EPSILON
-#endif
-
-#define real_abs(value) (((value) > 0) ? (value) : (-value))
 
 
 
@@ -55,17 +33,35 @@ enum Axis {
     AXIS_COUNT = 3,
 };
 
+enum Virtual_Extension {
+    VIRTUAL_EXTENSION_None       = 0x0,
+    VIRTUAL_EXTENSION_Positive_U = 0x1,
+    VIRTUAL_EXTENSION_Negative_U = 0x2,
+    VIRTUAL_EXTENSION_Positive_V = 0x4,
+    VIRTUAL_EXTENSION_Negative_V = 0x8,
+    VIRTUAL_EXTENSION_All        = VIRTUAL_EXTENSION_Positive_U | VIRTUAL_EXTENSION_Negative_U | VIRTUAL_EXTENSION_Positive_V | VIRTUAL_EXTENSION_Negative_V,
+};
+
+BITWISE(Virtual_Extension);
+
 struct Triangle {
     vec3 p0, p1, p2;
     vec3 n;
     
     Triangle() {};
+    Triangle(vec3 p0, vec3 p1, vec3 p2);
     Triangle(vec3 p0, vec3 p1, vec3 p2, vec3 n);
     
     real approximate_surface_area(); // This avoids a square root for performance, since we only roughly want to know whether the triangle is dead or not.
     b8 is_dead();
-    b8 is_fully_behind_plane(Triangle *plane);
-    b8 no_point_behind_plane(Triangle *plane); // Just for assertions.
+    b8 all_points_in_front_of_plane(Triangle *plane);
+    b8 no_point_behind_plane(Triangle *plane);
+};
+
+struct Triangulated_Plane {
+    Resizable_Array<Triangle> triangles; // @@Speed: We store the normal in each triangle, while they should all have the same normal. We should probably just store the vertices of the triangles in the list and then the normal once. We might even be able to go the index buffer route, but not sure if that's actually worth it.
+
+    void setup(Allocator *allocator, vec3 c, vec3 n, vec3 left, vec3 right, vec3 top, vec3 bottom);
 };
 
 struct AABB {
@@ -78,24 +74,32 @@ struct AABB {
 
 struct Anchor {
     vec3 position;
-    Resizable_Array<Triangle> volume_triangles;
+    Resizable_Array<Triangle> triangles;
 
     // Only for debug drawing.
     string dbg_name;
 };
 
-struct Boundary {
+struct Delimiter {
     vec3 position;
-    vec3 local_scaled_axes[AXIS_COUNT]; // The three coordinate axis in the local transform (meaning: rotated) of this boundary.
-    vec3 local_unit_axes[AXIS_COUNT]; // The three coordinate axis in the local transform (meaning: rotated) of this boundary.
+    vec3 local_scaled_axes[AXIS_COUNT]; // The three coordinate axis in the local transform (meaning: rotated) of this delimiter.
+    vec3 local_unit_axes[AXIS_COUNT]; // The three coordinate axis in the local transform (meaning: rotated) of this delimiter.
     AABB aabb;
 
-    Resizable_Array<Triangle> clipping_triangles; // Having this be a full-on dynamic array is pretty wasteful, since boundaries should only ever have between 1 and 3 clipping planes...  @@Speed.
+    u8 level;
+    Triangulated_Plane planes[6]; // A delimiter can have at most 6 planes (two planes on each axis).
+    s64 plane_count;
 
     // Only for debug drawing.
     string dbg_name;
     vec3 dbg_half_size; // Unrotated half sizes.
     quat dbg_rotation;
+};
+
+struct Delimiter_Intersection {
+    real total_distance; // The (squared) distance from this point to d0 + The (squared) distance from this point to d1.
+    Delimiter *d0, *d1;
+    Triangulated_Plane *p0, *p1;
 };
 
 
@@ -131,8 +135,8 @@ struct Octree {
     vec3 half_size;
     Octree *children[OCTREE_CHILD_COUNT];
 
-    Resizable_Array<Anchor*> contained_anchors;
-    Resizable_Array<Boundary*> contained_boundaries;
+    Resizable_Array<Anchor *>    contained_anchors;
+    Resizable_Array<Delimiter *> contained_delimiters;
 
     void create(Allocator *allocator, vec3 center, vec3 half_size, u8 depth = 0);
     Octree *get_octree_for_aabb(AABB const &aabb, Allocator *allocator);
@@ -160,36 +164,34 @@ struct World {
     // We assume that these arrays get filled once at the start and then are never
     // modified, so that pointers to these objects are stable.
     Resizable_Array<Anchor> anchors;
-    Resizable_Array<Boundary> boundaries;
+    Resizable_Array<Delimiter> delimiters;
 
     // The clipping planes of the octree, since no volume should ever go past the dimensions of the world.
     Resizable_Array<Triangle> root_clipping_triangles;
 
-    // This octree contains pointers to anchors, boundaries and volumes, to make spatial lookup
+    // This octree contains pointers to anchors, delimiters and volumes, to make spatial lookup
     // for objects a lot faster.
     Octree root;
-
+    
+    struct Flood_Fill *current_flood_fill; // Just for debug drawing.
+    
     void create(vec3 half_size);
     void destroy();
 
-    void reserve_objects(s64 anchors, s64 boundaries);
+    void reserve_objects(s64 anchors, s64 delimiters);
     
-    Anchor *add_anchor(string name, vec3 position);
-    Boundary *add_boundary(string name, vec3 position, vec3 size, vec3 rotation);
-    void add_boundary_clipping_planes(Boundary *boundary, Axis normal_axis);
-    void add_centered_boundary_clipping_plane(Boundary *boundary, Axis normal_axis);
+    Anchor *add_anchor(vec3 position);
+    Anchor *add_anchor(string dbg_name, vec3 position);
+    Delimiter *add_delimiter(vec3 position, vec3 size, vec3 rotation, u8 level);
+    Delimiter *add_delimiter(string dbg_name, vec3 position, vec3 size, vec3 rotation, u8 level);
+    void add_delimiter_clipping_planes(Delimiter *delimiter, Axis normal_axis, Virtual_Extension virtual_extension = VIRTUAL_EXTENSION_All);
+    void add_centered_delimiter_clipping_plane(Delimiter *delimiter, Axis normal_axis, Virtual_Extension virtual_extension = VIRTUAL_EXTENSION_All);
     
     void create_octree();
-    void clip_boundaries(b8 single_step);
+    void clip_delimiters(b8 single_step);
+    void calculate_volumes();
 
-    /* DbgStep */
-
-    b8 dbg_step_initialized;
-    b8 dbg_step_completed;
-    b8 dbg_step_clipping_triangle_should_be_removed;
-    s64 dbg_step_boundary;
-    s64 dbg_step_clipping_triangle;
-    s64 dbg_step_root_triangle;
+    b8 cast_ray_against_delimiters_and_root_planes(vec3 origin, vec3 direction, real distance);
 };
 
 

@@ -4,58 +4,15 @@
 #include "../src/random.h"
 #include "../src/os_specific.h"
 #include "../src/jobs.h"
-#include "../src/math/math.h" // For FPI...
+#include "../src/math/maths.h" // For FPI...
 
 #include <malloc.h>
 
 
 #if FOUNDATION_DEVELOPER
-static b8 memory_tracking_enabled = false;
-
-
-/* --------------------------------------------- Memory Tracking --------------------------------------------- */
-
-static
-void allocation_callback(Allocator *allocator, const void *allocator_name, void *data, u64 size) {
-    printf("[Allocation] %s : %" PRIu64 "b, 0x%016" PRIx64 "\n", (char *) allocator_name, size, (u64) data);
-}
-
-static
-void deallocation_callback(Allocator *allocator, const void *allocator_name, void *data, u64 size) {
-    printf("[Deallocation] %s : %" PRIu64 "b, 0x%016" PRIx64 "\n", (char *) allocator_name, size, (u64) data);    
-}
-
-static
-void reallocation_callback(Allocator *allocator, const void *allocator_name, void *old_data, u64 old_size, void *new_data, u64 new_size) {
-    printf("[Reallocation] %s : %" PRIu64 "b, 0x%016" PRIx64 " -> %" PRIu64 "b, 0x%016" PRIx64 "\n", (char *) allocator_name, old_size, (u64) old_data, new_size, (u64) new_data);    
-}
-
-static
-void clear_callback(Allocator *allocator, const void *allocator_name) {
-    printf("[Clear] %s\n", (char *) allocator_name);
-}
-
-static
-void set_allocation_callbacks(Allocator *allocator, const char *name) {
-    allocator->callbacks.allocation_callback   = allocation_callback;
-    allocator->callbacks.deallocation_callback = deallocation_callback;
-    allocator->callbacks.reallocation_callback = reallocation_callback;
-    allocator->callbacks.clear_callback        = clear_callback;
-    allocator->callbacks.user_pointer          = name;
-}
-
-static
-void clear_allocation_callbacks(Allocator *allocator) {
-    allocator->callbacks.allocation_callback   = null;
-    allocator->callbacks.deallocation_callback = null;
-    allocator->callbacks.reallocation_callback = null;
-    allocator->callbacks.clear_callback        = null;
-    allocator->callbacks.user_pointer          = null;
-}
-
-
-
 /* ------------------------------------------------- Helpers ------------------------------------------------- */
+
+static b8 memory_tracking_enabled = false;
 
 static
 void create_random_anchors(World *world, s64 count) {
@@ -69,7 +26,8 @@ void create_random_anchors(World *world, s64 count) {
         vec3 position = vec3(get_random_real_uniform(-width, width),
                              get_random_real_uniform(-height, height),
                              get_random_real_uniform(-length, length));
-        world->add_anchor("Anchor"_s, position);
+        Anchor *anchor = world->add_anchor(position);
+        anchor->dbg_name = "Anchor"_s;
     }
 }
 
@@ -95,14 +53,14 @@ void sample_job_procedure(void * /*user_pointer*/) {
 
 extern "C" {
     /* --------------------------------------------- General API --------------------------------------------- */
-
+    
     World_Handle core_create_world(f64 x, f64 y, f64 z) {
         World *world = (World *) Default_Allocator->allocate(sizeof(World));
         *world = World(); // Default-initialize the world.
         world->create(vec3((real) x, (real) y, (real) z));
 
 #if FOUNDATION_DEVELOPER
-        if(memory_tracking_enabled) set_allocation_callbacks(world->allocator, "World");
+        if(memory_tracking_enabled) install_allocator_console_logger(world->allocator, "World");
 #endif
 
         return (World_Handle) world;
@@ -116,48 +74,73 @@ extern "C" {
         Default_Allocator->deallocate(world);
     }
 
+    s64 core_add_anchor(World_Handle world_handle, f64 x, f64 y, f64 z) {
+        World *world = (World *) world_handle;
+        world->add_anchor(vec3((real) x, (real) y, (real) z));
+        return world->anchors.count - 1;
+    }
+
+    s64 core_add_delimiter(World_Handle world_handle, f64 x, f64 y, f64 z, f64 hx, f64 hy, f64 hz, f64 rx, f64 ry, f64 rz, u8 level) {
+        World *world = (World *) world_handle;
+        world->add_delimiter(vec3((real) x, (real) y, (real) z), vec3((real) hx, (real) hy, (real) hz), vec3((real) rx, (real) ry, (real) rz), level);
+        return world->delimiters.count - 1;
+    }
+
+    void core_add_delimiter_clipping_planes(World_Handle world_handle, s64 delimiter_index, s64 axis) {
+        World *world = (World *) world_handle;
+        world->add_delimiter_clipping_planes(&world->delimiters[delimiter_index], (Axis) axis);
+    }
+
+    void core_calculate_volumes(World_Handle world_handle) {
+        World *world = (World *) world_handle;
+        world->clip_delimiters(false);
+        world->calculate_volumes();
+    }
+
+
     
 #if FOUNDATION_DEVELOPER
     /* ----------------------------------------------- Testing ------------------------------------------------ */
 
     void core_do_world_step(World_Handle world_handle, b8 step_mode) {
         World *world = (World *) world_handle;
-        world->clip_boundaries(step_mode);
+        world->clip_delimiters(step_mode);
     }
 
     World_Handle core_do_house_test(b8 step_into) {
         tmZone("do_house_test", TM_SYSTEM_COLOR);
 
         World *world = (World *) core_create_world(100, 10, 100);
-        world->add_anchor("Kitchen"_s, vec3(-5, -3, -5));
         world->add_anchor("Living Room"_s, vec3(5, -3, -5));
+        world->add_anchor("Kitchen"_s, vec3(-5, -3, -5));
         world->add_anchor("Hallway"_s, vec3(-5, -3, 8.5));
-        world->add_anchor("Garden"_s, vec3(0, -3, -30));
+        //world->add_anchor("Garden"_s, vec3(0, -3, -30)); // nocheckin
         
-        auto hallway_wall = world->add_boundary("HallwayWall"_s, vec3(-2, -3, +6), vec3(8, .25, .5), vec3(0, 0, 0));
-        world->add_boundary_clipping_planes(hallway_wall, AXIS_Z);
+        auto hallway_wall = world->add_delimiter("HallwayWall"_s, vec3(-2, -3, +6), vec3(7.5, .25, .5), vec3(0, 0, 0), 1);
+        world->add_delimiter_clipping_planes(hallway_wall, AXIS_Z, VIRTUAL_EXTENSION_Positive_U | VIRTUAL_EXTENSION_Positive_V | VIRTUAL_EXTENSION_Negative_V);
 
-        auto kitchen_wall0 = world->add_boundary("KitchenWall0"_s, vec3(0, -3, -7), vec3(.5, .25, 3), vec3(0, 0, 0));
-        world->add_boundary_clipping_planes(kitchen_wall0, AXIS_X);
+        auto kitchen_wall0 = world->add_delimiter("KitchenWall0"_s, vec3(0, -3, -7), vec3(.5, .25, 2.5), vec3(0, 0, 0), 1);
+        world->add_delimiter_clipping_planes(kitchen_wall0, AXIS_X, VIRTUAL_EXTENSION_Positive_U | VIRTUAL_EXTENSION_Negative_U | VIRTUAL_EXTENSION_Positive_V);
         
-        auto kitchen_wall1 = world->add_boundary("KitchenWall1"_s, vec3(-7, -3, 0), vec3(3, .25, .5), vec3(0, 0, 0));
-        world->add_boundary_clipping_planes(kitchen_wall1, AXIS_Z);
+        auto kitchen_wall1 = world->add_delimiter("KitchenWall1"_s, vec3(-7, -3, 0), vec3(2.5, .25, .5), vec3(0, 0, 0), 1);
+        world->add_delimiter_clipping_planes(kitchen_wall1, AXIS_Z, VIRTUAL_EXTENSION_Positive_U | VIRTUAL_EXTENSION_Positive_V | VIRTUAL_EXTENSION_Negative_V);
         
-        auto outer_wall_north = world->add_boundary("OuterWallNorth"_s, vec3(0, -3, -10), vec3(10, .25, .5), vec3(0, 0, 0));
-        world->add_boundary_clipping_planes(outer_wall_north, AXIS_Z);
+        auto outer_wall_north = world->add_delimiter("OuterWallNorth"_s, vec3(0, -3, -10), vec3(10, .25, .5), vec3(0, 0, 0), 0);
+        world->add_delimiter_clipping_planes(outer_wall_north, AXIS_Z);
 
-        auto outer_wall_south = world->add_boundary("OuterWallSouth"_s, vec3(0, -3, +10), vec3(10, .25, .5), vec3(0, 0, 0));
-        world->add_boundary_clipping_planes(outer_wall_south, AXIS_Z);
+        auto outer_wall_south = world->add_delimiter("OuterWallSouth"_s, vec3(0, -3, +10), vec3(10, .25, .5), vec3(0, 0, 0), 0);
+        world->add_delimiter_clipping_planes(outer_wall_south, AXIS_Z);
 
-        auto outer_wall_east = world->add_boundary("OuterWallEast"_s, vec3(+10, -3, 0), vec3(.5, .25, 10), vec3(0, 0, 0));
-        world->add_boundary_clipping_planes(outer_wall_east, AXIS_X);
+        auto outer_wall_east = world->add_delimiter("OuterWallEast"_s, vec3(+10, -3, 0), vec3(.5, .25, 10), vec3(0, 0, 0), 0);
+        world->add_delimiter_clipping_planes(outer_wall_east, AXIS_X);
 
-        auto outer_wall_west = world->add_boundary("OuterWallWest"_s, vec3(-10, -3, 0), vec3(.5, .25, 10), vec3(0, 0, 0));
-        world->add_boundary_clipping_planes(outer_wall_west, AXIS_X);
-
+        auto outer_wall_west = world->add_delimiter("OuterWallWest"_s, vec3(-10, -3, 0), vec3(.5, .25, 10), vec3(0, 0, 0), 0);
+        world->add_delimiter_clipping_planes(outer_wall_west, AXIS_X);
+        
         world->create_octree();
-        world->clip_boundaries(step_into);
-        
+        world->clip_delimiters(step_into);
+        world->calculate_volumes();
+
         return (World_Handle) world;
     }
 
@@ -167,7 +150,7 @@ extern "C" {
         World *world = (World *) core_create_world(100, 40, 100);
         
         {
-            tmZone("create_random_boundaries", TM_SYSTEM_COLOR);
+            tmZone("create_random_delimiters", TM_SYSTEM_COLOR);
 
             const s64 count = 10000;
 
@@ -186,7 +169,7 @@ extern "C" {
                                    get_random_real_uniform(-height + size.y, height - size.y),
                                    get_random_real_uniform(-length + size.z, length - size.z));
                 vec3 rotation = vec3(0, 0, 0);
-                world->add_boundary("Boundary"_s, position, size, rotation);
+                world->add_delimiter("Delimiter"_s, position, size, rotation, 0);
             }
         }
         
@@ -200,7 +183,7 @@ extern "C" {
         World *world = (World *) core_create_world(100, 40, 100);
         
         {
-            tmZone("create_random_boundaries", TM_SYSTEM_COLOR);
+            tmZone("create_random_delimiters", TM_SYSTEM_COLOR);
 
             const s64 count = 1000;
 
@@ -230,8 +213,8 @@ extern "C" {
                                    get_random_real_uniform(-length + size.z, length - size.z));
                 vec3 rotation = vec3(0, 0, 0);
 
-                auto *boundary = world->add_boundary("Boundary"_s, position, size, rotation);
-                world->add_boundary_clipping_planes(boundary, (Axis) small_dimension);
+                auto *delimiter = world->add_delimiter("Delimiter"_s, position, size, rotation, 0);
+                world->add_delimiter_clipping_planes(delimiter, (Axis) small_dimension);
             }
         }
 
@@ -241,7 +224,8 @@ extern "C" {
         }
 
         world->create_octree();
-        world->clip_boundaries(step_into);
+        world->clip_delimiters(step_into);
+        world->calculate_volumes();
         return world;
     }
     
@@ -250,23 +234,24 @@ extern "C" {
 
         World *world = (World *) core_create_world(50, 10, 50);
 
-        Boundary *b0 = world->add_boundary("Boundary"_s, vec3(0, 0, -5), vec3(5, .5, .5), vec3(0, 0, 0));
-        world->add_boundary_clipping_planes(b0, AXIS_Z);
+        Delimiter *b0 = world->add_delimiter("Delimiter"_s, vec3(0, 0, -5), vec3(5, .5, .5), vec3(0, 0, 0), 0);
+        world->add_delimiter_clipping_planes(b0, AXIS_Z);
         
-        Boundary *b1 = world->add_boundary("Boundary"_s, vec3(0, 0, +5), vec3(5, .5, .5), vec3(0, 0, 0));
-        world->add_boundary_clipping_planes(b1, AXIS_Z);
+        Delimiter *b1 = world->add_delimiter("Delimiter"_s, vec3(0, 0, +5), vec3(5, .5, .5), vec3(0, 0, 0), 0);
+        world->add_delimiter_clipping_planes(b1, AXIS_Z);
 
-        Boundary *b2 = world->add_boundary("Boundary"_s, vec3(-5, 0, 0), vec3(.5, .5, 5), vec3(0, 0, 0));
-        world->add_boundary_clipping_planes(b2, AXIS_X);
+        Delimiter *b2 = world->add_delimiter("Delimiter"_s, vec3(-5, 0, 0), vec3(.5, .5, 5), vec3(0, 0, 0), 0);
+        world->add_delimiter_clipping_planes(b2, AXIS_X);
         
-        Boundary *b3 = world->add_boundary("Boundary"_s, vec3(+5, 0, 0), vec3(.5, .5, 5), vec3(0, 0, 0));
-        world->add_boundary_clipping_planes(b3, AXIS_X);
+        Delimiter *b3 = world->add_delimiter("Delimiter"_s, vec3(+5, 0, 0), vec3(.5, .5, 5), vec3(0, 0, 0), 0);
+        world->add_delimiter_clipping_planes(b3, AXIS_X);
 
         world->add_anchor("Inside"_s, vec3(0, 0, 0));
         world->add_anchor("Outside"_s, vec3(0, 0, -10));
 
         world->create_octree();
-        world->clip_boundaries(step_into);
+        world->clip_delimiters(step_into);
+        world->calculate_volumes();
         return world;
     }
 
@@ -286,15 +271,16 @@ extern "C" {
             vec3 rotation = vec3(0, i / (real) steps, 0);
             vec3 size     = vec3(circumference / steps / 2 * (1. - space_per_step), .5, .5);
 
-            Boundary *b = world->add_boundary("Boundary"_s, position, size, rotation);
-            world->add_boundary_clipping_planes(b, AXIS_Z);
+            Delimiter *b = world->add_delimiter("Delimiter"_s, position, size, rotation, 0);
+            world->add_delimiter_clipping_planes(b, AXIS_Z);
         }
 
         world->add_anchor("Inside"_s, vec3(0, 0, 0));
         world->add_anchor("Outside"_s, vec3(0, 0, -40));
 
         world->create_octree();
-        world->clip_boundaries(step_into);
+        world->clip_delimiters(step_into);
+        world->calculate_volumes();
         return world;
     }
 
@@ -303,36 +289,38 @@ extern "C" {
 
         World *world = (World *) core_create_world(50, 10, 50);
 
-        Boundary *b0 = world->add_boundary("Boundary"_s, vec3(0, 0, -10), vec3(10, .5, .5), vec3(0));
-        world->add_boundary_clipping_planes(b0, AXIS_Z);
-
-        Boundary *b1 = world->add_boundary("Boundary"_s, vec3(10, 0, 0), vec3(.5, .5, 10), vec3(0));
-        world->add_boundary_clipping_planes(b1, AXIS_X);
+        Delimiter *b0 = world->add_delimiter("Delimiter North"_s, vec3(0, 0, -10), vec3(10, .5, .5), vec3(0), 0);
+        world->add_delimiter_clipping_planes(b0, AXIS_Z);
         
-        Boundary *b2 = world->add_boundary("Boundary"_s, vec3(-10, 0, 0), vec3(.5, .5, 10), vec3(0));
-        world->add_boundary_clipping_planes(b2, AXIS_X);
+        Delimiter *b1 = world->add_delimiter("Delimiter West"_s, vec3(10, 0, 0), vec3(.5, .5, 10), vec3(0), 0);
+        world->add_delimiter_clipping_planes(b1, AXIS_X);
+
+        Delimiter *b2 = world->add_delimiter("Delimiter East"_s, vec3(-10, 0, 0), vec3(.5, .5, 10), vec3(0), 0);
+        world->add_delimiter_clipping_planes(b2, AXIS_X);
         
         world->add_anchor("Inside"_s, vec3(0, 0, 0));
         world->add_anchor("Outside"_s, vec3(0, 0, -20));
         
         world->create_octree();
-        world->clip_boundaries(step_into);
+        world->clip_delimiters(step_into);
+        world->calculate_volumes();
         return world;
     }
-    
+
     World_Handle core_do_center_block_test(b8 step_into) {
         tmFunction(TM_SYSTEM_COLOR);
 
         World *world = (World *) core_create_world(50, 10, 50);
 
-        Boundary *boundary = world->add_boundary("Center Block"_s, vec3(0, 0, 0), vec3(5, 5, 5), vec3(0.125, 0, 0.125));
-        world->add_boundary_clipping_planes(boundary, AXIS_X);
-        world->add_boundary_clipping_planes(boundary, AXIS_Z);
+        Delimiter *delimiter = world->add_delimiter("Center Block"_s, vec3(0, 0, 0), vec3(5, 5, 5), vec3(0.125, 0, 0.125), 0);
+        world->add_delimiter_clipping_planes(delimiter, AXIS_X);
+        world->add_delimiter_clipping_planes(delimiter, AXIS_Z);
 
         world->add_anchor("Outside"_s, vec3(0, 0, -10));
         
         world->create_octree();
-        world->clip_boundaries(step_into);
+        world->clip_delimiters(step_into);
+        world->calculate_volumes();
         return world;
     }
 
@@ -458,12 +446,12 @@ extern "C" {
 
 
     void core_enable_memory_tracking() {
-        set_allocation_callbacks(Default_Allocator, "Heap");
+        install_allocator_console_logger(Default_Allocator, "Heap");
         memory_tracking_enabled = true;
     }
 
     void core_disable_memory_tracking() {
-        clear_allocation_callbacks(Default_Allocator);
+        clear_allocator_logger(Default_Allocator);
         memory_tracking_enabled = false;
     }
 #endif
@@ -478,10 +466,12 @@ BOOL WINAPI DllMain(HINSTANCE hinstance, DWORD reason, LPVOID reserved) {
     //
     // Set up some things regarding the core library.
     //
-    tmSetColor(TM_SYSTEM_COLOR, 209, 202, 197);
-    tmSetColor(TM_WORLD_COLOR,   95, 230,  46);
-    tmSetColor(TM_OCTREE_COLOR,  46, 184, 230);
-    tmSetColor(TM_ANCHOR_COLOR, 215,  15, 219);
+    tmSetColor(TM_SYSTEM_COLOR,   209, 202, 197);
+    tmSetColor(TM_WORLD_COLOR,     95, 230,  46);
+    tmSetColor(TM_OCTREE_COLOR,    46, 184, 230);
+    tmSetColor(TM_TESSEL_COLOR,   255,   0, 224);
+    tmSetColor(TM_FLOODING_COLOR,  93,  75, 255);
+    tmSetColor(TM_MARCHING_COLOR, 255,  75,  75);
     return true;
 }
 #endif
