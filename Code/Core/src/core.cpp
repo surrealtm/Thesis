@@ -3,11 +3,11 @@
 #include "floodfill.h"
 #include "march.h"
 
+#include "os_specific.h"
 #include "timing.h"
 #include "random.h"
 #include "math/intersect.h"
 #include "sort.h"
-
 
 
 /* ----------------------------------------------- 3D Geometry ----------------------------------------------- */
@@ -262,7 +262,7 @@ void clip_all_delimiter_triangles(Resizable_Array<Triangle> &triangles_to_clip, 
 }
     
 static
-void solve_delimiter_intersection(Delimiter_Intersection *intersection) {
+void solve_delimiter_intersection(World *world, Delimiter_Intersection *intersection) {
     //
     // When solving this intersection, we need to remember the original d0 clipping triangles,
     // so that we can then clip d0, and later on intersect d1 with the original d0 triangles.
@@ -270,7 +270,7 @@ void solve_delimiter_intersection(Delimiter_Intersection *intersection) {
     // t1 might not exist anymore after they have been clipped, which would lead to unexpected
     // results.
     //
-    Resizable_Array<Triangle> original_t0s = intersection->p0->triangles.copy(); // @@Speed: Only copy this if we actually need it later.
+    Resizable_Array<Triangle> original_t0s = intersection->p0->triangles.copy(world->allocator); // @@Speed: Only copy this if we actually need it later. @@Speed: Maybe even start using a temp allocator for this.
 
     // Clip d0 based on the triangles of d1.
     if(intersection->d0->level >= intersection->d1->level) clip_all_delimiter_triangles(intersection->p0->triangles, intersection->p1->triangles, intersection->d0);
@@ -503,7 +503,7 @@ void World::clip_delimiters(b8 single_step) {
         // is handled by the tessellation).
         //
         for(Delimiter_Intersection &all : intersections) {
-            solve_delimiter_intersection(&all);
+            solve_delimiter_intersection(this, &all);
         }
 
         intersections.clear();
@@ -547,6 +547,11 @@ void World::clip_delimiters(b8 single_step) {
 void World::calculate_volumes() {
     tmFunction(TM_WORLD_COLOR);
 
+    // @@Ship: Remove this.
+    Hardware_Time calculation_start = os_get_hardware_time();
+    Hardware_Time anchor_start = calculation_start;
+    s64 anchor_index = 0;
+    
     // @@Speed: Start reusing the Flood_Fill struct (i.e. the allocated cell field, etc.), instead of doing
     // so fucking much memory allocation all the time.
     for(Anchor &anchor : this->anchors) {
@@ -556,6 +561,15 @@ void World::calculate_volumes() {
         floodfill(this->current_flood_fill, this, this->allocator, anchor.position);
 
         marching_cubes(&anchor.triangles, this->current_flood_fill);
+
+        // @@Ship: Remove this
+        ++anchor_index;
+
+        Hardware_Time now = os_get_hardware_time();
+        if(os_convert_hardware_time(now - calculation_start, Seconds) > 1) {
+            printf("Calculated volume for anchor %" PRId64 " of %" PRId64 " (total: %fs, this anchor: %fs)\n", anchor_index, this->anchors.count, os_convert_hardware_time(now - calculation_start, Seconds), os_convert_hardware_time(now - anchor_start, Seconds));
+            anchor_start = now;
+        }
     }
 }
 

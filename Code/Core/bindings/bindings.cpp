@@ -16,8 +16,7 @@ static b8 memory_tracking_enabled = false;
 
 static
 void create_random_anchors(World *world, s64 count) {
-    world->reserve_objects(count, 0);
-
+    tmFunction(TM_SYSTEM_COLOR);
     const real width  = world->half_size.x;
     const real height = world->half_size.y;
     const real length = world->half_size.z;
@@ -28,6 +27,38 @@ void create_random_anchors(World *world, s64 count) {
                              get_random_real_uniform(-length, length));
         Anchor *anchor = world->add_anchor(position);
         anchor->dbg_name = "Anchor"_s;
+    }
+}
+
+static
+void create_random_delimiters(World *world, s64 count) {
+    tmFunction(TM_SYSTEM_COLOR);
+    const real width  = world->half_size.x;
+    const real height = world->half_size.y;
+    const real length = world->half_size.z;
+            
+    const real min_size   = static_cast<real>(5);
+    const real max_size   = static_cast<real>(15.);
+    const real small_size = static_cast<real>(.1);
+
+    for(s64 i = 0; i < count; ++i) {
+        int small_dimension = get_random_u32(0, 3);
+                
+        vec3 size;
+
+        switch(small_dimension) {
+        case 0: size = vec3(small_size, get_random_real_uniform(min_size, max_size), get_random_real_uniform(min_size, max_size)); break;
+        case 1: size = vec3(get_random_real_uniform(min_size, max_size), small_size, get_random_real_uniform(min_size, max_size)); break;
+        case 2: size = vec3(get_random_real_uniform(min_size, max_size), get_random_real_uniform(min_size, max_size), small_size); break;
+        }
+
+        vec3 position = vec3(get_random_real_uniform(-width  + size.x, width  - size.x),
+                             get_random_real_uniform(-height + size.y, height - size.y),
+                             get_random_real_uniform(-length + size.z, length - size.z));
+        vec3 rotation = vec3(0, 0, 0);
+
+        auto *delimiter = world->add_delimiter("Delimiter"_s, position, size, rotation, 0);
+        world->add_delimiter_clipping_planes(delimiter, (Axis) small_dimension);
     }
 }
 
@@ -181,47 +212,12 @@ extern "C" {
         tmZone("do_large_volumes_test", TM_SYSTEM_COLOR);
         
         World *world = (World *) core_create_world(100, 40, 100);
-        
-        {
-            tmZone("create_random_delimiters", TM_SYSTEM_COLOR);
 
-            const s64 count = 1000;
-
-            const real width  = world->half_size.x;
-            const real height = world->half_size.y;
-            const real length = world->half_size.z;
-            
-            const real min_size   = static_cast<real>(5);
-            const real max_size   = static_cast<real>(15.);
-            const real small_size = static_cast<real>(.1);
-
-            world->reserve_objects(0, count);
-
-            for(s64 i = 0; i < count; ++i) {
-                int small_dimension = get_random_u32(0, 3);
-                
-                vec3 size;
-
-                switch(small_dimension) {
-                case 0: size = vec3(small_size, get_random_real_uniform(min_size, max_size), get_random_real_uniform(min_size, max_size)); break;
-                case 1: size = vec3(get_random_real_uniform(min_size, max_size), small_size, get_random_real_uniform(min_size, max_size)); break;
-                case 2: size = vec3(get_random_real_uniform(min_size, max_size), get_random_real_uniform(min_size, max_size), small_size); break;
-                }
-
-                vec3 position = vec3(get_random_real_uniform(-width  + size.x, width  - size.x),
-                                   get_random_real_uniform(-height + size.y, height - size.y),
-                                   get_random_real_uniform(-length + size.z, length - size.z));
-                vec3 rotation = vec3(0, 0, 0);
-
-                auto *delimiter = world->add_delimiter("Delimiter"_s, position, size, rotation, 0);
-                world->add_delimiter_clipping_planes(delimiter, (Axis) small_dimension);
-            }
-        }
-
-        {
-            tmZone("create_random_anchors", TM_SYSTEM_COLOR);
-            create_random_anchors(world, 100);
-        }
+        const s64 delimiter_count = 10;
+        const s64 anchor_count    = 10;
+        world->reserve_objects(anchor_count, delimiter_count);
+        create_random_delimiters(world, delimiter_count);
+        create_random_anchors(world, anchor_count);
 
         world->create_octree();
         world->clip_delimiters(step_into);
