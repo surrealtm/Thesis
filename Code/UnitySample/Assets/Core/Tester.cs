@@ -6,7 +6,7 @@ using UnityEditor;
 public enum Test_Case {
     Scene,
     House,
-    Octree,
+    BVH,
     Large_Volumes,
     Cutout,
     Circle,
@@ -64,8 +64,8 @@ public class Tester : MonoBehaviour {
             this.world_handle = Core_Bindings.core_do_house_test(this.step_into);
             break;
 
-        case Test_Case.Octree:
-            this.world_handle = Core_Bindings.core_do_octree_test(this.step_into);
+        case Test_Case.BVH:
+            this.world_handle = Core_Bindings.core_do_bvh_test(this.step_into);
             break;
 
         case Test_Case.Large_Volumes:

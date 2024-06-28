@@ -4,4 +4,5 @@ using UnityEngine;
 
 public class Delimiter : MonoBehaviour {
     public bool x, y, z;
+    public byte level;
 }

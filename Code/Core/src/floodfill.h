@@ -6,7 +6,7 @@
 
 #include "typedefs.h"
 
-#define CELL_WORLD_SPACE_SIZE      2.
+#define CELL_WORLD_SPACE_SIZE      2. // @Incomplete: Make this a dynamic variable, so that the user can define it when creating the world.
 #define CELLS_PER_WORLD_SPACE_UNIT (1. / CELL_WORLD_SPACE_SIZE)
 
 struct World;

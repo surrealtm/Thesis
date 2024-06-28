@@ -35,7 +35,7 @@ public struct Memory_Information_Handle { System.IntPtr __handle; public Memory_
 [Flags]
 public enum Debug_Draw_Options : uint {
     Nothing             = 0x0,
-    Octree              = 0x1,
+    BVH                 = 0x1,
     Anchors             = 0x2,
     Delimiters          = 0x4,
     Clipping_Faces      = 0x8,
@@ -175,7 +175,7 @@ public class Core_Bindings {
     [DllImport("Core.dll")]
     public static extern s64 core_add_anchor(World_Handle world, double x, double y, double z);
     [DllImport("Core.dll")]
-    public static extern s64 core_add_delimiter(World_Handle world, double x, double y, double z, double hx, double hy, double hz, double rx, double ry, double rz);
+    public static extern s64 core_add_delimiter(World_Handle world, double x, double y, double z, double hx, double hy, double hz, double rx, double ry, double rz, u8 level);
     [DllImport("Core.dll")]
     public static extern void core_add_delimiter_clipping_planes(World_Handle world, s64 delimiter_index, Axis_Index axis_index);
     [DllImport("Core.dll")]
@@ -191,7 +191,7 @@ public class Core_Bindings {
     [DllImport("Core.dll")]
     public static extern World_Handle core_do_house_test(bool step_into);
     [DllImport("Core.dll")]
-    public static extern World_Handle core_do_octree_test(bool step_into);
+    public static extern World_Handle core_do_bvh_test(bool step_into);
     [DllImport("Core.dll")]
     public static extern World_Handle core_do_large_volumes_test(bool step_into);
     [DllImport("Core.dll")]
@@ -294,7 +294,7 @@ public unsafe class Core_Helpers {
             
             Transform transform = d.gameObject.transform;
             Bounds bounds = renderer.bounds;
-            s64 index = Core_Bindings.core_add_delimiter(world_handle, transform.position.x, transform.position.y, transform.position.z, bounds.extents.x, bounds.extents.y, bounds.extents.z, transform.eulerAngles.x, transform.eulerAngles.y, transform.eulerAngles.z);
+            s64 index = Core_Bindings.core_add_delimiter(world_handle, transform.position.x, transform.position.y, transform.position.z, bounds.extents.x, bounds.extents.y, bounds.extents.z, transform.eulerAngles.x, transform.eulerAngles.y, transform.eulerAngles.z, d.level);
 
             if(d.x) Core_Bindings.core_add_delimiter_clipping_planes(world_handle, index, Axis_Index.AXIS_X);
             if(d.y) Core_Bindings.core_add_delimiter_clipping_planes(world_handle, index, Axis_Index.AXIS_Y);
@@ -346,7 +346,8 @@ public unsafe class Core_Helpers {
 
         GameObject root = new GameObject();
         root.name = "DbgObjects";
-
+        dbg_draw_objects.Add(root);
+        
         Debug_Draw_Data draw_data = Core_Bindings.core_debug_draw_world(world_handle, options);
 
         if(draw_data.triangle_count > 0) {
