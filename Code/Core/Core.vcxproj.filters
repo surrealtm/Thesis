@@ -18,7 +18,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\core.cpp">
+    <ClCompile Include="src\world.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\Foundation\src\fileio.cpp">
@@ -33,7 +33,7 @@
     <ClCompile Include="..\Foundation\src\win32_specific.cpp">
       <Filter>Foundation</Filter>
     </ClCompile>
-    <ClCompile Include="src\tests.cpp">
+    <ClCompile Include="src\demo.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\Foundation\src\timing.cpp">
@@ -78,6 +78,12 @@
     <ClCompile Include="src\march.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\bvh.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\typedefs.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Foundation\src\fileio.h">
@@ -107,7 +113,7 @@
     <ClInclude Include="bindings\bindings.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\core.h">
+    <ClInclude Include="src\world.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\Foundation\src\random.h">
@@ -159,6 +165,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\march.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\bvh.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\typedefs.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

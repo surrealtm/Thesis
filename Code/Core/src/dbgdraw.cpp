@@ -1,5 +1,5 @@
 #include "dbgdraw.h"
-#include "core.h"
+#include "world.h"
 #include "floodfill.h"
 
 #include "memutils.h"

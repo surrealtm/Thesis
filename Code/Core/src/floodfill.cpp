@@ -1,5 +1,5 @@
 #include "floodfill.h"
-#include "core.h"
+#include "world.h"
 
 #include "timing.h"
 

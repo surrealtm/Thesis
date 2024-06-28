@@ -1,7 +1,7 @@
 #pragma once
 
 #include "memutils.h"
-#include "core.h"
+#include "world.h"
 
 struct Flood_Fill;
 

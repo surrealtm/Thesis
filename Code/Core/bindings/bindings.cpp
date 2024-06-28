@@ -1,6 +1,6 @@
 #include "bindings.h"
 
-#include "../src/core.h"
+#include "../src/world.h"
 #include "../src/random.h"
 #include "../src/os_specific.h"
 #include "../src/jobs.h"

@@ -23,53 +23,6 @@
 
 
 
-
-/* ----------------------------------------------- 3D Geometry ----------------------------------------------- */
-
-enum Axis {
-    AXIS_X = 0,
-    AXIS_Y = 1,
-    AXIS_Z = 2,
-    AXIS_COUNT = 3,
-};
-
-enum Virtual_Extension {
-    VIRTUAL_EXTENSION_None       = 0x0,
-    VIRTUAL_EXTENSION_Positive_U = 0x1,
-    VIRTUAL_EXTENSION_Negative_U = 0x2,
-    VIRTUAL_EXTENSION_Positive_V = 0x4,
-    VIRTUAL_EXTENSION_Negative_V = 0x8,
-    VIRTUAL_EXTENSION_All        = VIRTUAL_EXTENSION_Positive_U | VIRTUAL_EXTENSION_Negative_U | VIRTUAL_EXTENSION_Positive_V | VIRTUAL_EXTENSION_Negative_V,
-};
-
-BITWISE(Virtual_Extension);
-
-struct Triangle {
-    vec3 p0, p1, p2;
-    vec3 n;
-    
-    Triangle() {};
-    Triangle(vec3 p0, vec3 p1, vec3 p2);
-    Triangle(vec3 p0, vec3 p1, vec3 p2, vec3 n);
-    
-    real approximate_surface_area(); // This avoids a square root for performance, since we only roughly want to know whether the triangle is dead or not.
-    b8 is_dead();
-    b8 all_points_in_front_of_plane(Triangle *plane);
-    b8 no_point_behind_plane(Triangle *plane);
-};
-
-struct Triangulated_Plane {
-    Resizable_Array<Triangle> triangles; // @@Speed: We store the normal in each triangle, while they should all have the same normal. We should probably just store the vertices of the triangles in the list and then the normal once. We might even be able to go the index buffer route, but not sure if that's actually worth it.
-
-    void setup(Allocator *allocator, vec3 c, vec3 n, vec3 left, vec3 right, vec3 top, vec3 bottom);
-};
-
-struct AABB {
-    vec3 min, max;
-};
-
-
-
 /* ------------------------------------------------- Objects ------------------------------------------------- */
 
 struct Anchor {
@@ -84,7 +37,6 @@ struct Delimiter {
     vec3 position;
     vec3 local_scaled_axes[AXIS_COUNT]; // The three coordinate axis in the local transform (meaning: rotated) of this delimiter.
     vec3 local_unit_axes[AXIS_COUNT]; // The three coordinate axis in the local transform (meaning: rotated) of this delimiter.
-    AABB aabb;
 
     u8 level;
     Triangulated_Plane planes[6]; // A delimiter can have at most 6 planes (two planes on each axis).
@@ -94,12 +46,6 @@ struct Delimiter {
     string dbg_name;
     vec3 dbg_half_size; // Unrotated half sizes.
     quat dbg_rotation;
-};
-
-struct Delimiter_Intersection {
-    real total_distance; // The (squared) distance from this point to d0 + The (squared) distance from this point to d1.
-    Delimiter *d0, *d1;
-    Triangulated_Plane *p0, *p1;
 };
 
 
