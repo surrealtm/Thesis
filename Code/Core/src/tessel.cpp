@@ -146,10 +146,6 @@ void check_edge_against_plane(Tessellator *tessellator, vec3 e0, vec3 e1) {
 
     vec3 direction = e1 - e0;
 
-    /* nocheckin
-    if(fabs(v3_dot_v3(direction, triangle->n)) < CORE_EPSILON) return; // @@Speed: This is done again in ray_double_sided_plane_intersection, but here we use CORE_EPSILON instead of F32_EPSILON, since F32_EPSILON is too small for our purposes here...
-    */
-
     real distance;
     b8 intersection = ray_double_sided_plane_intersection(e0, direction, tessellator->clip_triangle->p0, tessellator->clip_normal, &distance);
 

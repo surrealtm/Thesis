@@ -66,7 +66,7 @@ struct Triangle {
 
 struct Triangulated_Plane {
     vec3 n;
-    Resizable_Array<Triangle> triangles; // @@Speed: We store the normal in each triangle, while they should all have the same normal. We should probably just store the vertices of the triangles in the list and then the normal once. We might even be able to go the index buffer route, but not sure if that's actually worth it. nocheckin
+    Resizable_Array<Triangle> triangles;
 
     void create(Allocator *allocator, vec3 c, vec3 n, vec3 left, vec3 right, vec3 top, vec3 bottom);
     void create(Allocator *allocator, vec3 c, vec3 u, vec3 v);
