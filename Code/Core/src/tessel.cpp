@@ -1,5 +1,5 @@
 #include "tessel.h"
-#include "core.h"
+#include "world.h"
 
 #include "math/v2.h"
 #include "math/intersect.h"

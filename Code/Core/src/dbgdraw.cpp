@@ -85,48 +85,48 @@ void debug_draw_triangle(Dbg_Internal_Draw_Data &_internal, Triangle *triangle, 
     if(_internal.draw_normals) {
         vec3 center = (triangle->p0 + triangle->p1 + triangle->p2) / static_cast<real>(3.);
         vec3 normal = triangle->n * dbg_triangle_normal_length;
-        _internal.lines.add({ dbg_v3f(center), dbg_v3f(center + normal), dbg_triangle_normal_thickness, dbg_normal_color.r, dbg_normal_color.g, dbg_normal_color.b });
+        debug_draw_line(_internal, center, center + normal, dbg_triangle_normal_thickness, dbg_normal_color);
     }
 }
 
 static
 void debug_draw_triangle_wireframe(Dbg_Internal_Draw_Data &_internal, Triangle *triangle, Dbg_Draw_Color color, f32 thickness) {
-	_internal.lines.add({ dbg_v3f(triangle->p0), dbg_v3f(triangle->p1), thickness, color.r, color.g, color.b });
-    _internal.lines.add({ dbg_v3f(triangle->p1), dbg_v3f(triangle->p2), thickness, color.r, color.g, color.b });
-    _internal.lines.add({ dbg_v3f(triangle->p2), dbg_v3f(triangle->p0), thickness, color.r, color.g, color.b });
+    debug_draw_line(_internal, triangle->p0, triangle->p1, thickness, color);
+    debug_draw_line(_internal, triangle->p1, triangle->p2, thickness, color);
+    debug_draw_line(_internal, triangle->p2, triangle->p0, thickness, color);
 
     if(_internal.draw_normals) {
         vec3 center = (triangle->p0 + triangle->p1 + triangle->p2) / static_cast<real>(3.);
         vec3 normal = triangle->n * dbg_triangle_normal_length;
-        _internal.lines.add({ dbg_v3f(center), dbg_v3f(center + normal), dbg_triangle_normal_thickness, dbg_normal_color.r, dbg_normal_color.g, dbg_normal_color.b });
+        debug_draw_line(_internal, center, center + normal, dbg_triangle_normal_thickness, dbg_normal_color);
     }
 }
 
 static
-void debug_draw_cube_wireframe(Dbg_Internal_Draw_Data &_internal, v3f center, f32 half_size, f32 thickness, Dbg_Draw_Color color) {
-	_internal.lines.add({ center + v3f(-half_size, -half_size, -half_size), center + v3f(+half_size, -half_size, -half_size), thickness, color.r, color.g, color.b });
-	_internal.lines.add({ center + v3f(+half_size, -half_size, -half_size), center + v3f(+half_size, -half_size, +half_size), thickness, color.r, color.g, color.b });
-	_internal.lines.add({ center + v3f(+half_size, -half_size, +half_size), center + v3f(-half_size, -half_size, +half_size), thickness, color.r, color.g, color.b });
-	_internal.lines.add({ center + v3f(-half_size, -half_size, +half_size), center + v3f(-half_size, -half_size, -half_size), thickness, color.r, color.g, color.b });
+void debug_draw_cube_wireframe(Dbg_Internal_Draw_Data &_internal, vec3 center, real half_size, f32 thickness, Dbg_Draw_Color color) {
+    debug_draw_line(_internal, center + vec3(-half_size, -half_size, -half_size), center + vec3(+half_size, -half_size, -half_size), thickness, color);
+    debug_draw_line(_internal, center + vec3(+half_size, -half_size, -half_size), center + vec3(+half_size, -half_size, +half_size), thickness, color);
+    debug_draw_line(_internal, center + vec3(+half_size, -half_size, +half_size), center + vec3(-half_size, -half_size, +half_size), thickness, color);
+    debug_draw_line(_internal, center + vec3(-half_size, -half_size, +half_size), center + vec3(-half_size, -half_size, -half_size), thickness, color);
 
-	_internal.lines.add({ center + v3f(-half_size, +half_size, -half_size), center + v3f(+half_size, +half_size, -half_size), thickness, color.r, color.g, color.b });
-	_internal.lines.add({ center + v3f(+half_size, +half_size, -half_size), center + v3f(+half_size, +half_size, +half_size), thickness, color.r, color.g, color.b });
-	_internal.lines.add({ center + v3f(+half_size, +half_size, +half_size), center + v3f(-half_size, +half_size, +half_size), thickness, color.r, color.g, color.b });
-	_internal.lines.add({ center + v3f(-half_size, +half_size, +half_size), center + v3f(-half_size, +half_size, -half_size), thickness, color.r, color.g, color.b });
+	debug_draw_line(_internal, center + vec3(-half_size, +half_size, -half_size), center + vec3(+half_size, +half_size, -half_size), thickness, color);
+    debug_draw_line(_internal, center + vec3(+half_size, +half_size, -half_size), center + vec3(+half_size, +half_size, +half_size), thickness, color);
+    debug_draw_line(_internal, center + vec3(+half_size, +half_size, +half_size), center + vec3(-half_size, +half_size, +half_size), thickness, color);
+    debug_draw_line(_internal, center + vec3(-half_size, +half_size, +half_size), center + vec3(-half_size, +half_size, -half_size), thickness, color);
 
-	_internal.lines.add({ center + v3f(+half_size, -half_size, +half_size), center + v3f(+half_size, +half_size, +half_size), thickness, color.r, color.g, color.b });
-	_internal.lines.add({ center + v3f(+half_size, -half_size, -half_size), center + v3f(+half_size, +half_size, -half_size), thickness, color.r, color.g, color.b });
-	_internal.lines.add({ center + v3f(-half_size, -half_size, -half_size), center + v3f(-half_size, +half_size, -half_size), thickness, color.r, color.g, color.b });
-	_internal.lines.add({ center + v3f(-half_size, -half_size, +half_size), center + v3f(-half_size, +half_size, +half_size), thickness, color.r, color.g, color.b });
+	debug_draw_line(_internal, center + vec3(+half_size, -half_size, +half_size), center + vec3(+half_size, +half_size, +half_size), thickness, color);
+    debug_draw_line(_internal, center + vec3(+half_size, -half_size, -half_size), center + vec3(+half_size, +half_size, -half_size), thickness, color);
+    debug_draw_line(_internal, center + vec3(-half_size, -half_size, -half_size), center + vec3(-half_size, +half_size, -half_size), thickness, color);
+    debug_draw_line(_internal, center + vec3(-half_size, -half_size, +half_size), center + vec3(-half_size, +half_size, +half_size), thickness, color);
 }
 
 static
-void debug_draw_cell_center(Dbg_Internal_Draw_Data &_internal, v3f center, Dbg_Draw_Color color) {
-    f32 half_size = .1f * CELL_WORLD_SPACE_SIZE;
-    f32 thickness = half_size / 4.f;
-    _internal.lines.add({ center - v3f(half_size, 0.f, 0.f), center + v3f(half_size, 0.f, 0.f), thickness, color.r, color.g, color.b });
-    _internal.lines.add({ center - v3f(0.f, half_size, 0.f), center + v3f(0.f, half_size, 0.f), thickness, color.r, color.g, color.b });
-    _internal.lines.add({ center - v3f(0.f, 0.f, half_size), center + v3f(0.f, 0.f, half_size), thickness, color.r, color.g, color.b });
+void debug_draw_flood_fill_cell_center(Dbg_Internal_Draw_Data &_internal, vec3 center, Dbg_Draw_Color color) {
+    real half_size = .1 * CELL_WORLD_SPACE_SIZE;
+    f32 thickness = (f32) (half_size / 4.f);
+    debug_draw_line(_internal, center - vec3(half_size, 0., 0.), center + vec3(half_size, 0., 0.), thickness, color);
+    debug_draw_line(_internal, center - vec3(0., half_size, 0.), center + vec3(0., half_size, 0.), thickness, color);
+    debug_draw_line(_internal, center - vec3(0., 0., half_size), center + vec3(0., 0., half_size), thickness, color);
 }
 
 static
@@ -134,13 +134,13 @@ void debug_draw_flood_fill(Dbg_Internal_Draw_Data &_internal, Flood_Fill *ff) {
 	for(s32 x = 0; x < ff->hx; ++x) {
         for(s32 y = 0; y < ff->hy; ++y) {
             for(s32 z = 0; z < ff->hz; ++z) {
-                v3f center = dbg_v3f(get_cell_world_space_center(ff, v3i(x, y, z)));
+                vec3 center = get_cell_world_space_center(ff, v3i(x, y, z));
 
                 //
                 // Draw the outline. Only draw the "required" lines to avoid a lot of overhead by duplicate lines.
                 //
                 {
-					f32 half_size        = CELL_WORLD_SPACE_SIZE / 2.f;
+					real half_size       = CELL_WORLD_SPACE_SIZE / 2.f;
 					f32 thickness        = dbg_flood_fill_cell_thickness;
 					Dbg_Draw_Color color = dbg_flood_fill_cell_color;
                     
@@ -150,27 +150,27 @@ void debug_draw_flood_fill(Dbg_Internal_Draw_Data &_internal, Flood_Fill *ff) {
 
                     b8 startx = x == 0;
                     b8 startz = z == 0;
-                    
-                    _internal.lines.add({ center + v3f(-half_size, -half_size, -half_size), center + v3f(+half_size, -half_size, -half_size), thickness, color.r, color.g, color.b });
-                    _internal.lines.add({ center + v3f(-half_size, -half_size, +half_size), center + v3f(-half_size, -half_size, -half_size), thickness, color.r, color.g, color.b });
 
-                    if(endx) _internal.lines.add({ center + v3f(+half_size, -half_size, -half_size), center + v3f(+half_size, -half_size, +half_size), thickness, color.r, color.g, color.b });
-                    if(endz) _internal.lines.add({ center + v3f(+half_size, -half_size, +half_size), center + v3f(-half_size, -half_size, +half_size), thickness, color.r, color.g, color.b });
+                    debug_draw_line(_internal, center + vec3(-half_size, -half_size, -half_size), center + vec3(+half_size, -half_size, -half_size), thickness, color);
+                    debug_draw_line(_internal, center + vec3(-half_size, -half_size, +half_size), center + vec3(-half_size, -half_size, -half_size), thickness, color);
+
+                    if(endx) debug_draw_line(_internal, center + vec3(+half_size, -half_size, -half_size), center + vec3(+half_size, -half_size, +half_size), thickness, color);
+                    if(endz) debug_draw_line(_internal, center + vec3(+half_size, -half_size, +half_size), center + vec3(-half_size, -half_size, +half_size), thickness, color);
 
 					if(endy) {
-						_internal.lines.add({ center + v3f(-half_size, +half_size, -half_size), center + v3f(+half_size, +half_size, -half_size), thickness, color.r, color.g, color.b });
-						_internal.lines.add({ center + v3f(-half_size, +half_size, +half_size), center + v3f(-half_size, +half_size, -half_size), thickness, color.r, color.g, color.b });
+						debug_draw_line(_internal, center + vec3(-half_size, +half_size, -half_size), center + vec3(+half_size, +half_size, -half_size), thickness, color);
+                        debug_draw_line(_internal, center + vec3(-half_size, +half_size, +half_size), center + vec3(-half_size, +half_size, -half_size), thickness, color);
 
-						if(endx) _internal.lines.add({ center + v3f(+half_size, +half_size, -half_size), center + v3f(+half_size, +half_size, +half_size), thickness, color.r, color.g, color.b });
-						if(endz) _internal.lines.add({ center + v3f(+half_size, +half_size, +half_size), center + v3f(-half_size, +half_size, +half_size), thickness, color.r, color.g, color.b });
+						if(endx) debug_draw_line(_internal, center + vec3(+half_size, +half_size, -half_size), center + vec3(+half_size, +half_size, +half_size), thickness, color);
+						if(endz) debug_draw_line(_internal, center + vec3(+half_size, +half_size, +half_size), center + vec3(-half_size, +half_size, +half_size), thickness, color);
 					}
                     
-                    _internal.lines.add({ center + v3f(-half_size, -half_size, -half_size), center + v3f(-half_size, +half_size, -half_size), thickness, color.r, color.g, color.b });
+                    debug_draw_line(_internal, center + vec3(-half_size, -half_size, -half_size), center + vec3(-half_size, +half_size, -half_size), thickness, color);
 
-                    if(endz || endx) _internal.lines.add({ center + v3f(+half_size, -half_size, +half_size), center + v3f(+half_size, +half_size, +half_size), thickness, color.r, color.g, color.b });
+                    if(endz || endx) debug_draw_line(_internal, center + vec3(+half_size, -half_size, +half_size), center + vec3(+half_size, +half_size, +half_size), thickness, color);
 
-                    if(endx && startz) _internal.lines.add({ center + v3f(+half_size, -half_size, -half_size), center + v3f(+half_size, +half_size, -half_size), thickness, color.r, color.g, color.b });
-                    if(endz && startx) _internal.lines.add({ center + v3f(-half_size, -half_size, +half_size), center + v3f(-half_size, +half_size, +half_size), thickness, color.r, color.g, color.b });
+                    if(endx && startz) debug_draw_line(_internal, center + vec3(+half_size, -half_size, -half_size), center + vec3(+half_size, +half_size, -half_size), thickness, color);
+                    if(endz && startx) debug_draw_line(_internal, center + vec3(-half_size, -half_size, +half_size), center + vec3(-half_size, +half_size, +half_size), thickness, color);
                 }
 
                 //
@@ -182,11 +182,11 @@ void debug_draw_flood_fill(Dbg_Internal_Draw_Data &_internal, Flood_Fill *ff) {
                     case CELL_Untouched: break;
 
                     case CELL_Currently_In_Frontier:
-                        debug_draw_cell_center(_internal, center, dbg_cell_frontier_color);
+                        debug_draw_flood_fill_cell_center(_internal, center, dbg_cell_frontier_color);
                         break;
                         
                     case CELL_Has_Been_Flooded:
-                        debug_draw_cell_center(_internal, center, dbg_cell_flooded_color);
+                        debug_draw_flood_fill_cell_center(_internal, center, dbg_cell_flooded_color);
                         //_internal.lines.add({ center, dbg_v3f(get_cell_world_space_center(ff, cell->added_from_cell)), dbg_cell_relation_thickness, dbg_cell_relation_color.r, dbg_cell_relation_color.r, dbg_cell_relation_color.b }); // Draw a connection between the cell that added this cell to the frontier.
                         break;
                     }
@@ -195,7 +195,7 @@ void debug_draw_flood_fill(Dbg_Internal_Draw_Data &_internal, Flood_Fill *ff) {
         }
     }
 
-    debug_draw_cell_center(_internal, dbg_v3f(ff->world_space_center), Dbg_Draw_Color { 255, 0, 0, 255 });
+    debug_draw_flood_fill_cell_center(_internal, ff->world_space_center, Dbg_Draw_Color { 255, 0, 0, 255 });
 }
 
 Debug_Draw_Data debug_draw_world(World *world, Debug_Draw_Options options) {
@@ -216,7 +216,6 @@ Debug_Draw_Data debug_draw_world(World *world, Debug_Draw_Options options) {
 	if(options & DEBUG_DRAW_Anchors) {
 		for(auto &anchor: world->anchors) {
 			_internal.spheres.add({ dbg_v3f(anchor.position), dbg_anchor_radius, dbg_anchor_color.r, dbg_anchor_color.g, dbg_anchor_color.b });
-
 			if(_internal.draw_labels) _internal.texts.add({ dbg_v3f(anchor.position), anchor.dbg_name, dbg_label_color.r, dbg_label_color.g, dbg_label_color.b });
 		}			
 	}
@@ -224,7 +223,6 @@ Debug_Draw_Data debug_draw_world(World *world, Debug_Draw_Options options) {
 	if(options & DEBUG_DRAW_Delimiters) {
 		for(auto &delimiter : world->delimiters) {
 			_internal.cuboids.add({ dbg_v3f(delimiter.position), dbg_v3f(delimiter.dbg_half_size), dbg_qtf(delimiter.dbg_rotation), dbg_delimiter_color.r, dbg_delimiter_color.g, dbg_delimiter_color.b });
-
             if(_internal.draw_labels) _internal.texts.add({ dbg_v3f(delimiter.position), delimiter.dbg_name, dbg_label_color.r, dbg_label_color.g, dbg_label_color.b });
         }
 	}
@@ -301,9 +299,9 @@ Debug_Draw_Data debug_draw_world(World *world, Debug_Draw_Options options) {
     }
     
 	if(options & DEBUG_DRAW_Axis_Gizmo) {
-		_internal.lines.add({ v3f(0, 0, 0), v3f(3, 0, 0), dbg_axis_gizmo_thickness, 255, 0, 0 });
-		_internal.lines.add({ v3f(0, 0, 0), v3f(0, 3, 0), dbg_axis_gizmo_thickness, 0, 255, 0 });
-		_internal.lines.add({ v3f(0, 0, 0), v3f(0, 0, 3), dbg_axis_gizmo_thickness, 0, 0, 255 });
+        debug_draw_line(_internal, vec3(0, 0, 0), vec3(3, 0, 0), dbg_axis_gizmo_thickness, Dbg_Draw_Color { 255, 0, 0 });
+        debug_draw_line(_internal, vec3(0, 0, 0), vec3(0, 3, 0), dbg_axis_gizmo_thickness, Dbg_Draw_Color { 0, 255, 0 });
+        debug_draw_line(_internal, vec3(0, 0, 0), vec3(0, 0, 3), dbg_axis_gizmo_thickness, Dbg_Draw_Color { 0, 0, 255 });
 	}
 
 	Debug_Draw_Data data = { 0 };
