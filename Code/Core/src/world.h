@@ -27,22 +27,22 @@
 
 struct Anchor {
     vec3 position;
-    Resizable_Array<Triangle> triangles;
+    Resizable_Array<Triangle> volume;
 
     // Only for debug drawing.
     string dbg_name;
 };
 
 struct Delimiter {
+    u8 level;
     vec3 position;
     vec3 local_scaled_axes[AXIS_COUNT]; // The three coordinate axis in the local transform (meaning: rotated) of this delimiter.
     vec3 local_unit_axes[AXIS_COUNT]; // The three coordinate axis in the local transform (meaning: rotated) of this delimiter.
 
-    u8 level;
     Triangulated_Plane planes[6]; // A delimiter can have at most 6 planes (two planes on each axis).
     s64 plane_count;
 
-    // Only for debug drawing.
+    // @@Ship: Only for debug drawing.
     string dbg_name;
     vec3 dbg_half_size; // Unrotated half sizes.
     quat dbg_rotation;
@@ -90,9 +90,14 @@ struct World {
     Resizable_Array<Anchor> anchors;
     Resizable_Array<Delimiter> delimiters;
 
-    // The clipping planes around the entire world (indicated by the world size), since no volume or delimiter plane should ever go past the dimensions of the world.
-    Resizable_Array<Triangle> root_clipping_triangles;
+    // The clipping planes around the entire world (indicated by the world size), since no volume or delimiter
+    // plane should ever go past the dimensions of the world.
+    Triangulated_Plane root_clipping_planes[6];
 
+    // After having clipped all delimiters, all triangles of all delimiters get added to this BVH. We then use
+    // this data structure to quickly determine which delimiter triangles are bordering which anchors (by doing
+    // some raycasting checks based on the floodfilling results). This BVH does not contain any volume triangles
+    // since we don't actually do any work on the volumes, after they have been created).
     struct BVH *bvh;
     
     struct Flood_Fill *current_flood_fill; // @@Ship: Just for debug drawing.

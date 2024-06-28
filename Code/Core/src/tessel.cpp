@@ -11,6 +11,7 @@ struct Tessellator {
     // The corner points and normal of the input triangle, copied since we will modify
     // the input triangle to avoid (re-) allocations.
     vec3 input_corner[3];
+    vec3 clip_normal;
 
     // Intermediate state keeping.
     vec3 intersection_point[2];
@@ -136,7 +137,7 @@ void check_edge_against_triangle(Tessellator *tessellator, vec3 e0, vec3 e1, Tri
 }
 
 static
-void check_edge_against_plane(Tessellator *tessellator, vec3 e0, vec3 e1, Triangle *triangle) {
+void check_edge_against_plane(Tessellator *tessellator, vec3 e0, vec3 e1) {
     //
     // We check for a double-sided plane intersection here since we don't care about the triangle
     // orientation. We always want to tessellate the triangle, no matter whether the edge passed in
@@ -144,10 +145,13 @@ void check_edge_against_plane(Tessellator *tessellator, vec3 e0, vec3 e1, Triang
     //
 
     vec3 direction = e1 - e0;
+
+    /* nocheckin
     if(fabs(v3_dot_v3(direction, triangle->n)) < CORE_EPSILON) return; // @@Speed: This is done again in ray_double_sided_plane_intersection, but here we use CORE_EPSILON instead of F32_EPSILON, since F32_EPSILON is too small for our purposes here...
+    */
 
     real distance;
-    b8 intersection = ray_double_sided_plane_intersection(e0, direction, triangle->p0, triangle->n, &distance);
+    b8 intersection = ray_double_sided_plane_intersection(e0, direction, tessellator->clip_triangle->p0, tessellator->clip_normal, &distance);
 
     // If result.distance < 0.f || result.distance > 1.f, then we do get an intersection with the
     // ray, but not inside the edge section of the ray.
@@ -187,7 +191,7 @@ void generate_new_triangle(Tessellator *tessellator, vec3 p0, vec3 p1, vec3 p2) 
     // Do some custom checking of whether this triangle should be generated at all. This heavily depends on
     // the usage of the tessellation output, and therefore a procedure pointer is provided.
     //
-    Triangle would_be_triangle = { p0, p1, p2, tessellator->input_triangle->n };
+    Triangle would_be_triangle = { p0, p1, p2 };
     if(tessellator->triangle_should_be_clipped_proc && tessellator->triangle_should_be_clipped_proc(&would_be_triangle, tessellator->clip_triangle, tessellator->triangle_should_be_clipped_user_pointer)) {
 #if TESSEL_DEBUG_PRINT
         printf("    Rejected triangle due to custom decider callback.\n");
@@ -207,14 +211,14 @@ void generate_new_triangle(Tessellator *tessellator, vec3 p0, vec3 p1, vec3 p2) 
         tessellator->input_triangle->p2 = p2;
     } else {
         // Add a new triangle to the output array.
-        tessellator->output_array->add({ p0, p1, p2, tessellator->input_triangle->n });
+        tessellator->output_array->add({ p0, p1, p2 });
     }
 
     ++tessellator->generated_triangle_count;
 }
 
 
-s64 tessellate(Triangle *input, Triangle *clip, Resizable_Array<Triangle> *output, b8 clip_against_plane, Triangle_Should_Be_Clipped triangle_should_be_clipped_proc, void *triangle_should_be_clipped_user_pointer) {
+s64 tessellate(Triangle *input, Triangle *clip, vec3 clip_normal, Resizable_Array<Triangle> *output, b8 clip_against_plane, Triangle_Should_Be_Clipped triangle_should_be_clipped_proc, void *triangle_should_be_clipped_user_pointer) {
     tmFunction(TM_TESSEL_COLOR);
 
     Tessellator tessellator;
@@ -223,6 +227,7 @@ s64 tessellate(Triangle *input, Triangle *clip, Resizable_Array<Triangle> *outpu
     tessellator.input_corner[2] = input->p2;
     tessellator.input_triangle  = input;
     tessellator.clip_triangle   = clip;
+    tessellator.clip_normal     = clip_normal;
     tessellator.output_array    = output;
     tessellator.triangle_should_be_clipped_proc = triangle_should_be_clipped_proc;
     tessellator.triangle_should_be_clipped_user_pointer = triangle_should_be_clipped_user_pointer;
@@ -256,9 +261,9 @@ s64 tessellate(Triangle *input, Triangle *clip, Resizable_Array<Triangle> *outpu
         // "miss" the plane (since it is infinite), like they can miss a triangle in the
         // above case.
         //
-        check_edge_against_plane(&tessellator, input->p0, input->p1, clip);
-        check_edge_against_plane(&tessellator, input->p1, input->p2, clip);
-        check_edge_against_plane(&tessellator, input->p2, input->p0, clip);
+        check_edge_against_plane(&tessellator, input->p0, input->p1);
+        check_edge_against_plane(&tessellator, input->p1, input->p2);
+        check_edge_against_plane(&tessellator, input->p2, input->p0);
     }
 
     //

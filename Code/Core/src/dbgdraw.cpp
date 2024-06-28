@@ -43,20 +43,20 @@ static f32 dbg_bvh_depth_thickness_map[] = {
 
 static_assert(ARRAY_COUNT(dbg_bvh_depth_color_map) == ARRAY_COUNT(dbg_bvh_depth_thickness_map), "These two arrays must be of the same size.");
 
-const f32 dbg_anchor_radius                = 0.5f;
-const f32 dbg_triangle_wireframe_thickness = 0.03f;
-const f32 dbg_triangle_normal_thickness    = 0.2f;
-const f32 dbg_flood_fill_cell_thickness    = 0.03f;
-const f32 dbg_axis_gizmo_thickness         = 0.2f;
-const f32 dbg_cell_relation_thickness      = 0.1f;
+const f32 dbg_anchor_radius             = 0.5f;
+const f32 dbg_wireframe_thickness       = 0.03f;
+const f32 dbg_normal_thickness          = 0.2f;
+const f32 dbg_flood_fill_cell_thickness = 0.03f;
+const f32 dbg_axis_gizmo_thickness      = 0.2f;
+const f32 dbg_cell_relation_thickness   = 0.1f;
 
-const real dbg_triangle_normal_length      = 1;
+const real dbg_triangle_normal_length   = 1;
 
 const Dbg_Draw_Color dbg_label_color           = { 255, 255, 255, 255 };
 const Dbg_Draw_Color dbg_anchor_color          = { 255, 100, 100, 255 };
 const Dbg_Draw_Color dbg_delimiter_color       = { 100, 100, 100, 255 };
 const Dbg_Draw_Color dbg_root_plane_color      = { 255, 193,   0, 100 };
-const Dbg_Draw_Color dbg_clipping_plane_color  = { 255,  60,  50, 100 };
+const Dbg_Draw_Color dbg_delimiter_plane_color = { 255,  60,  50, 100 };
 const Dbg_Draw_Color dbg_volume_color          = { 215,  15, 219, 100 };
 const Dbg_Draw_Color dbg_flood_fill_cell_color = { 200, 200, 200, 255 };
 const Dbg_Draw_Color dbg_step_highlight_color  = { 255, 255, 255, 255 };
@@ -84,12 +84,6 @@ void debug_draw_line(Dbg_Internal_Draw_Data &_internal, vec3 p0, vec3 p1, f32 th
 static
 void debug_draw_triangle(Dbg_Internal_Draw_Data &_internal, Triangle *triangle, Dbg_Draw_Color color) {
 	_internal.triangles.add({ dbg_v3f(triangle->p0), dbg_v3f(triangle->p1), dbg_v3f(triangle->p2), color.r, color.g, color.b, color.a });
-
-    if(_internal.draw_normals) {
-        vec3 center = (triangle->p0 + triangle->p1 + triangle->p2) / static_cast<real>(3.);
-        vec3 normal = triangle->n * dbg_triangle_normal_length;
-        debug_draw_line(_internal, center, center + normal, dbg_triangle_normal_thickness, dbg_normal_color);
-    }
 }
 
 static
@@ -97,12 +91,6 @@ void debug_draw_triangle_wireframe(Dbg_Internal_Draw_Data &_internal, Triangle *
     debug_draw_line(_internal, triangle->p0, triangle->p1, thickness, color);
     debug_draw_line(_internal, triangle->p1, triangle->p2, thickness, color);
     debug_draw_line(_internal, triangle->p2, triangle->p0, thickness, color);
-
-    if(_internal.draw_normals) {
-        vec3 center = (triangle->p0 + triangle->p1 + triangle->p2) / static_cast<real>(3.);
-        vec3 normal = triangle->n * dbg_triangle_normal_length;
-        debug_draw_line(_internal, center, center + normal, dbg_triangle_normal_thickness, dbg_normal_color);
-    }
 }
 
 static
@@ -126,6 +114,30 @@ void debug_draw_cuboid_wireframe(Dbg_Internal_Draw_Data &_internal, vec3 center,
 static
 void debug_draw_cube_wireframe(Dbg_Internal_Draw_Data &_internal, vec3 center, real half_size, f32 thickness, Dbg_Draw_Color color) {
     debug_draw_cuboid_wireframe(_internal, center, vec3(half_size, half_size, half_size), thickness, color);
+}
+
+static
+void debug_draw_triangulated_plane(Dbg_Internal_Draw_Data &_internal, Triangulated_Plane *plane, Dbg_Draw_Color color) {
+    for(Triangle &triangle : plane->triangles) {
+        debug_draw_triangle(_internal, &triangle, color);
+
+        if(_internal.draw_normals) {
+            vec3 center = (triangle.p0 + triangle.p1 + triangle.p2) / 3.;
+            debug_draw_line(_internal, center, center + plane->n * dbg_triangle_normal_length, dbg_normal_thickness, dbg_normal_color);
+        }
+    }
+}
+
+static
+void debug_draw_triangulated_plane_wireframe(Dbg_Internal_Draw_Data &_internal, Triangulated_Plane *plane, Dbg_Draw_Color color) {
+    for(Triangle &triangle : plane->triangles) {
+        debug_draw_triangle_wireframe(_internal, &triangle, color, dbg_wireframe_thickness);
+
+        if(_internal.draw_normals) {
+            vec3 center = (triangle.p0 + triangle.p1 + triangle.p2) / 3.;
+            debug_draw_line(_internal, center, center + plane->n * dbg_triangle_normal_length, dbg_normal_thickness, dbg_normal_color);
+        }
+    }
 }
 
 static
@@ -225,7 +237,7 @@ Debug_Draw_Data debug_draw_world(World *world, Debug_Draw_Options options) {
 
     _internal.draw_labels  = !!(options & DEBUG_DRAW_Labels);
     _internal.draw_normals = !!(options & DEBUG_DRAW_Normals);
-    
+
 	if(options & DEBUG_DRAW_BVH) {
         debug_draw_bvh(_internal, world->bvh);
 	}
@@ -246,33 +258,8 @@ Debug_Draw_Data debug_draw_world(World *world, Debug_Draw_Options options) {
 
 	if(options & DEBUG_DRAW_Clipping_Faces) {
 		if(options & DEBUG_DRAW_Root_Planes) {
-			for(s64 i = 0; i < world->root_clipping_triangles.count; ++i) {
-				b8 active = false;
-				Dbg_Draw_Color color = active ? dbg_step_highlight_color : dbg_root_plane_color;
-				debug_draw_triangle(_internal, &world->root_clipping_triangles[i], color);
-			}
-		}
-		
-        for(s64 i = 0; i < world->delimiters.count; ++i) {
-            Delimiter *delimiter = &world->delimiters[i];
-			for(s64 j = 0; j < delimiter->plane_count; ++j) {
-				Triangulated_Plane *plane = &delimiter->planes[j];
-				for(Triangle &triangle : plane->triangles) {
-					b8 active = false;
-					Dbg_Draw_Color color = active ? dbg_step_highlight_color : dbg_clipping_plane_color;
-					debug_draw_triangle(_internal, &triangle, color);
-				}
-			}
-        }
-    }
-
-	if(options & DEBUG_DRAW_Clipping_Wireframes) {
-		if(options & DEBUG_DRAW_Root_Planes) {
-			for(s64 i = 0; i < world->root_clipping_triangles.count; ++i) {
-				b8 active = false;
-				Dbg_Draw_Color color = active ? dbg_step_highlight_color : dbg_root_plane_color;
-				f32 thickness = active ? dbg_triangle_wireframe_thickness * 2 : dbg_triangle_wireframe_thickness;
-				debug_draw_triangle_wireframe(_internal, &world->root_clipping_triangles[i], color, thickness);
+			for(Triangulated_Plane &plane : world->root_clipping_planes) {
+                debug_draw_triangulated_plane(_internal, &plane, dbg_root_plane_color);
 			}
 		}
 		
@@ -280,12 +267,23 @@ Debug_Draw_Data debug_draw_world(World *world, Debug_Draw_Options options) {
             Delimiter *delimiter = &world->delimiters[i];
             for(s64 j = 0; j < delimiter->plane_count; ++j) {
                 Triangulated_Plane *plane = &delimiter->planes[j];
-                for(Triangle &triangle : plane->triangles) {
-                    b8 active = false;
-                    Dbg_Draw_Color color = active ? dbg_step_highlight_color : dbg_clipping_plane_color;
-                    f32 thickness = active ? dbg_triangle_wireframe_thickness * 2 : dbg_triangle_wireframe_thickness;
-                    debug_draw_triangle_wireframe(_internal, &triangle, color, thickness);
-                }
+                debug_draw_triangulated_plane(_internal, plane, dbg_delimiter_plane_color);
+            }
+        }		
+    }
+
+	if(options & DEBUG_DRAW_Clipping_Wireframes) {
+		if(options & DEBUG_DRAW_Root_Planes) {
+			for(Triangulated_Plane &plane : world->root_clipping_planes) {
+                debug_draw_triangulated_plane_wireframe(_internal, &plane, dbg_root_plane_color);
+			}
+		}
+		
+        for(s64 i = 0; i < world->delimiters.count; ++i) {
+            Delimiter *delimiter = &world->delimiters[i];
+            for(s64 j = 0; j < delimiter->plane_count; ++j) {
+                Triangulated_Plane *plane = &delimiter->planes[j];
+                debug_draw_triangulated_plane_wireframe(_internal, plane, dbg_delimiter_plane_color);
             }
         }		
 	}
@@ -293,7 +291,7 @@ Debug_Draw_Data debug_draw_world(World *world, Debug_Draw_Options options) {
 	if(options & DEBUG_DRAW_Volume_Faces) {
 		for(s64 i = 0; i < world->anchors.count; ++i) {
             Anchor *anchor = &world->anchors[i];
-			for(Triangle &triangle : anchor->triangles) {
+			for(Triangle &triangle : anchor->volume) {
 				Dbg_Draw_Color color = dbg_volume_color;
 				debug_draw_triangle(_internal, &triangle, color);
 			}
@@ -303,9 +301,9 @@ Debug_Draw_Data debug_draw_world(World *world, Debug_Draw_Options options) {
 	if(options & DEBUG_DRAW_Volume_Wireframes) {
 		for(s64 i = 0; i < world->anchors.count; ++i) {
             Anchor *anchor = &world->anchors[i];
-			for(Triangle &triangle : anchor->triangles) {
+			for(Triangle &triangle : anchor->volume) {
 				Dbg_Draw_Color color = dbg_volume_color;
-                f32 thickness = dbg_triangle_wireframe_thickness;
+                f32 thickness = dbg_wireframe_thickness;
                 debug_draw_triangle_wireframe(_internal, &triangle, color, thickness);
 			}
 		}

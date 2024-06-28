@@ -20,9 +20,14 @@ struct Delimiter_Intersection {
     Triangulated_Plane *p0, *p1;
 };
 
+struct Delimiter_Triangle_Should_Be_Clipped_Helper {
+    vec3 center_to_clip;
+    vec3 clip_normal;
+};
+
 // Adapted from: check_against_triangle in tessel.cpp
 static
-b8 check_edge_against_triangle(vec3 e0, vec3 e1, vec3 n, Triangle &triangle, vec3 o0, vec3 o1, real &nearest_distance) {
+b8 check_edge_against_triangle(vec3 e0, vec3 e1, vec3 n0, vec3 n1, Triangle &triangle, vec3 o0, vec3 o1, real &nearest_distance) {
     vec3 direction = e1 - e0;
 
     Triangle_Intersection_Result<real> result = ray_double_sided_triangle_intersection(e0, direction, triangle.p0, triangle.p1, triangle.p2);
@@ -53,7 +58,7 @@ b8 check_edge_against_triangle(vec3 e0, vec3 e1, vec3 n, Triangle &triangle, vec
     // the Z-axis).
     //
     vec3 intersection = e0 + direction * result.distance;
-    vec3 _cross = v3_normalize(v3_cross_v3(n, triangle.n));    
+    vec3 _cross = v3_normalize(v3_cross_v3(n0, n1));    
     vec3 delta0 = (o0 - intersection) - (o0 - intersection) * _cross;
     vec3 delta1 = (o1 - intersection) - (o1 - intersection) * _cross;
 
@@ -80,12 +85,12 @@ void find_intersections(Delimiter *d0, Delimiter *d1, Resizable_Array<Delimiter_
             
             for(Triangle &t0 : p0.triangles) {
                 for(Triangle &t1 : p1.triangles) {
-                    intersection |= check_edge_against_triangle(t0.p0, t0.p1, t0.n, t1, d0->position, d1->position, distance);
-                    intersection |= check_edge_against_triangle(t0.p1, t0.p2, t0.n, t1, d0->position, d1->position, distance);
-                    intersection |= check_edge_against_triangle(t0.p2, t0.p0, t0.n, t1, d0->position, d1->position, distance);
-                    intersection |= check_edge_against_triangle(t1.p0, t1.p1, t1.n, t0, d1->position, d0->position, distance);
-                    intersection |= check_edge_against_triangle(t1.p1, t1.p2, t1.n, t0, d1->position, d0->position, distance);
-                    intersection |= check_edge_against_triangle(t1.p2, t1.p0, t1.n, t0, d1->position, d0->position, distance);
+                    intersection |= check_edge_against_triangle(t0.p0, t0.p1, p0.n, p1.n, t1, d0->position, d1->position, distance);
+                    intersection |= check_edge_against_triangle(t0.p1, t0.p2, p0.n, p1.n, t1, d0->position, d1->position, distance);
+                    intersection |= check_edge_against_triangle(t0.p2, t0.p0, p0.n, p1.n, t1, d0->position, d1->position, distance);
+                    intersection |= check_edge_against_triangle(t1.p0, t1.p1, p1.n, p0.n, t0, d1->position, d0->position, distance);
+                    intersection |= check_edge_against_triangle(t1.p1, t1.p2, p1.n, p0.n, t0, d1->position, d0->position, distance);
+                    intersection |= check_edge_against_triangle(t1.p2, t1.p0, p1.n, p0.n, t0, d1->position, d0->position, distance);
                 }
             }
 
@@ -102,7 +107,7 @@ Sort_Comparison_Result compare_delimiter_intersections(Delimiter_Intersection *l
 }
 
 static
-b8 delimiter_triangle_should_be_clipped(Triangle *generated_triangle, Triangle *clip_triangle, Delimiter *owning_delimiter) {
+b8 delimiter_triangle_should_be_clipped(Triangle *generated_triangle, Triangle *clip_triangle, Delimiter_Triangle_Should_Be_Clipped_Helper *helper) {
     //
     // When clipping generated triangles while solving delimiter intersections, we
     // don't want to generate triangles that are on the other side of the clipping
@@ -113,18 +118,19 @@ b8 delimiter_triangle_should_be_clipped(Triangle *generated_triangle, Triangle *
     // on the clip triangle (since the "actual" normal doesn't matter, just that the normal
     // faces towards the delimiter origin).
     //
-    Triangle adjusted_clip_triangle = *clip_triangle;
-    if(v3_dot_v3(adjusted_clip_triangle.n, owning_delimiter->position - adjusted_clip_triangle.p0) < 0.) {
-        adjusted_clip_triangle.n = -adjusted_clip_triangle.n;
+    vec3 adjusted_clip_normal = helper->clip_normal;
+
+    if(v3_dot_v3(adjusted_clip_normal, helper->center_to_clip - clip_triangle->p0) < 0.) {
+        adjusted_clip_normal = -adjusted_clip_normal;
     }
     
-    b8 should_be_clipped = generated_triangle->all_points_in_front_of_plane(&adjusted_clip_triangle); // We need to check this, because if the two intersection points are not on the edges of the generated triangles, then we might generate triangles which are partially behind the clipping plane as intended.
+    b8 should_be_clipped = generated_triangle->all_points_behind_plane(clip_triangle, adjusted_clip_normal); // We need to check this, because if the two intersection points are not on the edges of the generated triangles, then we might generate triangles which are partially behind the clipping plane as intended.
     
     return should_be_clipped;
 }
 
 static
-void clip_all_delimiter_triangles(Resizable_Array<Triangle> &triangles_to_clip, Resizable_Array<Triangle> &clipping_triangles, Delimiter *owning_delimiter) {
+void clip_all_delimiter_triangles(Resizable_Array<Triangle> &triangles_to_clip, Resizable_Array<Triangle> &clipping_triangles, vec3 center_to_clip, vec3 clip_normal) {
     //
     // First up, we tessellate all triangles on intersection, so that no triangle
     // intersects with any clipping triangle anymore. We might not find any of these
@@ -141,15 +147,43 @@ void clip_all_delimiter_triangles(Resizable_Array<Triangle> &triangles_to_clip, 
     //   |  |-------
     //   |  |
     //
+
+    Delimiter_Triangle_Should_Be_Clipped_Helper helper;
+    helper.center_to_clip = center_to_clip;
+    helper.clip_normal = clip_normal;
+
     for(s64 i = 0; i < triangles_to_clip.count; ++i) {
         for(s64 j = 0; j < clipping_triangles.count; ++j) {
-            Triangle *t0 = &triangles_to_clip.data[i]; // This pointer might not be stable if we are growing triangles_to_clip a lot due to tessellation!
+            Triangle *t0 = &triangles_to_clip[i]; // This pointer might not be stable if we are growing triangles_to_clip a lot due to tessellation!
             Triangle *t1 = &clipping_triangles[j];
-            tessellate(t0, t1, &triangles_to_clip, false, (Triangle_Should_Be_Clipped) delimiter_triangle_should_be_clipped, owning_delimiter);
+            tessellate(t0, t1, clip_normal, &triangles_to_clip, false, (Triangle_Should_Be_Clipped) delimiter_triangle_should_be_clipped, &helper);
         }
     }
 }
-    
+
+static
+void remove_all_triangles_behind_plane(Resizable_Array<Triangle> &triangles_to_clip, Triangulated_Plane *clipping_plane) {
+    for(s64 i = 0; i < triangles_to_clip.count; ) {
+        Triangle *t0 = &triangles_to_clip[i];
+        b8 should_remove_triangle = false;
+
+        for(s64 j = 0; j < clipping_plane->triangles.count; ++j) {
+            Triangle *t1 = &clipping_plane->triangles[j];
+
+            if(t0->all_points_behind_plane(t1, clipping_plane->n)) {
+                should_remove_triangle = true;
+                break;
+            }
+        }
+
+        if(should_remove_triangle) {
+            triangles_to_clip.remove(i);
+        } else {
+            ++i;
+        }
+    }
+}
+
 static
 void solve_delimiter_intersection(World *world, Delimiter_Intersection *intersection) {
     //
@@ -162,10 +196,10 @@ void solve_delimiter_intersection(World *world, Delimiter_Intersection *intersec
     Resizable_Array<Triangle> original_t0s = intersection->p0->triangles.copy(world->allocator); // @@Speed: Only copy this if we actually need it later. @@Speed: Maybe even start using a temp allocator for this.
 
     // Clip d0 based on the triangles of d1.
-    if(intersection->d0->level >= intersection->d1->level) clip_all_delimiter_triangles(intersection->p0->triangles, intersection->p1->triangles, intersection->d0);
+    if(intersection->d0->level >= intersection->d1->level) clip_all_delimiter_triangles(intersection->p0->triangles, intersection->p1->triangles, intersection->d0->position, intersection->p1->n);
 
     // Clip d1 based on the original triangles of d0.
-    if(intersection->d1->level >= intersection->d0->level) clip_all_delimiter_triangles(intersection->p1->triangles, original_t0s, intersection->d1);
+    if(intersection->d1->level >= intersection->d0->level) clip_all_delimiter_triangles(intersection->p1->triangles, original_t0s, intersection->d1->position, intersection->p0->n);
 
     original_t0s.clear();
 }
@@ -191,34 +225,24 @@ void World::create(vec3 half_size) {
     this->half_size = half_size;
     this->anchors.allocator    = this->allocator;
     this->delimiters.allocator = this->allocator;
-    this->root_clipping_triangles.allocator = this->allocator;
     
     //
     // Create the clipping planes.
     //
     {
-        tmZone("create_root_clipping_triangles", TM_WORLD_COLOR);
-
+        tmZone("create_root_clipping_planes", TM_WORLD_COLOR);
+        
         // X-Axis
-        this->root_clipping_triangles.add({ vec3(-this->half_size.x,  this->half_size.y,  this->half_size.z), vec3(-this->half_size.x, -this->half_size.y,  this->half_size.z), vec3(-this->half_size.x, -this->half_size.y, -this->half_size.z), vec3(1, 0, 0) });
-        this->root_clipping_triangles.add({ vec3(-this->half_size.x,  this->half_size.y, -this->half_size.z), vec3(-this->half_size.x,  this->half_size.y,  this->half_size.z), vec3(-this->half_size.x, -this->half_size.y, -this->half_size.z), vec3(1, 0, 0) });
-
-        this->root_clipping_triangles.add({ vec3( this->half_size.x, -this->half_size.y,  this->half_size.z), vec3( this->half_size.x,  this->half_size.y,  this->half_size.z), vec3( this->half_size.x, -this->half_size.y, -this->half_size.z), vec3(-1, 0, 0) });
-        this->root_clipping_triangles.add({ vec3( this->half_size.x,  this->half_size.y,  this->half_size.z), vec3( this->half_size.x,  this->half_size.y, -this->half_size.z), vec3( this->half_size.x, -this->half_size.y, -this->half_size.z), vec3(-1, 0, 0) });
+        this->root_clipping_planes[0].create(this->allocator, vec3(-this->half_size.x, 0, 0), vec3(0, this->half_size.y, 0), vec3(0, 0, this->half_size.z));
+        this->root_clipping_planes[1].create(this->allocator, vec3(+this->half_size.x, 0, 0), vec3(0, 0, this->half_size.z), vec3(0, this->half_size.y, 0));
 
         // Y-Axis
-        this->root_clipping_triangles.add({ vec3(-this->half_size.x, -this->half_size.y, -this->half_size.z), vec3(-this->half_size.x, -this->half_size.y,  this->half_size.z), vec3( this->half_size.x, -this->half_size.y,  this->half_size.z), vec3(0, 1, 0) });
-        this->root_clipping_triangles.add({ vec3( this->half_size.x, -this->half_size.y,  this->half_size.z), vec3( this->half_size.x, -this->half_size.y, -this->half_size.z), vec3(-this->half_size.x, -this->half_size.y, -this->half_size.z), vec3(0, 1, 0) });
-
-        this->root_clipping_triangles.add({ vec3( this->half_size.x,  this->half_size.y,  this->half_size.z), vec3(-this->half_size.x,  this->half_size.y,  this->half_size.z), vec3(-this->half_size.x,  this->half_size.y, -this->half_size.z), vec3(0, -1, 0) });
-        this->root_clipping_triangles.add({ vec3( this->half_size.x,  this->half_size.y, -this->half_size.z), vec3( this->half_size.x,  this->half_size.y,  this->half_size.z), vec3(-this->half_size.x,  this->half_size.y, -this->half_size.z), vec3(0, -1, 0) });
+        this->root_clipping_planes[2].create(this->allocator, vec3(0, -this->half_size.y, 0), vec3(0, 0, this->half_size.z), vec3(this->half_size.x, 0, 0));
+        this->root_clipping_planes[3].create(this->allocator, vec3(0, +this->half_size.y, 0), vec3(this->half_size.x, 0, 0), vec3(0, 0, this->half_size.z));
 
         // Z-Axis
-        this->root_clipping_triangles.add({ vec3( this->half_size.x,  this->half_size.y, -this->half_size.z), vec3(-this->half_size.x,  this->half_size.y, -this->half_size.z), vec3(-this->half_size.x, -this->half_size.y, -this->half_size.z), vec3(0, 0, 1) });
-        this->root_clipping_triangles.add({ vec3( this->half_size.x, -this->half_size.y, -this->half_size.z), vec3( this->half_size.x,  this->half_size.y, -this->half_size.z), vec3(-this->half_size.x, -this->half_size.y, -this->half_size.z), vec3(0, 0, 1) });
-
-        this->root_clipping_triangles.add({ vec3(-this->half_size.x,  this->half_size.y,  this->half_size.z), vec3( this->half_size.x,  this->half_size.y,  this->half_size.z), vec3(-this->half_size.x, -this->half_size.y,  this->half_size.z), vec3(0, 0, -1) });
-        this->root_clipping_triangles.add({ vec3( this->half_size.x,  this->half_size.y,  this->half_size.z), vec3( this->half_size.x, -this->half_size.y,  this->half_size.z), vec3(-this->half_size.x, -this->half_size.y,  this->half_size.z), vec3(0, 0, -1) });
+        this->root_clipping_planes[4].create(this->allocator, vec3(0, 0, -this->half_size.z), vec3(this->half_size.x, 0, 0), vec3(0, this->half_size.y, 0));
+        this->root_clipping_planes[5].create(this->allocator, vec3(0, 0, +this->half_size.z), vec3(0, this->half_size.y, 0), vec3(this->half_size.x, 0, 0));
     }
 }
 
@@ -238,7 +262,7 @@ Anchor *World::add_anchor(vec3 position) {
 
     Anchor *anchor   = this->anchors.push();
     anchor->position = position;
-    anchor->triangles.allocator = this->allocator;
+    anchor->volume.allocator = this->allocator;
 
     return anchor;
 }
@@ -306,11 +330,11 @@ void World::add_delimiter_clipping_planes(Delimiter *delimiter, Axis normal_axis
     //
 
     Triangulated_Plane *p0 = &delimiter->planes[delimiter->plane_count];
-    p0->setup(this->allocator, delimiter->position + a,  n, -u * left_extension, u * right_extension, -v * top_extension, v * bottom_extension);
+    p0->create(this->allocator, delimiter->position + a,  n, -u * left_extension, u * right_extension, -v * top_extension, v * bottom_extension);
     ++delimiter->plane_count;
     
     Triangulated_Plane *p1 = &delimiter->planes[delimiter->plane_count];
-    p1->setup(this->allocator, delimiter->position - a, -n, -u * left_extension, u * right_extension, -v * top_extension, v * bottom_extension);
+    p1->create(this->allocator, delimiter->position - a, -n, -u * left_extension, u * right_extension, -v * top_extension, v * bottom_extension);
     ++delimiter->plane_count;
 }
 
@@ -336,7 +360,7 @@ void World::add_centered_delimiter_clipping_plane(Delimiter *delimiter, Axis nor
     real bottom_extension = virtual_extension & VIRTUAL_EXTENSION_Positive_V ? virtual_extension_scale : v3_length(delimiter->local_scaled_axes[v_axis]);
     
     Triangulated_Plane *p0 = &delimiter->planes[delimiter->plane_count];
-    p0->setup(this->allocator, delimiter->position, n, -u * left_extension, u * right_extension, -v * top_extension, v * bottom_extension);
+    p0->create(this->allocator, delimiter->position, n, -u * left_extension, u * right_extension, -v * top_extension, v * bottom_extension);
     ++delimiter->plane_count;
 }
 
@@ -400,21 +424,12 @@ void World::clip_delimiters(b8 single_step) {
         //
         for(Delimiter &delimiter : this->delimiters) {
             for(s64 i = 0; i < delimiter.plane_count; ++i) {
-                Triangulated_Plane *plane = &delimiter.planes[i];
-                for(s64 j = 0; j < plane->triangles.count;) { // We are modifying this array in the loop!
-                    Triangle *delimiter_triangle = &plane->triangles[j];
-                    b8 delimiter_triangle_should_be_clipped = false;
-
-                    for(Triangle &root_triangle : this->root_clipping_triangles) {
-                        tessellate(delimiter_triangle, &root_triangle, &plane->triangles, true);
-                        delimiter_triangle_should_be_clipped |= delimiter_triangle->all_points_in_front_of_plane(&root_triangle); // @@Speed: Early exit. @@Speed: We could pass a custom check to the tessellator for this, to prevent the creation of triangles we know are out of bounds anyway? (We still need to check this triangle though, since it won't get removed even if it is out of bounds...)
-                    }
-
-                    if(delimiter_triangle_should_be_clipped) {
-                        plane->triangles.remove(j);
-                    } else {
-                        ++j;
-                    }
+                Triangulated_Plane *delimiter_plane = &delimiter.planes[i];
+                for(Triangulated_Plane &root_plane : this->root_clipping_planes) {
+                    // @@Speed: We should do this in a single combined loop, instead of iterating over all
+                    // triangles twice...
+                    clip_all_delimiter_triangles(delimiter_plane->triangles, root_plane.triangles, delimiter.position, root_plane.n);
+                    remove_all_triangles_behind_plane(delimiter_plane->triangles, &root_plane);
                 }
             }
         }
@@ -437,7 +452,7 @@ void World::build_anchor_volumes() {
         this->current_flood_fill = this->allocator->New<Flood_Fill>();
         floodfill(this->current_flood_fill, this, this->allocator, anchor.position);
 
-        marching_cubes(&anchor.triangles, this->current_flood_fill);
+        marching_cubes(&anchor.volume, this->current_flood_fill);
 
         // @@Ship: Remove this
         ++anchor_index;
@@ -452,13 +467,10 @@ void World::build_anchor_volumes() {
 b8 World::cast_ray_against_delimiters_and_root_planes(vec3 origin, vec3 direction, real distance) {
     tmFunction(TM_WORLD_COLOR);
 
-    for(Triangle &triangle : this->root_clipping_triangles) {
-        auto result = ray_double_sided_triangle_intersection(origin, direction, triangle.p0, triangle.p1, triangle.p2);
-        if(result.intersection && result.distance >= 0.f && result.distance <= distance) { // distance isn't normalized!
-            return true;
-        }        
+    for(Triangulated_Plane &root_plane : this->root_clipping_planes) {
+        if(root_plane.cast_ray(origin, direction, distance)) return true;
     }
-    
+
     // @@Speed: This can be massively improved.
     // 1. First up, start using the bvh to figure out which triangles should actually be checked (since that
     //    number is going wayyy down).
@@ -467,12 +479,7 @@ b8 World::cast_ray_against_delimiters_and_root_planes(vec3 origin, vec3 directio
     for(Delimiter &delimiter : this->delimiters) {
         for(s64 i = 0; i < delimiter.plane_count; ++i) {
             Triangulated_Plane *plane = &delimiter.planes[i];
-            for(Triangle &triangle : plane->triangles) {
-                auto result = ray_double_sided_triangle_intersection(origin, direction, triangle.p0, triangle.p1, triangle.p2);
-                if(result.intersection && result.distance >= 0.f && result.distance <= distance) { // distance isn't normalized!
-                    return true;
-                }
-            }
+            if(plane->cast_ray(origin, direction, distance)) return true;
         }
     }
     

@@ -54,20 +54,21 @@ BITWISE(Virtual_Extension);
 
 struct Triangle {
     vec3 p0, p1, p2;
-    vec3 n;
     
     Triangle() {};
     Triangle(vec3 p0, vec3 p1, vec3 p2);
-    Triangle(vec3 p0, vec3 p1, vec3 p2, vec3 n);
     
     real approximate_surface_area(); // This avoids a square root for performance, since we only roughly want to know whether the triangle is dead or not.
     b8 is_dead();
-    b8 all_points_in_front_of_plane(Triangle *plane);
-    b8 no_point_behind_plane(Triangle *plane);
+    b8 all_points_behind_plane(Triangle *plane, vec3 plane_normal);
+    b8 no_point_behind_plane(Triangle *plane, vec3 plane_normal);
 };
 
 struct Triangulated_Plane {
-    Resizable_Array<Triangle> triangles; // @@Speed: We store the normal in each triangle, while they should all have the same normal. We should probably just store the vertices of the triangles in the list and then the normal once. We might even be able to go the index buffer route, but not sure if that's actually worth it.
+    vec3 n;
+    Resizable_Array<Triangle> triangles; // @@Speed: We store the normal in each triangle, while they should all have the same normal. We should probably just store the vertices of the triangles in the list and then the normal once. We might even be able to go the index buffer route, but not sure if that's actually worth it. nocheckin
 
-    void setup(Allocator *allocator, vec3 c, vec3 n, vec3 left, vec3 right, vec3 top, vec3 bottom);
+    void create(Allocator *allocator, vec3 c, vec3 n, vec3 left, vec3 right, vec3 top, vec3 bottom);
+    void create(Allocator *allocator, vec3 c, vec3 u, vec3 v);
+    b8 cast_ray(vec3 origin, vec3 direction, real distance);
 };
