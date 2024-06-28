@@ -1,5 +1,6 @@
 #include "dbgdraw.h"
 #include "world.h"
+#include "bvh.h"
 #include "floodfill.h"
 
 #include "memutils.h"
@@ -18,7 +19,7 @@ struct Dbg_Draw_Color {
 	u8 r, g, b, a;
 };
 
-static Dbg_Draw_Color dbg_octree_depth_color_map[] = {
+static Dbg_Draw_Color dbg_bvh_depth_color_map[] = {
 	{   0, 255,   0 },
 	{  60, 220,  90 },
 	{  40, 200, 100 },
@@ -29,7 +30,7 @@ static Dbg_Draw_Color dbg_octree_depth_color_map[] = {
 	{  20,  30, 255 },
 };
 
-static f32 dbg_octree_depth_thickness_map[] = {
+static f32 dbg_bvh_depth_thickness_map[] = {
 	0.25f,
 	0.15f,
 	0.10f,
@@ -39,6 +40,8 @@ static f32 dbg_octree_depth_thickness_map[] = {
 	0.035f,
 	0.02f,
 };
+
+static_assert(ARRAY_COUNT(dbg_bvh_depth_color_map) == ARRAY_COUNT(dbg_bvh_depth_thickness_map), "These two arrays must be of the same size.");
 
 const f32 dbg_anchor_radius                = 0.5f;
 const f32 dbg_triangle_wireframe_thickness = 0.03f;
@@ -103,21 +106,35 @@ void debug_draw_triangle_wireframe(Dbg_Internal_Draw_Data &_internal, Triangle *
 }
 
 static
+void debug_draw_cuboid_wireframe(Dbg_Internal_Draw_Data &_internal, vec3 center, vec3 half_size, f32 thickness, Dbg_Draw_Color color) {
+    debug_draw_line(_internal, center + vec3(-half_size.x, -half_size.y, -half_size.z), center + vec3(+half_size.x, -half_size.y, -half_size.z), thickness, color);
+    debug_draw_line(_internal, center + vec3(+half_size.x, -half_size.y, -half_size.z), center + vec3(+half_size.x, -half_size.y, +half_size.z), thickness, color);
+    debug_draw_line(_internal, center + vec3(+half_size.x, -half_size.y, +half_size.z), center + vec3(-half_size.x, -half_size.y, +half_size.z), thickness, color);
+    debug_draw_line(_internal, center + vec3(-half_size.x, -half_size.y, +half_size.z), center + vec3(-half_size.x, -half_size.y, -half_size.z), thickness, color);
+
+    debug_draw_line(_internal, center + vec3(-half_size.x, +half_size.y, -half_size.z), center + vec3(+half_size.x, +half_size.y, -half_size.z), thickness, color);
+    debug_draw_line(_internal, center + vec3(+half_size.x, +half_size.y, -half_size.z), center + vec3(+half_size.x, +half_size.y, +half_size.z), thickness, color);
+    debug_draw_line(_internal, center + vec3(+half_size.x, +half_size.y, +half_size.z), center + vec3(-half_size.x, +half_size.y, +half_size.z), thickness, color);
+    debug_draw_line(_internal, center + vec3(-half_size.x, +half_size.y, +half_size.z), center + vec3(-half_size.x, +half_size.y, -half_size.z), thickness, color);
+
+	debug_draw_line(_internal, center + vec3(+half_size.x, -half_size.y, +half_size.z), center + vec3(+half_size.x, +half_size.y, +half_size.z), thickness, color);
+    debug_draw_line(_internal, center + vec3(+half_size.x, -half_size.y, -half_size.z), center + vec3(+half_size.x, +half_size.y, -half_size.z), thickness, color);
+    debug_draw_line(_internal, center + vec3(-half_size.x, -half_size.y, -half_size.z), center + vec3(-half_size.x, +half_size.y, -half_size.z), thickness, color);
+    debug_draw_line(_internal, center + vec3(-half_size.x, -half_size.y, +half_size.z), center + vec3(-half_size.x, +half_size.y, +half_size.z), thickness, color);
+}
+
+static
 void debug_draw_cube_wireframe(Dbg_Internal_Draw_Data &_internal, vec3 center, real half_size, f32 thickness, Dbg_Draw_Color color) {
-    debug_draw_line(_internal, center + vec3(-half_size, -half_size, -half_size), center + vec3(+half_size, -half_size, -half_size), thickness, color);
-    debug_draw_line(_internal, center + vec3(+half_size, -half_size, -half_size), center + vec3(+half_size, -half_size, +half_size), thickness, color);
-    debug_draw_line(_internal, center + vec3(+half_size, -half_size, +half_size), center + vec3(-half_size, -half_size, +half_size), thickness, color);
-    debug_draw_line(_internal, center + vec3(-half_size, -half_size, +half_size), center + vec3(-half_size, -half_size, -half_size), thickness, color);
+    debug_draw_cuboid_wireframe(_internal, center, vec3(half_size, half_size, half_size), thickness, color);
+}
 
-	debug_draw_line(_internal, center + vec3(-half_size, +half_size, -half_size), center + vec3(+half_size, +half_size, -half_size), thickness, color);
-    debug_draw_line(_internal, center + vec3(+half_size, +half_size, -half_size), center + vec3(+half_size, +half_size, +half_size), thickness, color);
-    debug_draw_line(_internal, center + vec3(+half_size, +half_size, +half_size), center + vec3(-half_size, +half_size, +half_size), thickness, color);
-    debug_draw_line(_internal, center + vec3(-half_size, +half_size, +half_size), center + vec3(-half_size, +half_size, -half_size), thickness, color);
+static
+void debug_draw_bvh(Dbg_Internal_Draw_Data &_internal, BVH *bvh, s64 depth = 0) {
+    debug_draw_cuboid_wireframe(_internal, bvh->center, bvh->half_size, dbg_bvh_depth_thickness_map[depth], dbg_bvh_depth_color_map[depth]);
 
-	debug_draw_line(_internal, center + vec3(+half_size, -half_size, +half_size), center + vec3(+half_size, +half_size, +half_size), thickness, color);
-    debug_draw_line(_internal, center + vec3(+half_size, -half_size, -half_size), center + vec3(+half_size, +half_size, -half_size), thickness, color);
-    debug_draw_line(_internal, center + vec3(-half_size, -half_size, -half_size), center + vec3(-half_size, +half_size, -half_size), thickness, color);
-    debug_draw_line(_internal, center + vec3(-half_size, -half_size, +half_size), center + vec3(-half_size, +half_size, +half_size), thickness, color);
+    for(s64 i = 0; i < BVH_DEGREE; ++i) {
+        if(bvh->children[i]) debug_draw_bvh(_internal, bvh->children[i], min(depth, ARRAY_COUNT(dbg_bvh_depth_color_map)));
+    }
 }
 
 static
@@ -210,7 +227,7 @@ Debug_Draw_Data debug_draw_world(World *world, Debug_Draw_Options options) {
     _internal.draw_normals = !!(options & DEBUG_DRAW_Normals);
     
 	if(options & DEBUG_DRAW_BVH) {
-		// @Incomplete
+        debug_draw_bvh(_internal, world->bvh);
 	}
 
 	if(options & DEBUG_DRAW_Anchors) {

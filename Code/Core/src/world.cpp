@@ -1,4 +1,5 @@
 #include "world.h"
+#include "bvh.h"
 #include "tessel.h"
 #include "floodfill.h"
 #include "march.h"
@@ -339,9 +340,18 @@ void World::add_centered_delimiter_clipping_plane(Delimiter *delimiter, Axis nor
     ++delimiter->plane_count;
 }
 
+void World::calculate_volumes() {
+    this->clip_delimiters(false);
+    this->create_bvh();
+    this->build_anchor_volumes();
+}
+
+
+
 void World::create_bvh() {
     tmFunction(TM_WORLD_COLOR);
 
+    this->bvh = make_bvh(this->allocator, vec3(0, 0, 0), this->half_size);
 }
 
 void World::clip_delimiters(b8 single_step) {
@@ -384,10 +394,9 @@ void World::clip_delimiters(b8 single_step) {
         // This probably isn't actually necessary since we don't care about them being outside
         // the world boundaries (I think?), but it makes for a better visualiazation.
         //
-        // @@Speed:
-        // We might just take this out for performance reasons, or move it until after the delimiters
-        // have been clipped against each other, which may be less work in total if more triangles
-        // have already been clipped?
+        // @@Speed: We might just take this out for performance reasons? It would definitely look confusing, but
+        // since no anchor is allowed to go outside of the root clipping planes (and the floodfilling also stops
+        // at the roots), it shouldn't actually make a difference in the resulting volumes.
         //
         for(Delimiter &delimiter : this->delimiters) {
             for(s64 i = 0; i < delimiter.plane_count; ++i) {
@@ -412,7 +421,7 @@ void World::clip_delimiters(b8 single_step) {
     }
 }
 
-void World::calculate_volumes() {
+void World::build_anchor_volumes() {
     tmFunction(TM_WORLD_COLOR);
 
     // @@Ship: Remove this.
@@ -432,7 +441,6 @@ void World::calculate_volumes() {
 
         // @@Ship: Remove this
         ++anchor_index;
-
         Hardware_Time now = os_get_hardware_time();
         if(os_convert_hardware_time(now - calculation_start, Seconds) > 1) {
             printf("Calculated volume for anchor %" PRId64 " of %" PRId64 " (total: %fs, this anchor: %fs)\n", anchor_index, this->anchors.count, os_convert_hardware_time(now - calculation_start, Seconds), os_convert_hardware_time(now - anchor_start, Seconds));

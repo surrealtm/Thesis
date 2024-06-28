@@ -53,6 +53,24 @@ struct Delimiter {
 /* -------------------------------------------------- World -------------------------------------------------- */
 
 struct World {
+    // --- World API
+    void create(vec3 half_size);
+    void destroy();
+
+    void reserve_objects(s64 anchors, s64 delimiters);
+    
+    Anchor *add_anchor(vec3 position);
+    Anchor *add_anchor(string dbg_name, vec3 position);
+    Delimiter *add_delimiter(vec3 position, vec3 size, vec3 rotation, u8 level);
+    Delimiter *add_delimiter(string dbg_name, vec3 position, vec3 size, vec3 rotation, u8 level);
+    void add_delimiter_clipping_planes(Delimiter *delimiter, Axis normal_axis, Virtual_Extension virtual_extension = VIRTUAL_EXTENSION_All);
+    void add_centered_delimiter_clipping_plane(Delimiter *delimiter, Axis normal_axis, Virtual_Extension virtual_extension = VIRTUAL_EXTENSION_All);
+    void calculate_volumes();
+
+
+
+    // --- Internal data structures
+
     // This world manages its own memory, so that allocations aren't fragmented and so that we can just destroy
     // the memory arena and everything is cleaned up.
     // @@Speed: In some cases it might be even better to use the arena allocator directly, if we know something
@@ -74,24 +92,16 @@ struct World {
 
     // The clipping planes around the entire world (indicated by the world size), since no volume or delimiter plane should ever go past the dimensions of the world.
     Resizable_Array<Triangle> root_clipping_triangles;
-    
-    struct Flood_Fill *current_flood_fill; // Just for debug drawing.
-    
-    void create(vec3 half_size);
-    void destroy();
 
-    void reserve_objects(s64 anchors, s64 delimiters);
+    struct BVH *bvh;
     
-    Anchor *add_anchor(vec3 position);
-    Anchor *add_anchor(string dbg_name, vec3 position);
-    Delimiter *add_delimiter(vec3 position, vec3 size, vec3 rotation, u8 level);
-    Delimiter *add_delimiter(string dbg_name, vec3 position, vec3 size, vec3 rotation, u8 level);
-    void add_delimiter_clipping_planes(Delimiter *delimiter, Axis normal_axis, Virtual_Extension virtual_extension = VIRTUAL_EXTENSION_All);
-    void add_centered_delimiter_clipping_plane(Delimiter *delimiter, Axis normal_axis, Virtual_Extension virtual_extension = VIRTUAL_EXTENSION_All);
+    struct Flood_Fill *current_flood_fill; // @@Ship: Just for debug drawing.
     
+
+    // --- Internal implementation
     void create_bvh();
     void clip_delimiters(b8 single_step);
-    void calculate_volumes();
+    void build_anchor_volumes();
 
     b8 cast_ray_against_delimiters_and_root_planes(vec3 origin, vec3 direction, real distance);
 };

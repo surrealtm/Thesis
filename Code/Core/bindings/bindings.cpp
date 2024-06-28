@@ -124,7 +124,6 @@ extern "C" {
 
     void core_calculate_volumes(World_Handle world_handle) {
         World *world = (World *) world_handle;
-        world->clip_delimiters(false);
         world->calculate_volumes();
     }
 
@@ -168,8 +167,6 @@ extern "C" {
         auto outer_wall_west = world->add_delimiter("OuterWallWest"_s, vec3(-10, -3, 0), vec3(.5, .25, 10), vec3(0, 0, 0), 0);
         world->add_delimiter_clipping_planes(outer_wall_west, AXIS_X);
         
-        world->create_bvh();
-        world->clip_delimiters(step_into);
         world->calculate_volumes();
 
         return (World_Handle) world;
@@ -195,9 +192,8 @@ extern "C" {
         create_random_delimiters(world, delimiter_count);
         create_random_anchors(world, anchor_count);
 
-        world->create_bvh();
-        world->clip_delimiters(step_into);
         world->calculate_volumes();
+
         return world;
     }
     
@@ -221,9 +217,8 @@ extern "C" {
         world->add_anchor("Inside"_s, vec3(0, 0, 0));
         world->add_anchor("Outside"_s, vec3(0, 0, -10));
 
-        world->create_bvh();
-        world->clip_delimiters(step_into);
         world->calculate_volumes();
+
         return world;
     }
 
@@ -250,9 +245,8 @@ extern "C" {
         world->add_anchor("Inside"_s, vec3(0, 0, 0));
         world->add_anchor("Outside"_s, vec3(0, 0, -40));
 
-        world->create_bvh();
-        world->clip_delimiters(step_into);
         world->calculate_volumes();
+
         return world;
     }
 
@@ -273,9 +267,8 @@ extern "C" {
         world->add_anchor("Inside"_s, vec3(0, 0, 0));
         world->add_anchor("Outside"_s, vec3(0, 0, -20));
         
-        world->create_bvh();
-        world->clip_delimiters(step_into);
         world->calculate_volumes();
+
         return world;
     }
 
@@ -290,9 +283,8 @@ extern "C" {
 
         world->add_anchor("Outside"_s, vec3(0, 0, -10));
         
-        world->create_bvh();
-        world->clip_delimiters(step_into);
         world->calculate_volumes();
+
         return world;
     }
 
