@@ -17,7 +17,7 @@ core_destroy_world :: #foreign (world: World_Handle);
 core_do_world_step :: #foreign (world: World_Handle, step_mode: bool);
 
 core_do_house_test         :: #foreign (step_into: bool) -> World_Handle;
-core_do_octree_test        :: #foreign (step_into: bool) -> World_Handle;
+core_do_bvh_test           :: #foreign (step_into: bool) -> World_Handle;
 core_do_large_volumes_test :: #foreign (step_into: bool) -> World_Handle;
 core_do_cutout_test        :: #foreign (step_into: bool) -> World_Handle;
 core_do_circle_test        :: #foreign (step_into: bool) -> World_Handle;
@@ -32,7 +32,7 @@ core_do_jobs_test :: #foreign (step_into: bool) -> World_Handle;
 
 Debug_Draw_Options :: enum {
     Nothing             :: 0x0;
-    Octree              :: 0x1;
+    BVH                 :: 0x1;
     Anchors             :: 0x2;
     Boundaries          :: 0x4;
     Clipping_Faces      :: 0x8;

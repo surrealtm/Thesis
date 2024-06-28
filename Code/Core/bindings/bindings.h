@@ -35,13 +35,12 @@ extern "C" {
     EXPORT void core_do_world_step(World_Handle world_handle, b8 step_mode);
 
     EXPORT World_Handle core_do_house_test(b8 step_into);
-    EXPORT World_Handle core_do_octree_test(b8 step_into);
+    EXPORT World_Handle core_do_bvh_test(b8 step_into);
     EXPORT World_Handle core_do_large_volumes_test(b8 step_into);
     EXPORT World_Handle core_do_cutout_test(b8 step_into);
     EXPORT World_Handle core_do_circle_test(b8 step_into);
     EXPORT World_Handle core_do_u_shape_test(b8 step_into);
     EXPORT World_Handle core_do_center_block_test(b8 step_into);
-
     EXPORT World_Handle core_do_jobs_test(b8 step_into);
     
 

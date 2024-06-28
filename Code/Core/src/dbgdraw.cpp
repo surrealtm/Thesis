@@ -121,46 +121,6 @@ void debug_draw_cube_wireframe(Dbg_Internal_Draw_Data &_internal, v3f center, f3
 }
 
 static
-void debug_draw_octree(Dbg_Internal_Draw_Data &_internal, Octree *node, Octree_Child_Index child_index, u8 depth) {
-	vec3 p00 = node->center + vec3(-node->half_size.x, -node->half_size.y, -node->half_size.z),
-		p01 = node->center + vec3( node->half_size.x, -node->half_size.y, -node->half_size.z),
-		p02 = node->center + vec3( node->half_size.x, -node->half_size.y,  node->half_size.z),
-		p03 = node->center + vec3(-node->half_size.x, -node->half_size.y,  node->half_size.z);
-
-	vec3 p10 = node->center + vec3(-node->half_size.x,  node->half_size.y, -node->half_size.z),
-		p11 = node->center + vec3( node->half_size.x,  node->half_size.y, -node->half_size.z),
-		p12 = node->center + vec3( node->half_size.x,  node->half_size.y,  node->half_size.z),
-		p13 = node->center + vec3(-node->half_size.x,  node->half_size.y,  node->half_size.z);
-
-	const f32 thickness = dbg_octree_depth_thickness_map[min(depth, ARRAY_COUNT(dbg_octree_depth_thickness_map) - 1)];
-	const Dbg_Draw_Color color = dbg_octree_depth_color_map[min(depth, ARRAY_COUNT(dbg_octree_depth_color_map) - 1)];
-	
-	b8 px = child_index == OCTREE_CHILD_COUNT ||  (child_index & OCTREE_CHILD_px_flag);
-	b8 nx = child_index == OCTREE_CHILD_COUNT || !(child_index & OCTREE_CHILD_px_flag);
-	b8 py = child_index == OCTREE_CHILD_COUNT ||  (child_index & OCTREE_CHILD_py_flag);	
-	b8 ny = child_index == OCTREE_CHILD_COUNT || !(child_index & OCTREE_CHILD_py_flag);	
-	b8 pz = child_index == OCTREE_CHILD_COUNT ||  (child_index & OCTREE_CHILD_pz_flag);
-	b8 nz = child_index == OCTREE_CHILD_COUNT || !(child_index & OCTREE_CHILD_pz_flag);
-	
-	if(pz || py) debug_draw_line(_internal, p00, p01, thickness, color);
-	if(pz || ny) debug_draw_line(_internal, p10, p11, thickness, color);
-	if(nx || py) debug_draw_line(_internal, p01, p02, thickness, color);
-	if(nx || ny) debug_draw_line(_internal, p11, p12, thickness, color);
-	if(nz || py) debug_draw_line(_internal, p02, p03, thickness, color);
-	if(nz || ny) debug_draw_line(_internal, p12, p13, thickness, color);
-	if(px || py) debug_draw_line(_internal, p03, p00, thickness, color);
-	if(px || ny) debug_draw_line(_internal, p13, p10, thickness, color);
-	if(px || pz) debug_draw_line(_internal, p00, p10, thickness, color);
-	if(nx || pz) debug_draw_line(_internal, p01, p11, thickness, color);
-	if(nx || nz) debug_draw_line(_internal, p02, p12, thickness, color);
-	if(px || nz) debug_draw_line(_internal, p03, p13, thickness, color);
-
-	for(s64 i = 0; i < OCTREE_CHILD_COUNT; ++i) {
-		if(node->children[i]) debug_draw_octree(_internal, node->children[i], (Octree_Child_Index) i, depth + 1);
-	}
-}
-
-static
 void debug_draw_cell_center(Dbg_Internal_Draw_Data &_internal, v3f center, Dbg_Draw_Color color) {
     f32 half_size = .1f * CELL_WORLD_SPACE_SIZE;
     f32 thickness = half_size / 4.f;
@@ -249,8 +209,8 @@ Debug_Draw_Data debug_draw_world(World *world, Debug_Draw_Options options) {
     _internal.draw_labels  = !!(options & DEBUG_DRAW_Labels);
     _internal.draw_normals = !!(options & DEBUG_DRAW_Normals);
     
-	if(options & DEBUG_DRAW_Octree) {
-		debug_draw_octree(_internal, &world->root, OCTREE_CHILD_COUNT, 0);
+	if(options & DEBUG_DRAW_BVH) {
+		// @Incomplete
 	}
 
 	if(options & DEBUG_DRAW_Anchors) {

@@ -71,64 +71,6 @@ void Triangulated_Plane::setup(Allocator *allocator, vec3 c, vec3 n, vec3 left, 
 
 
 
-/* -------------------------------------------------- Octree -------------------------------------------------- */
-
-void Octree::create(Allocator *allocator, vec3 center, vec3 half_size, u8 depth) {
-    tmFunction(TM_OCTREE_COLOR);
-
-    this->depth = depth;
-    this->center = center;
-    this->half_size = half_size;
-    memset(this->children, 0, sizeof(this->children));
-
-    this->contained_anchors.allocator = allocator;
-    this->contained_delimiters.allocator = allocator;
-}
-
-Octree *Octree::get_octree_for_aabb(AABB const &aabb, Allocator *allocator) {
-    tmFunction(TM_OCTREE_COLOR);
-
-    //
-    // Transform the AABB into local octree space. If the AABB is out of bounds of this octree,
-    // then return null.
-    //
-    AABB local_aabb = { aabb.min - this->center, aabb.max - this->center };
-    if(local_aabb.min.x < -this->half_size.x || local_aabb.min.y < -this->half_size.y || local_aabb.min.z < -this->half_size.z) return null;
-    if(local_aabb.max.x >  this->half_size.x || local_aabb.max.y >  this->half_size.y || local_aabb.max.z >  this->half_size.z) return null;
-
-    //
-    // If this octree is at the max depth, then we are already done no matter what.
-    //
-    if(this->depth == MAX_OCTREE_DEPTH) return this;
-
-    //
-    // If the AABB crosses any of the axis of this octree, then it is contained inside this octree and we can stop.
-    //
-    if(local_aabb.min.x <= 0 && local_aabb.max.x >= 0 ||
-       local_aabb.min.y <= 0 && local_aabb.max.y >= 0 ||
-       local_aabb.min.z <= 0 && local_aabb.max.z >= 0) return this;
-
-    //
-    // Find the child which contains this aabb and recurse into there.
-    // Since we got here, it means that for all axis, the sign of the min / max values
-    // of the AABB is consistent.
-    //
-    Octree_Child_Index child_index = (Octree_Child_Index) ((local_aabb.min.x > 0 ? OCTREE_CHILD_px_flag : OCTREE_CHILD_nx_flag) +
-                                                           (local_aabb.min.y > 0 ? OCTREE_CHILD_py_flag : OCTREE_CHILD_ny_flag) +
-                                                           (local_aabb.min.z > 0 ? OCTREE_CHILD_pz_flag : OCTREE_CHILD_nz_flag));
-    if(!this->children[child_index]) {
-        vec3 child_center = vec3(this->center.x + (child_index & OCTREE_CHILD_px_flag ? this->half_size.x / 2 : -this->half_size.x / 2),
-                                 this->center.y + (child_index & OCTREE_CHILD_py_flag ? this->half_size.y / 2 : -this->half_size.y / 2),
-                                 this->center.z + (child_index & OCTREE_CHILD_pz_flag ? this->half_size.z / 2 : -this->half_size.z / 2));
-        this->children[child_index] = (Octree *) allocator->allocate(sizeof(Octree));
-        this->children[child_index]->create(allocator, child_center, this->half_size / static_cast<real>(2.), this->depth + 1);
-    }
-
-    return this->children[child_index]->get_octree_for_aabb(aabb, allocator);
-}
-
-
-
 /* ------------------------------------------- Intersection Testing ------------------------------------------- */
 
 // Adapted from: check_against_triangle in tessel.cpp
@@ -303,8 +245,7 @@ void World::create(vec3 half_size) {
     this->anchors.allocator    = this->allocator;
     this->delimiters.allocator = this->allocator;
     this->root_clipping_triangles.allocator = this->allocator;
-    this->root.create(this->allocator, vec3(0), this->half_size);
-
+    
     //
     // Create the clipping planes.
     //
@@ -453,27 +394,9 @@ void World::add_centered_delimiter_clipping_plane(Delimiter *delimiter, Axis nor
     ++delimiter->plane_count;
 }
 
-void World::create_octree() {
+void World::create_bvh() {
     tmFunction(TM_WORLD_COLOR);
 
-    //
-    // Insert all delimiters.
-    //
-    for(auto &delimiter : this->delimiters) {
-        Octree *octree = this->root.get_octree_for_aabb(delimiter.aabb, this->allocator);
-        assert(octree && "Delimiter Object is outside of octree bounds.");
-        octree->contained_delimiters.add(&delimiter);
-    }
-
-    //
-    // Insert all anchors.
-    //
-    for(auto &anchor : this->anchors) {
-        AABB anchor_aabb = { anchor.position, anchor.position };
-        Octree *octree = this->root.get_octree_for_aabb(anchor_aabb, this->allocator);
-        assert(octree && "Delimiter Object is outside of octree bounds.");
-        octree->contained_anchors.add(&anchor);
-    }
 }
 
 void World::clip_delimiters(b8 single_step) {
@@ -584,9 +507,8 @@ b8 World::cast_ray_against_delimiters_and_root_planes(vec3 origin, vec3 directio
     }
     
     // @@Speed: This can be massively improved.
-    // 1. First up, start using the octree to figure out if the ray even
-    //    goes through the octree that the delimiter is in (for that, make sure the delimiters are actually in the
-    //    correct octree though...)
+    // 1. First up, start using the bvh to figure out which triangles should actually be checked (since that
+    //    number is going wayyy down).
     // 2. Then, cast a single ray against the entire Triangulated_Plane before trying to intersect the individual
     //    triangles. Again, we should be able to cull out a lot of compuation like this.
     for(Delimiter &delimiter : this->delimiters) {

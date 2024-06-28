@@ -9,7 +9,7 @@ struct World;
 
 enum Debug_Draw_Options {
     DEBUG_DRAW_Nothing             = 0x0,
-    DEBUG_DRAW_Octree              = 0x1,
+    DEBUG_DRAW_BVH                 = 0x1,
     DEBUG_DRAW_Anchors             = 0x2,
     DEBUG_DRAW_Delimiters          = 0x4,
     DEBUG_DRAW_Clipping_Faces      = 0x8,

@@ -75,7 +75,7 @@ Memory_Allocator_Information memory_allocator_information(string name, Allocator
 
 static
 void sample_job_procedure(void * /*user_pointer*/) {
-    World_Handle handle = core_do_octree_test(false);
+    World_Handle handle = core_do_bvh_test(false);
     //World_Handle handle = core_do_center_block_test(false);
     core_destroy_world(handle);
 }
@@ -168,43 +168,19 @@ extern "C" {
         auto outer_wall_west = world->add_delimiter("OuterWallWest"_s, vec3(-10, -3, 0), vec3(.5, .25, 10), vec3(0, 0, 0), 0);
         world->add_delimiter_clipping_planes(outer_wall_west, AXIS_X);
         
-        world->create_octree();
+        world->create_bvh();
         world->clip_delimiters(step_into);
         world->calculate_volumes();
 
         return (World_Handle) world;
     }
 
-    World_Handle core_do_octree_test(b8 step_into) {
-        tmZone("do_octree_test", TM_SYSTEM_COLOR);
+    World_Handle core_do_bvh_test(b8 step_into) {
+        tmZone("do_bvh_test", TM_SYSTEM_COLOR);
         
         World *world = (World *) core_create_world(100, 40, 100);
-        
-        {
-            tmZone("create_random_delimiters", TM_SYSTEM_COLOR);
-
-            const s64 count = 10000;
-
-            const real width  = world->half_size.x;
-            const real height = world->half_size.y;
-            const real length = world->half_size.z;
-            
-            const real min_size = 0.01f;
-            const real max_size = 1.f;
-
-            world->reserve_objects(0, count);
-
-            for(s64 i = 0; i < count; ++i) {
-                vec3 size     = vec3(get_random_real_uniform(min_size, max_size), get_random_real_uniform(min_size, max_size), get_random_real_uniform(min_size, max_size));
-                vec3 position = vec3(get_random_real_uniform(-width  + size.x, width  - size.x),
-                                   get_random_real_uniform(-height + size.y, height - size.y),
-                                   get_random_real_uniform(-length + size.z, length - size.z));
-                vec3 rotation = vec3(0, 0, 0);
-                world->add_delimiter("Delimiter"_s, position, size, rotation, 0);
-            }
-        }
-        
-        world->create_octree();
+        create_random_delimiters(world, 1000);
+        world->create_bvh();
         return world;
     }
 
@@ -219,7 +195,7 @@ extern "C" {
         create_random_delimiters(world, delimiter_count);
         create_random_anchors(world, anchor_count);
 
-        world->create_octree();
+        world->create_bvh();
         world->clip_delimiters(step_into);
         world->calculate_volumes();
         return world;
@@ -245,7 +221,7 @@ extern "C" {
         world->add_anchor("Inside"_s, vec3(0, 0, 0));
         world->add_anchor("Outside"_s, vec3(0, 0, -10));
 
-        world->create_octree();
+        world->create_bvh();
         world->clip_delimiters(step_into);
         world->calculate_volumes();
         return world;
@@ -274,7 +250,7 @@ extern "C" {
         world->add_anchor("Inside"_s, vec3(0, 0, 0));
         world->add_anchor("Outside"_s, vec3(0, 0, -40));
 
-        world->create_octree();
+        world->create_bvh();
         world->clip_delimiters(step_into);
         world->calculate_volumes();
         return world;
@@ -297,7 +273,7 @@ extern "C" {
         world->add_anchor("Inside"_s, vec3(0, 0, 0));
         world->add_anchor("Outside"_s, vec3(0, 0, -20));
         
-        world->create_octree();
+        world->create_bvh();
         world->clip_delimiters(step_into);
         world->calculate_volumes();
         return world;
@@ -314,7 +290,7 @@ extern "C" {
 
         world->add_anchor("Outside"_s, vec3(0, 0, -10));
         
-        world->create_octree();
+        world->create_bvh();
         world->clip_delimiters(step_into);
         world->calculate_volumes();
         return world;
@@ -464,7 +440,7 @@ BOOL WINAPI DllMain(HINSTANCE hinstance, DWORD reason, LPVOID reserved) {
     //
     tmSetColor(TM_SYSTEM_COLOR,   209, 202, 197);
     tmSetColor(TM_WORLD_COLOR,     95, 230,  46);
-    tmSetColor(TM_OCTREE_COLOR,    46, 184, 230);
+    tmSetColor(TM_BVH_COLOR,       46, 184, 230);
     tmSetColor(TM_TESSEL_COLOR,   255,   0, 224);
     tmSetColor(TM_FLOODING_COLOR,  93,  75, 255);
     tmSetColor(TM_MARCHING_COLOR, 255,  75,  75);

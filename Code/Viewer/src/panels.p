@@ -40,7 +40,7 @@ debug_draw_options_panel :: (viewer: *Viewer) {
 
         ui_push_width(*viewer.ui, .Pixels, 256, 1);
 
-        new_options = debug_draw_option_box(viewer, new_options, "Octree", .Octree);
+        new_options = debug_draw_option_box(viewer, new_options, "BVH", .BVH);
         new_options = debug_draw_option_box(viewer, new_options, "Anchors", .Anchors);
         new_options = debug_draw_option_box(viewer, new_options, "Boundaries", .Boundaries);
         new_options = debug_draw_option_box(viewer, new_options, "Clipping Faces", .Clipping_Faces);
@@ -67,7 +67,7 @@ debug_draw_options_panel :: (viewer: *Viewer) {
             builder: String_Builder;
             builder.allocator = *viewer.frame_allocator;
 
-            if new_options & .Octree                append_string(*builder, " | .Octree");
+            if new_options & .BVH                   append_string(*builder, " | .BVH");
             if new_options & .Anchors               append_string(*builder, " | .Anchors");
             if new_options & .Boundaries            append_string(*builder, " | .Boundaries");
             if new_options & .Clipping_Faces        append_string(*builder, " | .Clipping_Faces");
@@ -155,7 +155,7 @@ memory_panel :: (viewer: *Viewer) {
         ui_label(*viewer.ui, false, "OS working set: %*%", memory_format(working_set), memory_unit_suffix(working_set_unit));
 
         viewer_set, viewer_set_unit := get_best_memory_unit(Default_Allocator.stats.working_set);
-        ui_label(*viewer.ui, false, "Viewer working set: %*%", memory_format(viewer_set), memory_unit_suffix(viewer_set_unit));
+        ui_label(*viewer.ui, false, "Viewer Heap: %*%", memory_format(viewer_set), memory_unit_suffix(viewer_set_unit));
     }
     ui_pop_window(*viewer.ui);
 }

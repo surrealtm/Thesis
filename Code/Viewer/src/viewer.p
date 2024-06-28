@@ -70,7 +70,7 @@ Viewer_Test :: struct {
 
 TESTS: []Viewer_Test : {
         .{ "house",         core_do_house_test },
-        .{ "octree",        core_do_octree_test },
+        .{ "BVH",           core_do_bvh_test },
         .{ "large_volumes", core_do_large_volumes_test },
         .{ "cutout",        core_do_cutout_test },
         .{ "circle",        core_do_circle_test },
@@ -114,7 +114,7 @@ Viewer :: struct {
     memory_information: Memory_Information;
     
     profiling_show_summary: bool;    
-    debug_draw_options: Debug_Draw_Options = .Octree | .Anchors | .Boundaries | .Clipping_Wireframes | .Volume_Faces | .Volume_Wireframes/* | .Flood_Fill*/;
+    debug_draw_options: Debug_Draw_Options = .BVH | .Anchors | .Boundaries | .Clipping_Wireframes | .Volume_Faces | .Volume_Wireframes/* | .Flood_Fill*/;
 }
 
 

@@ -16,7 +16,7 @@
 
 #define TM_SYSTEM_COLOR   0
 #define TM_WORLD_COLOR    1
-#define TM_OCTREE_COLOR   2
+#define TM_BVH_COLOR      2
 #define TM_TESSEL_COLOR   3
 #define TM_FLOODING_COLOR 4
 #define TM_MARCHING_COLOR 5
@@ -104,46 +104,6 @@ struct Delimiter_Intersection {
 
 
 
-/* -------------------------------------------------- Octree -------------------------------------------------- */
-
-#define OCTREE_DEPTH 8
-#define MAX_OCTREE_DEPTH (OCTREE_DEPTH - 1)
-
-enum Octree_Child_Index {
-    OCTREE_CHILD_nx_ny_nz = 0,
-    OCTREE_CHILD_nx_ny_pz = 1,
-    OCTREE_CHILD_nx_py_nz = 2,
-    OCTREE_CHILD_nx_py_pz = 3,
-    OCTREE_CHILD_px_ny_nz = 4,
-    OCTREE_CHILD_px_ny_pz = 5,
-    OCTREE_CHILD_px_py_nz = 6,
-    OCTREE_CHILD_px_py_pz = 7,
-    OCTREE_CHILD_COUNT    = 8,
-
-    OCTREE_CHILD_px_flag = 4,
-    OCTREE_CHILD_py_flag = 2,
-    OCTREE_CHILD_pz_flag = 1,
-
-    OCTREE_CHILD_nx_flag = 0,
-    OCTREE_CHILD_ny_flag = 0,
-    OCTREE_CHILD_nz_flag = 0,
-};
-
-struct Octree {
-    u8 depth;
-    vec3 center;
-    vec3 half_size;
-    Octree *children[OCTREE_CHILD_COUNT];
-
-    Resizable_Array<Anchor *>    contained_anchors;
-    Resizable_Array<Delimiter *> contained_delimiters;
-
-    void create(Allocator *allocator, vec3 center, vec3 half_size, u8 depth = 0);
-    Octree *get_octree_for_aabb(AABB const &aabb, Allocator *allocator);
-};
-
-
-
 /* -------------------------------------------------- World -------------------------------------------------- */
 
 struct World {
@@ -156,7 +116,7 @@ struct World {
     Allocator pool_allocator;
     Allocator *allocator; // Usually a pointer to the pool_allocator, but can be swapped for testing...
     
-    vec3 half_size; // This size is used to initialize the octree. The octree implementation does not support dynamic size changing, so this should be fixed.
+    vec3 half_size; // This size is used to initialize the bvh. The bvh implementation does not support dynamic size changing, so this should be fixed.
 
     // The world owns all objects that are part of this problem. These objects
     // are stored here and can then be referenced in other parts of the algorithm.
@@ -166,12 +126,8 @@ struct World {
     Resizable_Array<Anchor> anchors;
     Resizable_Array<Delimiter> delimiters;
 
-    // The clipping planes of the octree, since no volume should ever go past the dimensions of the world.
+    // The clipping planes around the entire world (indicated by the world size), since no volume or delimiter plane should ever go past the dimensions of the world.
     Resizable_Array<Triangle> root_clipping_triangles;
-
-    // This octree contains pointers to anchors, delimiters and volumes, to make spatial lookup
-    // for objects a lot faster.
-    Octree root;
     
     struct Flood_Fill *current_flood_fill; // Just for debug drawing.
     
@@ -187,7 +143,7 @@ struct World {
     void add_delimiter_clipping_planes(Delimiter *delimiter, Axis normal_axis, Virtual_Extension virtual_extension = VIRTUAL_EXTENSION_All);
     void add_centered_delimiter_clipping_plane(Delimiter *delimiter, Axis normal_axis, Virtual_Extension virtual_extension = VIRTUAL_EXTENSION_All);
     
-    void create_octree();
+    void create_bvh();
     void clip_delimiters(b8 single_step);
     void calculate_volumes();
 
