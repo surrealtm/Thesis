@@ -1,7 +1,7 @@
 #include "bvh.h"
 
 //#define MAX_BVH_DEPTH            16
-#define MAX_BVH_DEPTH             2
+#define MAX_BVH_DEPTH             4
 #define MIN_BVH_ENTRIES_TO_SPLIT  4
 
 struct BVH_Node_Stack {
@@ -63,6 +63,7 @@ void BVH::subdivide() {
         // Calculate the bounds for this node.
         //
         {
+            head.node->leaf = true;
             head.node->min = vec3(MAX_F32, MAX_F32, MAX_F32);
             head.node->max = vec3(MIN_F32, MIN_F32, MIN_F32);
 
@@ -73,6 +74,12 @@ void BVH::subdivide() {
             }
         }
 
+        //
+        // Only subdivide this node if we haven't reached the max node depth yet and this node actually contains
+        // enough entries that splitting seems like a good idea.
+        //
+        if(head.depth == MAX_BVH_DEPTH || head.node->entry_count < MIN_BVH_ENTRIES_TO_SPLIT) continue;
+
         s64 split_axis; // x = 0, y = 1, z = 2
         real split_value;
         real percentage_along_split_axis;
@@ -81,7 +88,16 @@ void BVH::subdivide() {
         // Calculate the splitting plane for this node.
         //
         {
-            split_axis = 0;
+            vec3 size = head.node->max - head.node->min;
+
+            if(size.x > size.y && size.x > size.z) {
+                split_axis = 0;
+            } else if(size.y > size.z) {
+                split_axis = 1;
+            } else {
+                split_axis = 2;
+            }
+            
             percentage_along_split_axis = 0.5;
             split_value = head.node->min.values[split_axis] + (head.node->max.values[split_axis] - head.node->min.values[split_axis]) * percentage_along_split_axis;
         }
@@ -137,12 +153,43 @@ void BVH::subdivide() {
         //
         // Add the two new children to the stack.
         //
-        if(head.depth < MAX_BVH_DEPTH && head.node->entry_count >= MIN_BVH_ENTRIES_TO_SPLIT) {
-            for(s64 i = 0; i < 2; ++i) {
-                stack.add({ head.node->children[i], head.depth + 1 });
-            }
+        head.node->leaf = false;
+            
+        for(s64 i = 0; i < 2; ++i) {
+            stack.add({ head.node->children[i], head.depth + 1 });
         }
     }
     
     stack.clear();
+}
+
+
+
+#include "noise.h"
+
+Resizable_Array<Triangle> build_sample_triangle_mesh(Allocator *allocator) {
+    Simplex_Noise_2D noise;
+    noise.amplitude = 30;
+    
+    Resizable_Array<Triangle> mesh;
+    mesh.allocator = allocator;
+
+    for(s64 x = 0; x < 50; ++x) {
+        for(s64 z = 0; z < 50; ++z) {
+            real y0 = noise.fractal_noise((f64) (x),     (f64) (z)).value;
+            real y1 = noise.fractal_noise((f64) (x + 1), (f64) (z)).value;
+            real y2 = noise.fractal_noise((f64) (x),     (f64) (z + 1)).value;
+            real y3 = noise.fractal_noise((f64) (x + 1), (f64) (z + 1)).value;
+
+            vec3 p0 = vec3((real) (x),     y0, (real) (z));
+            vec3 p1 = vec3((real) (x + 1), y1, (real) (z));
+            vec3 p2 = vec3((real) (x),     y2, (real) (z + 1));
+            vec3 p3 = vec3((real) (x + 1), y3, (real) (z + 1));
+
+            mesh.add({ p0, p3, p1 });
+            mesh.add({ p0, p2, p3 });
+        }
+    }
+    
+    return mesh;
 }

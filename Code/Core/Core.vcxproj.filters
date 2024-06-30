@@ -84,6 +84,9 @@
     <ClCompile Include="src\typedefs.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\Foundation\src\noise.cpp">
+      <Filter>Foundation</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Foundation\src\fileio.h">
@@ -172,6 +175,9 @@
     </ClInclude>
     <ClInclude Include="src\typedefs.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Foundation\src\noise.h">
+      <Filter>Foundation</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -4,6 +4,9 @@
 #include "floodfill.h"
 
 #include "memutils.h"
+#include "hash_table.h" // For hash functions
+
+#define DBG_DRAW_BVH_TRIANGLES true
 
 struct Dbg_Internal_Draw_Data {
 	Resizable_Array<Debug_Draw_Line> lines;
@@ -13,6 +16,7 @@ struct Dbg_Internal_Draw_Data {
 	Resizable_Array<Debug_Draw_Sphere> spheres;
     b8 draw_labels;
     b8 draw_normals;
+    s64 bvh_node_counter;
 };
 
 struct Dbg_Draw_Color {
@@ -20,14 +24,14 @@ struct Dbg_Draw_Color {
 };
 
 static Dbg_Draw_Color dbg_bvh_depth_color_map[] = {
-	{   0, 255,   0 },
-	{  60, 220,  90 },
-	{  40, 200, 100 },
-	{  40, 180, 130 },
-	{  40, 140, 180 },
-	{  40, 100, 220 },
-	{  40,  80, 240 },
-	{  20,  30, 255 },
+	{   0, 255,   0, 255 },
+	{  60, 220,  90, 255 },
+	{  40, 200, 100, 255 },
+	{  40, 180, 130, 255 },
+	{  40, 140, 180, 255 },
+	{  40, 100, 220, 255 },
+	{  40,  80, 240, 255 },
+	{  20,  30, 255, 255 },
 };
 
 static f32 dbg_bvh_depth_thickness_map[] = {
@@ -75,6 +79,16 @@ Allocator *dbg_alloc = Default_Allocator;
 # define dbg_v3f(v) v3f((f32) (v).x, (f32) (v).y, (f32) (v).z)
 # define dbg_qtf(q) qtf((f32) (q).x, (f32) (q).y, (f32) (q).z, (f32) (q).w)
 #endif
+
+static
+Dbg_Draw_Color dbg_draw_color_from_hash(u64 hash) {
+    Dbg_Draw_Color color;
+    color.r = (u8) ((hash & 0x0000ff) >> 0);
+    color.g = (u8) ((hash & 0x00ff00) >> 8);
+    color.b = (u8) ((hash & 0xff0000) >> 16);
+    color.a = 255;
+    return color;
+}
 
 static
 void debug_draw_line(Dbg_Internal_Draw_Data &_internal, vec3 p0, vec3 p1, f32 thickness, Dbg_Draw_Color color) {
@@ -141,14 +155,34 @@ void debug_draw_triangulated_plane_wireframe(Dbg_Internal_Draw_Data &_internal, 
 }
 
 static
-void debug_draw_bvh(Dbg_Internal_Draw_Data &_internal, BVH_Node *bvh, s64 depth = 0) {
-    vec3 center = (bvh->min + bvh->max) / 2.;
-    vec3 half_size = (bvh->max - bvh->min) / 2.;
-    debug_draw_cuboid_wireframe(_internal, center, half_size, dbg_bvh_depth_thickness_map[depth], dbg_bvh_depth_color_map[depth]);
+void debug_draw_bvh(Dbg_Internal_Draw_Data &_internal, BVH *bvh, BVH_Node *node, s64 depth, b8 left) {
+    Dbg_Draw_Color color = dbg_draw_color_from_hash(fnv1a_64(&_internal.bvh_node_counter, sizeof(s64)));
+    ++_internal.bvh_node_counter;
 
-    for(s64 i = 0; i < 2; ++i) {
-        if(bvh->children[i]) debug_draw_bvh(_internal, bvh->children[i], min(depth + 1, ARRAY_COUNT(dbg_bvh_depth_color_map)));
+    vec3 center = (node->min + node->max) / 2.;
+    vec3 half_size = (node->max - node->min) / 2.;
+    debug_draw_cuboid_wireframe(_internal, center, half_size, dbg_bvh_depth_thickness_map[depth], color);
+
+#if DBG_DRAW_BVH_TRIANGLES
+    if(node->leaf) {
+        s64 one_plus_last = node->first_entry_index + node->entry_count;
+        for(s64 i = node->first_entry_index; i < one_plus_last; ++i) {
+            auto &entry = bvh->entries[i];
+            debug_draw_triangle_wireframe(_internal, &entry.triangle, color, .01f);
+        }
     }
+#endif
+
+    if(!node->leaf) {
+        if(node->children[0]) debug_draw_bvh(_internal, bvh, node->children[0], min(depth + 1, ARRAY_COUNT(dbg_bvh_depth_color_map)), true);
+        if(node->children[1]) debug_draw_bvh(_internal, bvh, node->children[1], min(depth + 1, ARRAY_COUNT(dbg_bvh_depth_color_map)), false);
+    }
+}
+
+static
+void debug_draw_bvh(Dbg_Internal_Draw_Data &_internal, BVH *bvh) {
+    _internal.bvh_node_counter = 0;
+    debug_draw_bvh(_internal, bvh, &bvh->root, 0, true);
 }
 
 static
@@ -241,7 +275,7 @@ Debug_Draw_Data debug_draw_world(World *world, Debug_Draw_Options options) {
     _internal.draw_normals = !!(options & DEBUG_DRAW_Normals);
 
 	if(options & DEBUG_DRAW_BVH) {
-        debug_draw_bvh(_internal, &world->bvh->root);
+        debug_draw_bvh(_internal, world->bvh);
 	}
 
 	if(options & DEBUG_DRAW_Anchors) {

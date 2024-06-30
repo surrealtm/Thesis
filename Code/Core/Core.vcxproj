@@ -303,6 +303,7 @@
     <ClCompile Include="..\Foundation\src\jobs.cpp" />
     <ClCompile Include="..\Foundation\src\math\intersect.cpp" />
     <ClCompile Include="..\Foundation\src\memutils.cpp" />
+    <ClCompile Include="..\Foundation\src\noise.cpp" />
     <ClCompile Include="..\Foundation\src\random.cpp" />
     <ClCompile Include="..\Foundation\src\string_type.cpp" />
     <ClCompile Include="..\Foundation\src\threads.cpp" />
@@ -334,6 +335,7 @@
     <ClInclude Include="..\Foundation\src\math\v3.h" />
     <ClInclude Include="..\Foundation\src\math\v4.h" />
     <ClInclude Include="..\Foundation\src\memutils.h" />
+    <ClInclude Include="..\Foundation\src\noise.h" />
     <ClInclude Include="..\Foundation\src\os_specific.h" />
     <ClInclude Include="..\Foundation\src\random.h" />
     <ClInclude Include="..\Foundation\src\sort.h" />

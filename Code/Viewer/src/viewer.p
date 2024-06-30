@@ -115,7 +115,7 @@ Viewer :: struct {
     
     profiling_show_summary: bool;    
     //debug_draw_options: Debug_Draw_Options = .BVH | .Anchors | .Boundaries | .Clipping_Wireframes | .Volume_Faces | .Volume_Wireframes/* | .Flood_Fill*/;
-    debug_draw_options: Debug_Draw_Options = .BVH | .Clipping_Wireframes;
+    debug_draw_options: Debug_Draw_Options = .BVH;
 }
 
 

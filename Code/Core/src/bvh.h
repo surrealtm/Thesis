@@ -17,6 +17,7 @@ struct BVH_Node {
     vec3 min, max;
     s64 first_entry_index, entry_count;
     BVH_Node *children[2];
+    b8 leaf;
 };
 
 struct BVH {
@@ -29,3 +30,6 @@ struct BVH {
     void add(Triangle triangle);
     void subdivide();
 };
+
+
+Resizable_Array<Triangle> build_sample_triangle_mesh(Allocator *allocator); // @@Ship

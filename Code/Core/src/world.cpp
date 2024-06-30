@@ -377,7 +377,8 @@ void World::create_bvh() {
 
     this->bvh = this->allocator->New<BVH>();
     this->bvh->create(this->allocator);
-    
+
+    /*
     for(Delimiter &delimiter : this->delimiters) {
         for(s64 i = 0; i < delimiter.plane_count; ++i) {
             Triangulated_Plane &plane = delimiter.planes[i];
@@ -386,7 +387,11 @@ void World::create_bvh() {
             }
         }
     }
+    */
 
+    Resizable_Array<Triangle> debug_mesh = build_sample_triangle_mesh(this->allocator);
+    for(Triangle triangle : debug_mesh) this->bvh->add(triangle);
+    
     this->bvh->subdivide();
 }
 
