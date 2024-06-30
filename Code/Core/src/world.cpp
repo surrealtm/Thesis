@@ -375,7 +375,19 @@ void World::calculate_volumes() {
 void World::create_bvh() {
     tmFunction(TM_WORLD_COLOR);
 
-    this->bvh = make_bvh(this->allocator, vec3(0, 0, 0), this->half_size);
+    this->bvh = this->allocator->New<BVH>();
+    this->bvh->create(this->allocator);
+    
+    for(Delimiter &delimiter : this->delimiters) {
+        for(s64 i = 0; i < delimiter.plane_count; ++i) {
+            Triangulated_Plane &plane = delimiter.planes[i];
+            for(Triangle &triangle : plane.triangles) {
+                this->bvh->add(triangle);
+            }
+        }
+    }
+
+    this->bvh->subdivide();
 }
 
 void World::clip_delimiters(b8 single_step) {

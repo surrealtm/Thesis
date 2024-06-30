@@ -141,11 +141,13 @@ void debug_draw_triangulated_plane_wireframe(Dbg_Internal_Draw_Data &_internal, 
 }
 
 static
-void debug_draw_bvh(Dbg_Internal_Draw_Data &_internal, BVH *bvh, s64 depth = 0) {
-    debug_draw_cuboid_wireframe(_internal, bvh->center, bvh->half_size, dbg_bvh_depth_thickness_map[depth], dbg_bvh_depth_color_map[depth]);
+void debug_draw_bvh(Dbg_Internal_Draw_Data &_internal, BVH_Node *bvh, s64 depth = 0) {
+    vec3 center = (bvh->min + bvh->max) / 2.;
+    vec3 half_size = (bvh->max - bvh->min) / 2.;
+    debug_draw_cuboid_wireframe(_internal, center, half_size, dbg_bvh_depth_thickness_map[depth], dbg_bvh_depth_color_map[depth]);
 
-    for(s64 i = 0; i < BVH_DEGREE; ++i) {
-        if(bvh->children[i]) debug_draw_bvh(_internal, bvh->children[i], min(depth, ARRAY_COUNT(dbg_bvh_depth_color_map)));
+    for(s64 i = 0; i < 2; ++i) {
+        if(bvh->children[i]) debug_draw_bvh(_internal, bvh->children[i], min(depth + 1, ARRAY_COUNT(dbg_bvh_depth_color_map)));
     }
 }
 
@@ -239,7 +241,7 @@ Debug_Draw_Data debug_draw_world(World *world, Debug_Draw_Options options) {
     _internal.draw_normals = !!(options & DEBUG_DRAW_Normals);
 
 	if(options & DEBUG_DRAW_BVH) {
-        debug_draw_bvh(_internal, world->bvh);
+        debug_draw_bvh(_internal, &world->bvh->root);
 	}
 
 	if(options & DEBUG_DRAW_Anchors) {

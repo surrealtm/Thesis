@@ -5,18 +5,27 @@
 
 #include "typedefs.h"
 
-#define BVH_DEGREE 2
+struct BVH_Entry {
+    // User-supplied input
+    Triangle triangle;
+
+    // Internal processing
+    vec3 center;
+};
+
+struct BVH_Node {
+    vec3 min, max;
+    s64 first_entry_index, entry_count;
+    BVH_Node *children[2];
+};
 
 struct BVH {
     Allocator *allocator;
 
-    vec3 center;
-    vec3 half_size;
-    Resizable_Array<Triangle> triangles;
-
-    BVH *children[BVH_DEGREE];
+    BVH_Node root;
+    Resizable_Array<BVH_Entry> entries;
     
-    void create(Allocator *allocator, vec3 center, vec3 half_size);
+    void create(Allocator *allocator);
+    void add(Triangle triangle);
+    void subdivide();
 };
-
-BVH *make_bvh(Allocator *allocator, vec3 center, vec3 half_size);
