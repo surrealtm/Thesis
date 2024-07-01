@@ -32,6 +32,17 @@ constexpr real CORE_SMALL_EPSILON = 0.0000001; // :CORE_SMALL_EPSILON
 
 
 
+/* --------------------------------------------- Telemetry Colors --------------------------------------------- */
+
+#define TM_SYSTEM_COLOR   0
+#define TM_WORLD_COLOR    1
+#define TM_BVH_COLOR      2
+#define TM_TESSEL_COLOR   3
+#define TM_FLOODING_COLOR 4
+#define TM_MARCHING_COLOR 5
+
+
+
 /* ----------------------------------------------- 3D Geometry ----------------------------------------------- */
 
 enum Axis {

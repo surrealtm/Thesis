@@ -174,8 +174,8 @@ void debug_draw_bvh(Dbg_Internal_Draw_Data &_internal, BVH *bvh, BVH_Node *node,
 #endif
 
     if(!node->leaf) {
-        if(node->children[0]) debug_draw_bvh(_internal, bvh, node->children[0], min(depth + 1, ARRAY_COUNT(dbg_bvh_depth_color_map)), true);
-        if(node->children[1]) debug_draw_bvh(_internal, bvh, node->children[1], min(depth + 1, ARRAY_COUNT(dbg_bvh_depth_color_map)), false);
+        if(node->children[0]) debug_draw_bvh(_internal, bvh, node->children[0], min(depth + 1, ARRAY_COUNT(dbg_bvh_depth_color_map) - 1), true);
+        if(node->children[1]) debug_draw_bvh(_internal, bvh, node->children[1], min(depth + 1, ARRAY_COUNT(dbg_bvh_depth_color_map) - 1), false);
     }
 }
 

@@ -12,17 +12,6 @@
 
 
 
-/* --------------------------------------------- Telemetry Colors --------------------------------------------- */
-
-#define TM_SYSTEM_COLOR   0
-#define TM_WORLD_COLOR    1
-#define TM_BVH_COLOR      2
-#define TM_TESSEL_COLOR   3
-#define TM_FLOODING_COLOR 4
-#define TM_MARCHING_COLOR 5
-
-
-
 /* ------------------------------------------------- Objects ------------------------------------------------- */
 
 struct Anchor {
@@ -105,6 +94,7 @@ struct World {
 
     // --- Internal implementation
     void create_bvh();
+    void create_bvh_from_triangles(Resizable_Array<Triangle> &triangles);
     void clip_delimiters(b8 single_step);
     void build_anchor_volumes();
 

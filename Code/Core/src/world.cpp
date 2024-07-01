@@ -378,7 +378,6 @@ void World::create_bvh() {
     this->bvh = this->allocator->New<BVH>();
     this->bvh->create(this->allocator);
 
-    /*
     for(Delimiter &delimiter : this->delimiters) {
         for(s64 i = 0; i < delimiter.plane_count; ++i) {
             Triangulated_Plane &plane = delimiter.planes[i];
@@ -387,12 +386,25 @@ void World::create_bvh() {
             }
         }
     }
-    */
-
-    Resizable_Array<Triangle> debug_mesh = build_sample_triangle_mesh(this->allocator);
-    for(Triangle triangle : debug_mesh) this->bvh->add(triangle);
     
     this->bvh->subdivide();
+
+    BVH_Stats stats = this->bvh->stats();
+    stats.print_to_stdout();
+}
+
+void World::create_bvh_from_triangles(Resizable_Array<Triangle> &triangles) {
+    tmFunction(TM_WORLD_COLOR);
+
+    this->bvh = this->allocator->New<BVH>();
+    this->bvh->create(this->allocator);
+
+    for(Triangle triangle : triangles) this->bvh->add(triangle);
+    
+    this->bvh->subdivide();
+
+    BVH_Stats stats = this->bvh->stats();
+    stats.print_to_stdout();
 }
 
 void World::clip_delimiters(b8 single_step) {

@@ -1,7 +1,6 @@
 #include "bvh.h"
 
-//#define MAX_BVH_DEPTH            16
-#define MAX_BVH_DEPTH             4
+#define MAX_BVH_DEPTH            10
 #define MIN_BVH_ENTRIES_TO_SPLIT  4
 
 struct BVH_Node_Stack {
@@ -32,6 +31,33 @@ void include_in_bounds(vec3 &min, vec3 &max, const Triangle &triangle) {
     include_in_max_bounds(max, triangle.p0);
     include_in_max_bounds(max, triangle.p1);
     include_in_max_bounds(max, triangle.p2);
+}
+
+void BVH_Stats::print_to_stdout() {
+    printf("================== BVH ==================\n");
+    printf("  Max Leaf Depth:    %" PRId64 "\n", this->max_leaf_depth);
+    printf("  Min Leaf Depth:    %" PRId64 "\n", this->min_leaf_depth);
+    printf("  Min Leaf Entries:  %" PRId64 "\n", this->min_entries_in_leaf);
+    printf("  Max Leaf Entries:  %" PRId64 "\n", this->max_entries_in_leaf);
+    printf("  Total Node Count:  %" PRId64 "\n", this->total_node_count);
+    printf("  Total Entry Count: %" PRId64 "\n", this->total_entry_count);
+    printf("  AVG Fill Rate:     %f\n", this->total_entry_count / (f32) this->total_node_count);
+    printf("================== BVH ==================\n");
+
+}
+
+void BVH_Node::update_stats(BVH_Stats *stats, s64 depth) {
+    ++stats->total_node_count;
+
+    if(this->leaf) {
+        stats->max_leaf_depth      = max(stats->max_leaf_depth, depth);
+        stats->min_leaf_depth      = min(stats->min_leaf_depth, depth);
+        stats->max_entries_in_leaf = max(stats->max_entries_in_leaf, this->entry_count);
+        stats->min_entries_in_leaf = min(stats->min_entries_in_leaf, this->entry_count);
+    } else {
+        if(this->children[0]) this->children[0]->update_stats(stats, depth + 1);
+        if(this->children[1]) this->children[1]->update_stats(stats, depth + 1);
+    }
 }
 
 void BVH::create(Allocator *allocator) {
@@ -158,10 +184,25 @@ void BVH::subdivide() {
     stack.clear();
 }
 
+BVH_Stats BVH::stats() {
+    BVH_Stats stats;
+    stats.max_leaf_depth      = 0;
+    stats.min_leaf_depth      = MAX_S64;
+    stats.max_entries_in_leaf = 0;
+    stats.min_entries_in_leaf = MAX_S64;
+    stats.total_node_count    = 0;
+    stats.total_entry_count   = this->entries.count;
+    
+    this->root.update_stats(&stats, 0);
+    
+    return stats;
+}
+
 
 
 #include "string_type.h"
 #include "os_specific.h"
+#include "timing.h"
 
 static
 real read_real(string *line) {
@@ -187,6 +228,8 @@ vec3 read_vec3(string *line) {
 }
 
 Resizable_Array<Triangle> build_sample_triangle_mesh(Allocator *allocator) {
+    tmFunction(TM_SYSTEM_COLOR);
+
     Resizable_Array<Triangle> result;
     result.allocator = allocator;
 

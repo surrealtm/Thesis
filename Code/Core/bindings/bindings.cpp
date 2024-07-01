@@ -1,6 +1,7 @@
 #include "bindings.h"
 
 #include "../src/world.h"
+#include "../src/bvh.h" // For the BVH test
 #include "../src/random.h"
 #include "../src/os_specific.h"
 #include "../src/jobs.h"
@@ -175,9 +176,10 @@ extern "C" {
     World_Handle core_do_bvh_test(b8 step_into) {
         tmZone("do_bvh_test", TM_SYSTEM_COLOR);
         
+        Resizable_Array<Triangle> debug_mesh = build_sample_triangle_mesh(Default_Allocator);
+
         World *world = (World *) core_create_world(100, 40, 100);
-        create_random_delimiters(world, 1000);
-        world->create_bvh();
+        world->create_bvh_from_triangles(debug_mesh);
         return world;
     }
 
