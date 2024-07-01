@@ -131,9 +131,11 @@ void BVH::subdivide() {
         }
 
         //
-        // Actually subdivide the node.
+        // Actually subdivide the node and add the children to the queue.
         //
         {
+            head.node->leaf = false;
+    
             s64 left_count = first_right_child_index - head.node->first_entry_index;
             s64 right_count = head.node->first_entry_index + head.node->entry_count - first_right_child_index;
 
@@ -141,22 +143,15 @@ void BVH::subdivide() {
                 head.node->children[0] = (BVH_Node *) this->allocator->allocate(sizeof(BVH_Node));
                 head.node->children[0]->first_entry_index = head.node->first_entry_index;
                 head.node->children[0]->entry_count = left_count;
+                stack.add({ head.node->children[0], head.depth + 1 });
             }
 
             if(right_count > 0) {
                 head.node->children[1] = (BVH_Node *) this->allocator->allocate(sizeof(BVH_Node));
                 head.node->children[1]->first_entry_index = first_right_child_index;
                 head.node->children[1]->entry_count = right_count;
+                stack.add({ head.node->children[1], head.depth + 1 });
             }
-        }
-        
-        //
-        // Add the two new children to the stack.
-        //
-        head.node->leaf = false;
-            
-        for(s64 i = 0; i < 2; ++i) {
-            stack.add({ head.node->children[i], head.depth + 1 });
         }
     }
     
@@ -165,31 +160,15 @@ void BVH::subdivide() {
 
 
 
-#include "noise.h"
+#include "../data/triangle_data.h"
 
 Resizable_Array<Triangle> build_sample_triangle_mesh(Allocator *allocator) {
-    Simplex_Noise_2D noise;
-    noise.amplitude = 30;
-    
-    Resizable_Array<Triangle> mesh;
-    mesh.allocator = allocator;
+    Resizable_Array<Triangle> result;
+    result.allocator = allocator;
 
-    for(s64 x = 0; x < 50; ++x) {
-        for(s64 z = 0; z < 50; ++z) {
-            real y0 = noise.fractal_noise((f64) (x),     (f64) (z)).value;
-            real y1 = noise.fractal_noise((f64) (x + 1), (f64) (z)).value;
-            real y2 = noise.fractal_noise((f64) (x),     (f64) (z + 1)).value;
-            real y3 = noise.fractal_noise((f64) (x + 1), (f64) (z + 1)).value;
-
-            vec3 p0 = vec3((real) (x),     y0, (real) (z));
-            vec3 p1 = vec3((real) (x + 1), y1, (real) (z));
-            vec3 p2 = vec3((real) (x),     y2, (real) (z + 1));
-            vec3 p3 = vec3((real) (x + 1), y3, (real) (z + 1));
-
-            mesh.add({ p0, p3, p1 });
-            mesh.add({ p0, p2, p3 });
-        }
+    for(s64 i = 0; i < ARRAY_COUNT(triangle_vertices); ++i) {
+        result.add(triangle_vertices[i]);    
     }
-    
-    return mesh;
+
+    return result;
 }
