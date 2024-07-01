@@ -290,6 +290,24 @@ extern "C" {
         return world;
     }
 
+    World_Handle core_do_gallery_test(b8 step_into) {
+        tmFunction(TM_SYSTEM_COLOR);
+
+        // @Incomplete
+
+        World *world = (World *) core_create_world(50, 10, 50);
+
+        Delimiter *delimiter = world->add_delimiter("Center Block"_s, vec3(0, 0, 0), vec3(5, 5, 5), vec3(0.125, 0, 0.125), 0);
+        world->add_delimiter_clipping_planes(delimiter, AXIS_X);
+        world->add_delimiter_clipping_planes(delimiter, AXIS_Z);
+
+        world->add_anchor("Outside"_s, vec3(0, 0, -10));
+        
+        world->calculate_volumes();
+
+        return world;
+    }
+
     World_Handle core_do_jobs_test(b8 step_into) {   
         tmFunction(TM_DEFAULT_COLOR);
         Job_System jobs;

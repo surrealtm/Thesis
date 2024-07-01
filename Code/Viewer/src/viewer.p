@@ -76,6 +76,7 @@ TESTS: []Viewer_Test : {
         .{ "circle",        core_do_circle_test },
         .{ "u_shape",       core_do_u_shape_test },
         .{ "center_block",  core_do_center_block_test },
+        .{ "gallery",       core_do_gallery_test },
         .{ "jobs",          core_do_jobs_test },
 };
 

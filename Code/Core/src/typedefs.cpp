@@ -35,7 +35,7 @@ b8 Triangle::all_points_behind_plane(Triangle *plane, vec3 plane_normal) {
     return d0 <= CORE_EPSILON && d1 <= CORE_EPSILON && d2 <= CORE_EPSILON && (d0 < -CORE_EPSILON || d1 < -CORE_EPSILON || d2 < -CORE_EPSILON);
 }
 
-b8 Triangle::no_point_behind_plane(Triangle *plane, vec3 plane_normal) {
+b8 Triangle::no_point_before_plane(Triangle *plane, vec3 plane_normal) {
     //
     // Ensures that all points of this triangle lie on the "frontface" of the clipping triangle.
     //
@@ -43,7 +43,7 @@ b8 Triangle::no_point_behind_plane(Triangle *plane, vec3 plane_normal) {
     real d1 = v3_dot_v3(this->p1 - plane->p0, plane_normal);
     real d2 = v3_dot_v3(this->p2 - plane->p0, plane_normal);
 
-    return d0 >= -CORE_EPSILON && d1 >= -CORE_EPSILON && d2 >= -CORE_EPSILON;
+    return d0 <= CORE_EPSILON && d1 <= CORE_EPSILON && d2 <= CORE_EPSILON;
 }
 
 
