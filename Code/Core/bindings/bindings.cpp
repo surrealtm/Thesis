@@ -295,13 +295,38 @@ extern "C" {
 
         // @Incomplete
 
-        World *world = (World *) core_create_world(50, 10, 50);
+        World *world = (World *) core_create_world(20, 10, 20);
 
-        Delimiter *delimiter = world->add_delimiter("Center Block"_s, vec3(0, 0, 0), vec3(5, 5, 5), vec3(0.125, 0, 0.125), 0);
-        world->add_delimiter_clipping_planes(delimiter, AXIS_X);
-        world->add_delimiter_clipping_planes(delimiter, AXIS_Z);
+        f64 outer = 12;
+        f64 inner = 5;
+        
+        auto outer_wall_north = world->add_delimiter("OuterWallNorth"_s, vec3(0, -3, -outer), vec3(outer, .25, .5), vec3(0, 0, 0), 0);
+        world->add_delimiter_clipping_planes(outer_wall_north, AXIS_Z);
 
-        world->add_anchor("Outside"_s, vec3(0, 0, -10));
+        auto outer_wall_south = world->add_delimiter("OuterWallSouth"_s, vec3(0, -3, +outer), vec3(outer, .25, .5), vec3(0, 0, 0), 0);
+        world->add_delimiter_clipping_planes(outer_wall_south, AXIS_Z);
+
+        auto outer_wall_east = world->add_delimiter("OuterWallEast"_s, vec3(+outer, -3, 0), vec3(.5, .25, outer), vec3(0, 0, 0), 0);
+        world->add_delimiter_clipping_planes(outer_wall_east, AXIS_X);
+
+        auto outer_wall_west = world->add_delimiter("OuterWallWest"_s, vec3(-outer, -3, 0), vec3(.5, .25, outer), vec3(0, 0, 0), 0);
+        world->add_delimiter_clipping_planes(outer_wall_west, AXIS_X);
+
+
+        auto inner_wall_north = world->add_delimiter("InnerWallNorth"_s, vec3(0, -3, -inner), vec3(inner, .25, .5), vec3(0, 0, 0), 0);
+        world->add_delimiter_clipping_planes(inner_wall_north, AXIS_Z);
+
+        auto inner_wall_south = world->add_delimiter("InnerWallSouth"_s, vec3(0, -3, +inner), vec3(inner, .25, .5), vec3(0, 0, 0), 0);
+        world->add_delimiter_clipping_planes(inner_wall_south, AXIS_Z);
+
+        auto inner_wall_east = world->add_delimiter("InnerWallEast"_s, vec3(+inner, -3, 0), vec3(.5, .25, inner), vec3(0, 0, 0), 0);
+        world->add_delimiter_clipping_planes(inner_wall_east, AXIS_X);
+
+        auto inner_wall_west = world->add_delimiter("InnerWallWest"_s, vec3(-inner, -3, 0), vec3(.5, .25, inner), vec3(0, 0, 0), 0);
+        world->add_delimiter_clipping_planes(inner_wall_west, AXIS_X);
+
+        
+        world->add_anchor("Walkway"_s, vec3(0, 0, -9));
         
         world->calculate_volumes();
 
