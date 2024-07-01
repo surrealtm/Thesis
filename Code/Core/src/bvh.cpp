@@ -160,14 +160,56 @@ void BVH::subdivide() {
 
 
 
-#include "../data/triangle_data.h"
+#include "string_type.h"
+#include "os_specific.h"
+
+static
+real read_real(string *line) {
+    s64 end = search_string(*line, ',');
+    real result = (real) string_to_double(substring_view(*line, 0, end), null);
+    
+    if(end + 1 < line->count) {
+        *line = substring_view(*line, end + 1, line->count);
+    } else {
+        *line = ""_s;
+    }
+
+    return result;
+}
+
+static
+vec3 read_vec3(string *line) {
+    vec3 result;
+    result.x = read_real(line);
+    result.y = read_real(line);
+    result.z = read_real(line);
+    return result;
+}
 
 Resizable_Array<Triangle> build_sample_triangle_mesh(Allocator *allocator) {
     Resizable_Array<Triangle> result;
     result.allocator = allocator;
 
-    for(s64 i = 0; i < ARRAY_COUNT(triangle_vertices); ++i) {
-        result.add(triangle_vertices[i]);    
+    string file_path = "Core/data/triangle_data.txt"_s;
+    string file_content = os_read_file(Default_Allocator, file_path);
+    if(!file_content.count) {
+        string working_directory = os_get_working_directory();
+        printf("The triangle data file '%.*s' does not exist!\n", (u32) file_path.count, file_path.data);
+        printf("Working directory: '%.*s'\n", (u32) working_directory.count, working_directory.data);
+        deallocate_string(Default_Allocator, &working_directory);
+        return result;
+    }
+    
+    string original_file_content = file_content;
+    defer { os_free_file_content(Default_Allocator, &original_file_content); };
+
+    while(file_content.count) {
+        string line = read_next_line(&file_content);
+
+        Triangle *triangle = result.push();
+        triangle->p0 = read_vec3(&line);
+        triangle->p1 = read_vec3(&line);
+        triangle->p2 = read_vec3(&line);
     }
 
     return result;
