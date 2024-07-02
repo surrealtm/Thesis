@@ -203,6 +203,8 @@ public class Core_Bindings {
     [DllImport("Core.dll")]
     public static extern World_Handle core_do_center_block_test(bool step_into);
     [DllImport("Core.dll")]
+    public static extern World_Handle core_do_gallery_test(bool step_into);
+    [DllImport("Core.dll")]
     public static extern World_Handle core_do_jobs_test(bool step_into);
 
 

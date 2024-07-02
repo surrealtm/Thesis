@@ -6,6 +6,8 @@
 #include "math/qt.h"
 #include "memutils.h"
 
+#define USE_BVH_FOR_RAYCASTS true
+
 //
 // This algorithm is supposed to work with both single and double floating point precision, so that the usual
 // speed / memory - accuracy tradeoff can be done by the user compiling this code. We use double precision
@@ -81,5 +83,5 @@ struct Triangulated_Plane {
 
     void create(Allocator *allocator, vec3 c, vec3 n, vec3 left, vec3 right, vec3 top, vec3 bottom);
     void create(Allocator *allocator, vec3 c, vec3 u, vec3 v);
-    b8 cast_ray(vec3 origin, vec3 direction, real distance);
+    b8 cast_ray(vec3 ray_origin, vec3 ray_direction, real ray_distance, b8 early_return);
 };

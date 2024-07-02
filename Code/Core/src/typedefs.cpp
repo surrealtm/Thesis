@@ -1,5 +1,6 @@
 #include "typedefs.h"
 
+#include "timing.h"
 #include "math/intersect.h"
 
 /* ----------------------------------------------- 3D Geometry ----------------------------------------------- */
@@ -64,13 +65,20 @@ void Triangulated_Plane::create(Allocator *allocator, vec3 c, vec3 u, vec3 v) {
     this->create(allocator, c, v3_normalize(v3_cross_v3(u, v)), -u, u, -v, v);
 }
 
-b8 Triangulated_Plane::cast_ray(vec3 origin, vec3 direction, real distance) {
+b8 Triangulated_Plane::cast_ray(vec3 ray_origin, vec3 ray_direction, real max_ray_distance, b8 early_return) {
+    b8 hit_something = false;
+
     for(Triangle &triangle : this->triangles) {
-        auto result = ray_double_sided_triangle_intersection(origin, direction, triangle.p0, triangle.p1, triangle.p2);
-        if(result.intersection && result.distance >= 0.f && result.distance <= distance) { // distance isn't normalized!
-            return true;
+        tmZone("ray_double_sided_triangle_intersection", TM_BVH_COLOR);
+
+        auto triangle_result = ray_double_sided_triangle_intersection(ray_origin, ray_direction, triangle.p0, triangle.p1, triangle.p2);
+
+        if(triangle_result.intersection && triangle_result.distance >= 0.f && triangle_result.distance <= max_ray_distance) { // distance isn't normalized!
+            hit_something = true;
+            if(early_return) goto early_exit;
         }
     }
 
-    return false;
+ early_exit:
+    return hit_something;
 }

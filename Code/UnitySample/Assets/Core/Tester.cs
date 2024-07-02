@@ -12,6 +12,7 @@ public enum Test_Case {
     Circle,
     U_Shape,
     Center_Block,
+    Gallery,
     Jobs,
 }
 

@@ -1,12 +1,31 @@
 #include "bvh.h"
 
-#define MAX_BVH_DEPTH            10
+#include "timing.h"
+#include "math/intersect.h"
+
+#define MAX_BVH_DEPTH             10
 #define MIN_BVH_ENTRIES_TO_SPLIT  4
 
 struct BVH_Node_Stack {
     BVH_Node *node;
     u32 depth;
 };
+
+static inline
+real max_ignore_nan(real lhs, real rhs) {
+    if(isnan(lhs)) return rhs;
+    if(isnan(rhs)) return lhs;
+
+    return max(lhs, rhs);
+}
+
+static inline
+real min_ignore_nan(real lhs, real rhs) {
+    if(isnan(lhs)) return rhs;
+    if(isnan(rhs)) return lhs;
+
+    return min(lhs, rhs);
+}
 
 static
 void include_in_min_bounds(vec3 &bounds, const vec3 &point) {
@@ -184,6 +203,85 @@ void BVH::subdivide() {
     stack.clear();
 }
 
+BVH_Cast_Result BVH::cast_ray(vec3 ray_origin, vec3 ray_direction, real max_ray_distance, b8 early_return) {
+    vec3 inverse_ray_direction = 1. / ray_direction;
+    vec3 abs_inverse_ray_direction = vec3(fabs(inverse_ray_direction.x), fabs(inverse_ray_direction.y), fabs(inverse_ray_direction.z));
+    
+    BVH_Cast_Result result;
+    result.hit_something = false;
+    result.hit_distance  = MAX_F32;
+
+    // @@Speed: It might be faster to just use a flat stack-allocated array here, maybe with the max node
+    // depth as size? Then again, we should hopefully only allocate for this array once, so maybe it's not that
+    // bad...
+    Resizable_Array<BVH_Node*> stack;
+    stack.allocator = this->allocator;
+    stack.reserve(MAX_BVH_DEPTH);
+
+    stack.add(&this->root);
+    
+    while(stack.count) {
+        BVH_Node *node = stack.pop(); // @@Speed: Does the order matter here? Do we have a higher chance of finding a result quicker if we query this in another way?
+
+        b8 intersects_aabb;
+        
+        // Check if ray intersects this box's AABB at all. If not, we can ignore it.
+        {
+            // https://iquilezles.org/articles/intersectors/
+            vec3 box_origin = (node->max + node->min) * .5;
+            vec3 box_size   = (node->max - node->min);
+            vec3 transformed_ray_origin = inverse_ray_direction * (ray_origin - box_origin);
+            vec3 projected_box_size     = abs_inverse_ray_direction * box_size;
+            vec3 t1 = -transformed_ray_origin - projected_box_size;
+            vec3 t2 = -transformed_ray_origin + projected_box_size;
+            real tnear = max_ignore_nan(max_ignore_nan(t1.x, t1.y), t1.z);
+            real tfar  = min_ignore_nan(min_ignore_nan(t2.x, t2.y), t2.z);
+
+            if(tnear <= 0. && tfar >= 0.) {
+                // We are inside the box!
+                intersects_aabb = true;
+            } else if(tfar >= 0. && tnear <= tfar && tnear <= max_ray_distance) {
+                // The near intersection is inside our ray.
+                intersects_aabb = true;
+            } else {
+                intersects_aabb = false;
+            }
+        }
+
+        if(!intersects_aabb) {
+            continue;
+        }
+        
+        if(node->leaf) {
+            // Check all triangles contained in this node against the ray.
+            s64 one_plus_last_entry_index = node->first_entry_index + node->entry_count;
+            for(s64 i = node->first_entry_index; i < one_plus_last_entry_index; ++i) {
+                tmZone("ray_double_sided_triangle_intersection", TM_BVH_COLOR);
+
+                BVH_Entry &entry = this->entries[i];
+                auto triangle_result = ray_double_sided_triangle_intersection(ray_origin, ray_direction, entry.triangle.p0, entry.triangle.p1, entry.triangle.p2);
+                
+                if(triangle_result.intersection && triangle_result.distance >= 0. && triangle_result.distance <= max_ray_distance && triangle_result.distance < result.hit_distance) {
+                    result.hit_something = true;
+                    result.hit_distance  = triangle_result.distance;
+                    result.hit_triangle  = &entry.triangle;
+
+                    if(early_return) goto early_exit;
+                }
+            }
+        } else {
+            // Add all children of this node to the stack.
+            if(node->children[0]) stack.add(node->children[0]);
+            if(node->children[1]) stack.add(node->children[1]);
+        }
+    }
+
+ early_exit:
+    stack.clear();
+    
+    return result;
+}
+
 BVH_Stats BVH::stats() {
     BVH_Stats stats;
     stats.max_leaf_depth      = 0;
@@ -199,6 +297,8 @@ BVH_Stats BVH::stats() {
 }
 
 
+
+// @@Ship: Remove all this below.
 
 #include "string_type.h"
 #include "os_specific.h"

@@ -293,8 +293,6 @@ extern "C" {
     World_Handle core_do_gallery_test(b8 step_into) {
         tmFunction(TM_SYSTEM_COLOR);
 
-        // @Incomplete
-
         World *world = (World *) core_create_world(20, 10, 20);
 
         f64 outer = 12;
