@@ -17,6 +17,11 @@ struct BVH_Stats {
     s64 total_node_count;
     s64 total_entry_count;
 
+    // @Incomplete: Maybe figure out a way to represent the "shrinking" volume between the root node and all the
+    // leaf nodes. Essentially, the bigger this shrinkage, the better the BVH I think. (At least some metric).
+    // Right now, for the center_block test, this shrinkage is actually 0 (and therefore, the additional
+    // computational overhead is large).
+    
     void print_to_stdout();
 };
 
