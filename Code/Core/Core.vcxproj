@@ -311,6 +311,7 @@
     <ClCompile Include="..\Foundation\src\win32_specific.cpp" />
     <ClCompile Include="..\Foundation\src\window.cpp" />
     <ClCompile Include="bindings\bindings.cpp" />
+    <ClCompile Include="src\assembler.cpp" />
     <ClCompile Include="src\bvh.cpp" />
     <ClCompile Include="src\typedefs.cpp" />
     <ClCompile Include="src\world.cpp" />
@@ -344,6 +345,7 @@
     <ClInclude Include="..\Foundation\src\timing.h" />
     <ClInclude Include="..\Foundation\src\window.h" />
     <ClInclude Include="bindings\bindings.h" />
+    <ClInclude Include="src\assembler.h" />
     <ClInclude Include="src\bvh.h" />
     <ClInclude Include="src\typedefs.h" />
     <ClInclude Include="src\world.h" />

@@ -87,6 +87,9 @@
     <ClCompile Include="..\Foundation\src\noise.cpp">
       <Filter>Foundation</Filter>
     </ClCompile>
+    <ClCompile Include="src\assembler.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Foundation\src\fileio.h">
@@ -178,6 +181,9 @@
     </ClInclude>
     <ClInclude Include="..\Foundation\src\noise.h">
       <Filter>Foundation</Filter>
+    </ClInclude>
+    <ClInclude Include="src\assembler.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

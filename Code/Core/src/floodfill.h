@@ -27,18 +27,20 @@ struct Cell {
 
 struct Flood_Fill {
     Allocator *allocator;
-    Resizable_Array<Cell*> frontier;
+    World *world;
 
+    Resizable_Array<Cell *> frontier;
+    Resizable_Array<Cell *> flooded_cells; // So that we can quickly iterate over all flooded cells in the assembler.
+    
     s64 hx, hy, hz; // Dimensions in cells
     v3i origin; // The first cell that was flooded (in cell coordinates)
     v3i grid_center; // hx / 2, hy / 2, hz / 2
     vec3 world_space_center; // World Space Center of the cell grid.
     Cell *cells;
-
-    World *world;
 };
 
 Cell *get_cell(Flood_Fill *ff, v3i position);
 vec3 get_cell_world_space_center(Flood_Fill *ff, v3i position);
+vec3 get_cell_world_space_center(Flood_Fill *ff, Cell *cell);
 void floodfill(Flood_Fill *ff, World *world, Allocator *allocator, vec3 world_space_center);
 void deallocate_flood_fill(Flood_Fill *ff);

@@ -7,11 +7,6 @@
 /* ---------------------------------------------- Implementation ---------------------------------------------- */
 
 static inline
-vec3 get_cell_world_space_center(Flood_Fill *ff, Cell *cell) {
-    return get_cell_world_space_center(ff, cell->position);
-}
-
-static inline
 v3i world_space_to_cell_space(Flood_Fill *ff, vec3 world_space) {
     vec3 relative_to_center = world_space - ff->world_space_center;
     vec3 scaled_relative    = relative_to_center * vec3(CELLS_PER_WORLD_SPACE_UNIT);
@@ -55,6 +50,7 @@ void maybe_add_cell_to_frontier(Flood_Fill *ff, Cell *src, v3i position) {
 static inline
 void fill_cell(Flood_Fill *ff, Cell *cell) {
     cell->state = CELL_Has_Been_Flooded;
+    ff->flooded_cells.add(cell);
 
     maybe_add_cell_to_frontier(ff, cell, cell->position + v3i(1, 0, 0));
     maybe_add_cell_to_frontier(ff, cell, cell->position - v3i(1, 0, 0));
@@ -87,6 +83,10 @@ vec3 get_cell_world_space_center(Flood_Fill *ff, v3i position) {
     return ff->world_space_center + vec3(xoffset, yoffset, zoffset);
 }
 
+vec3 get_cell_world_space_center(Flood_Fill *ff, Cell *cell) {
+    return get_cell_world_space_center(ff, cell->position);
+}
+
 void floodfill(Flood_Fill *ff, World *world, Allocator *allocator, vec3 world_space_center) {
     tmFunction(TM_FLOODING_COLOR);
 
@@ -112,6 +112,7 @@ void floodfill(Flood_Fill *ff, World *world, Allocator *allocator, vec3 world_sp
 
 void deallocate_flood_fill(Flood_Fill *ff) {
     ff->allocator->deallocate(ff->cells);
+    ff->flooded_cells.clear();
     ff->frontier.clear();
     ff->cells = null;
     ff->hx    = 0;

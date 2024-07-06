@@ -3,6 +3,7 @@
 #include "tessel.h"
 #include "floodfill.h"
 #include "march.h"
+#include "assembler.h"
 
 #include "os_specific.h"
 #include "timing.h"
@@ -400,7 +401,7 @@ void World::create_bvh_from_triangles(Resizable_Array<Triangle> &triangles) {
     this->bvh = this->allocator->New<BVH>();
     this->bvh->create(this->allocator);
 
-    for(Triangle triangle : triangles) this->bvh->add(triangle);
+    for(Triangle &triangle : triangles) this->bvh->add(triangle);
     
     this->bvh->subdivide();
 
@@ -485,7 +486,11 @@ void World::build_anchor_volumes() {
         this->current_flood_fill = this->allocator->New<Flood_Fill>();
         floodfill(this->current_flood_fill, this, this->allocator, anchor.position);
 
+#if USE_MARCHING_CUBES_FOR_VOLUMES
         marching_cubes(&anchor.volume, this->current_flood_fill);
+#else
+        assemble(&anchor.volume, this, this->current_flood_fill);
+#endif
 
         // @@Ship: Remove this
         ++anchor_index;

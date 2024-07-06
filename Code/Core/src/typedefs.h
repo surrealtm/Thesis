@@ -7,6 +7,7 @@
 #include "memutils.h"
 
 #define USE_BVH_FOR_RAYCASTS true
+#define USE_MARCHING_CUBES_FOR_VOLUMES false
 
 //
 // This algorithm is supposed to work with both single and double floating point precision, so that the usual

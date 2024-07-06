@@ -64,6 +64,8 @@ struct BVH {
 
     BVH_Cast_Result cast_ray(vec3 origin, vec3 direction, real max_distance, b8 early_return = false);
     
+    Resizable_Array<BVH_Node *> find_leafs_at_position(Allocator *allocator, vec3 position);
+
     BVH_Stats stats();
 };
 

@@ -52,6 +52,22 @@ void include_in_bounds(vec3 &min, vec3 &max, const Triangle &triangle) {
     include_in_max_bounds(max, triangle.p2);
 }
 
+static
+void find_leafs_at_position_helper(Resizable_Array<BVH_Node *> &result, BVH_Node *node, vec3 position) {
+    b8 outside_aabb = position.x < node->min.x || position.y < node->min.y || position.z < node->min.z ||
+            position.x > node->max.x || position.y > node->max.y || position.z > node->max.z;
+
+    if(outside_aabb) return;
+
+    if(node->leaf) {
+        result.add(node);
+    } else {
+        if(node->children[0]) find_leafs_at_position_helper(result, node->children[0], position);
+        if(node->children[1]) find_leafs_at_position_helper(result, node->children[1], position);
+    }
+}
+
+
 void BVH_Stats::print_to_stdout() {
     printf("================== BVH ==================\n");
     printf("  Max Leaf Depth:    %" PRId64 "\n", this->max_leaf_depth);
@@ -279,6 +295,13 @@ BVH_Cast_Result BVH::cast_ray(vec3 ray_origin, vec3 ray_direction, real max_ray_
  early_exit:
     stack.clear();
     
+    return result;
+}
+
+Resizable_Array<BVH_Node *> BVH::find_leafs_at_position(Allocator *allocator, vec3 position) {
+    Resizable_Array<BVH_Node *> result;
+    result.allocator = allocator;
+    find_leafs_at_position_helper(result, &this->root, position);
     return result;
 }
 
