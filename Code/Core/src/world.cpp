@@ -130,24 +130,7 @@ b8 delimiter_triangle_should_be_clipped(Triangle *generated_triangle, Triangle *
 }
 
 static
-void clip_all_delimiter_triangles(Resizable_Array<Triangle> &triangles_to_clip, Resizable_Array<Triangle> &clipping_triangles, vec3 center_to_clip, vec3 clip_normal, b8 clip_against_plane) {
-    //
-    // First up, we tessellate all triangles on intersection, so that no triangle
-    // intersects with any clipping triangle anymore. We might not find any of these
-    // triangles, if the clipping Triangulated_Plane has been modified by some other
-    // intersection so that it actually isn't intersecting with us anymore.
-    // If there is at least one intersection though, we want to remove all triangles
-    // behind the clip.
-    // Note that we only do this if there has been at least one intersection, take
-    // the following scenario:
-    //
-    //    v- Don't clip these triangles here which are behind the right vertical one.
-    //   |----------
-    //   |
-    //   |  |-------
-    //   |  |
-    //
-
+void tessellate_all_delimiter_triangles(Resizable_Array<Triangle> &triangles_to_clip, Resizable_Array<Triangle> &clipping_triangles, vec3 center_to_clip, vec3 clip_normal, b8 clip_against_plane) {
     Delimiter_Triangle_Should_Be_Clipped_Helper helper;
     helper.center_to_clip = center_to_clip;
     helper.clip_normal = clip_normal;
@@ -159,6 +142,38 @@ void clip_all_delimiter_triangles(Resizable_Array<Triangle> &triangles_to_clip, 
             tessellate(t0, t1, clip_normal, &triangles_to_clip, clip_against_plane, (Triangle_Should_Be_Clipped) delimiter_triangle_should_be_clipped, &helper);
         }
     }
+}
+
+static
+void tessellate_all_root_triangles(Resizable_Array<Triangle> &triangles_to_clip, Resizable_Array<Triangle> &clipping_triangles, vec3 clip_normal) {
+    for(s64 i = 0; i < triangles_to_clip.count; ++i) {
+        for(s64 j = 0; j < clipping_triangles.count; ++j) {
+            Triangle *t0 = &triangles_to_clip[i]; // This pointer might not be stable if we are growing triangles_to_clip a lot due to tessellation!
+            Triangle *t1 = &clipping_triangles[j];
+            tessellate(t0, t1, clip_normal, &triangles_to_clip, false);
+        }
+    }
+}
+
+static
+void solve_delimiter_intersection(World *world, Delimiter_Intersection *intersection) {
+    //
+    // :OriginalDelimiterTriangles
+    // When solving this intersection, we need to remember the original d0 clipping triangles,
+    // so that we can then clip d0, and later on intersect d1 with the original d0 triangles.
+    // This needs to happen because the triangles t0 that would clip and remove the triangles
+    // t1 might not exist anymore after they have been clipped, which would lead to unexpected
+    // results.
+    //
+    Resizable_Array<Triangle> original_t0s = intersection->p0->triangles.copy(world->allocator); // @@Speed: Only copy this if we actually need it later. @@Speed: Maybe even start using a temp allocator for this.
+
+    // Clip d0 based on the triangles of d1.
+    if(intersection->d0->level >= intersection->d1->level) tessellate_all_delimiter_triangles(intersection->p0->triangles, intersection->p1->triangles, intersection->d0->position, intersection->p1->n, false);
+
+    // Clip d1 based on the original triangles of d0.
+    if(intersection->d1->level >= intersection->d0->level) tessellate_all_delimiter_triangles(intersection->p1->triangles, original_t0s, intersection->d1->position, intersection->p0->n, false);
+
+    original_t0s.clear();
 }
 
 static
@@ -182,26 +197,6 @@ void remove_all_triangles_behind_plane(Resizable_Array<Triangle> &triangles_to_c
             ++i;
         }
     }
-}
-
-static
-void solve_delimiter_intersection(World *world, Delimiter_Intersection *intersection) {
-    //
-    // When solving this intersection, we need to remember the original d0 clipping triangles,
-    // so that we can then clip d0, and later on intersect d1 with the original d0 triangles.
-    // This needs to happen because the triangles t0 that would clip and remove the triangles
-    // t1 might not exist anymore after they have been clipped, which would lead to unexpected
-    // results.
-    //
-    Resizable_Array<Triangle> original_t0s = intersection->p0->triangles.copy(world->allocator); // @@Speed: Only copy this if we actually need it later. @@Speed: Maybe even start using a temp allocator for this.
-
-    // Clip d0 based on the triangles of d1.
-    if(intersection->d0->level >= intersection->d1->level) clip_all_delimiter_triangles(intersection->p0->triangles, intersection->p1->triangles, intersection->d0->position, intersection->p1->n, false);
-
-    // Clip d1 based on the original triangles of d0.
-    if(intersection->d1->level >= intersection->d0->level) clip_all_delimiter_triangles(intersection->p1->triangles, original_t0s, intersection->d1->position, intersection->p0->n, false);
-
-    original_t0s.clear();
 }
 
 
@@ -448,23 +443,26 @@ void World::clip_delimiters(b8 single_step) {
     
     {
         //
-        // Clip all delimiter planes against the root clipping planes, so that the delimiters
-        // don't unnecessarily extend beyond the world borders.
-        // This probably isn't actually necessary since we don't care about them being outside
-        // the world boundaries (I think?), but it makes for a better visualiazation.
-        //
-        // @@Speed: We might just take this out for performance reasons? It would definitely look confusing, but
-        // since no anchor is allowed to go outside of the root clipping planes (and the floodfilling also stops
-        // at the roots), it shouldn't actually make a difference in the resulting volumes.
+        // Clip all delimiter planes against the root clipping planes. This has two purposes:
+        // 1. Tessellate the root triangles to not extend beyond any delimiter triangle intersecting
+        //    with it, which is required so that we can build the volumes out of existing triangles
+        //    later on.
+        // 2. Make sure that no delimiter triangle extends past the world bounds, which is more a visual
+        //    nicety than an actual requirement.
         //
         for(Delimiter &delimiter : this->delimiters) {
             for(s64 i = 0; i < delimiter.plane_count; ++i) {
                 Triangulated_Plane *delimiter_plane = &delimiter.planes[i];
                 for(Triangulated_Plane &root_plane : this->root_clipping_planes) {
-                    // @@Speed: We should do this in a single combined loop, instead of iterating over all
-                    // triangles twice...
-                    clip_all_delimiter_triangles(delimiter_plane->triangles, root_plane.triangles, delimiter.position, root_plane.n, true);
+                    // :OriginalDelimiterTriangles
+                    Resizable_Array<Triangle> original_t0s = delimiter_plane->triangles.copy(this->allocator); // @@Speed: Maybe even start using a temp allocator for this.
+                    
+                    tessellate_all_delimiter_triangles(delimiter_plane->triangles, root_plane.triangles, delimiter.position, root_plane.n, true);
                     remove_all_triangles_behind_plane(delimiter_plane->triangles, &root_plane);
+
+                    tessellate_all_root_triangles(root_plane.triangles, original_t0s, delimiter_plane->n);
+
+                    original_t0s.clear();
                 }
             }
         }
