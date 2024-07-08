@@ -10,9 +10,9 @@ static inline
 v3i world_space_to_cell_space(Flood_Fill *ff, vec3 world_space) {
     vec3 relative_to_center = world_space - ff->world_space_center;
     vec3 scaled_relative    = relative_to_center * vec3(CELLS_PER_WORLD_SPACE_UNIT);
-    return v3i((s32) clamp(round(scaled_relative.x + ff->hx / 2.), 0, ff->hx - 1),
-               (s32) clamp(round(scaled_relative.y + ff->hy / 2.), 0, ff->hy - 1),
-               (s32) clamp(round(scaled_relative.z + ff->hz / 2.), 0, ff->hz - 1));
+    return v3i((s32) clamp(round(scaled_relative.x + ff->hx / 2. - 1), 0, ff->hx - 1),
+               (s32) clamp(round(scaled_relative.y + ff->hy / 2. - 1), 0, ff->hy - 1),
+               (s32) clamp(round(scaled_relative.z + ff->hz / 2. - 1), 0, ff->hz - 1));
 }
 
 static inline
@@ -64,6 +64,13 @@ void fill_cell(Flood_Fill *ff, Cell *cell) {
 
 /* --------------------------------------------------- Api --------------------------------------------------- */
 
+static
+s32 ceil_to_uneven(real value) {
+    s32 result = (s32) ceil(value);
+    result = (result % 1 == 0) ? result + 1 : result;
+    return result;
+}
+
 Cell *get_cell(Flood_Fill *ff, v3i position) {
     if(position.x < 0 || position.x >= ff->hx || position.y < 0 || position.y >= ff->hy || position.z < 0 || position.z >= ff->hz) return null;
     
@@ -72,13 +79,9 @@ Cell *get_cell(Flood_Fill *ff, v3i position) {
 }
 
 vec3 get_cell_world_space_center(Flood_Fill *ff, v3i position) {
-    real xoffset = ((real) position.x - (real) ff->hx / 2.) * CELL_WORLD_SPACE_SIZE;
-    real yoffset = ((real) position.y - (real) ff->hy / 2.) * CELL_WORLD_SPACE_SIZE;
-    real zoffset = ((real) position.z - (real) ff->hz / 2.) * CELL_WORLD_SPACE_SIZE;
-
-    xoffset += CELL_WORLD_SPACE_SIZE / 2.f;
-    yoffset += CELL_WORLD_SPACE_SIZE / 2.f;
-    zoffset += CELL_WORLD_SPACE_SIZE / 2.f;
+    real xoffset = position.x * CELL_WORLD_SPACE_SIZE - ff->origin.x * CELL_WORLD_SPACE_SIZE;
+    real yoffset = position.y * CELL_WORLD_SPACE_SIZE - ff->origin.y * CELL_WORLD_SPACE_SIZE;
+    real zoffset = position.z * CELL_WORLD_SPACE_SIZE - ff->origin.z * CELL_WORLD_SPACE_SIZE;
 
     return ff->world_space_center + vec3(xoffset, yoffset, zoffset);
 }
@@ -91,11 +94,16 @@ void floodfill(Flood_Fill *ff, World *world, Allocator *allocator, vec3 world_sp
     tmFunction(TM_FLOODING_COLOR);
 
     ff->allocator = allocator;
-    ff->hx        = (s32) ceil(world->half_size.x * CELLS_PER_WORLD_SPACE_UNIT * 2);
-    ff->hy        = (s32) ceil(world->half_size.y * CELLS_PER_WORLD_SPACE_UNIT * 2);
-    ff->hz        = (s32) ceil(world->half_size.z * CELLS_PER_WORLD_SPACE_UNIT * 2);
+
+    // Make sure that we have an uneven number of cells, so that the origin cell is actually centered on the
+    // world space center (with an even number of cells, an edge between two cells would be centered on the
+    // world space center)
+    ff->hx        = ceil_to_uneven(world->half_size.x * CELLS_PER_WORLD_SPACE_UNIT * 2);
+    ff->hy        = ceil_to_uneven(world->half_size.y * CELLS_PER_WORLD_SPACE_UNIT * 2);
+    ff->hz        = ceil_to_uneven(world->half_size.z * CELLS_PER_WORLD_SPACE_UNIT * 2);
+
     ff->cells     = (Cell *) ff->allocator->allocate(ff->hx * ff->hy * ff->hz * sizeof(Cell));
-    ff->world_space_center = vec3(0); // The world is centered around (0, 0, 0) by default.
+    ff->world_space_center = world_space_center; // The world is centered around (0, 0, 0) by default.
     ff->frontier.allocator = allocator;
     ff->world = world;
     
@@ -104,6 +112,9 @@ void floodfill(Flood_Fill *ff, World *world, Allocator *allocator, vec3 world_sp
     ff->origin = world_space_to_cell_space(ff, world_space_center);
     definitely_add_cell_to_frontier(ff, ff->origin);
 
+    // nocheckin
+    vec3 origin_to_world_space_center = get_cell_world_space_center(ff, ff->origin);
+    
     while(ff->frontier.count) {
         Cell *head = ff->frontier.pop_first(); // @@Speed: Pop last, that should be much more efficient. We don't care about order here, so that should not be a problem.
         fill_cell(ff, head);

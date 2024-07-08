@@ -5,6 +5,9 @@
 
 #include "typedefs.h"
 
+#define MAX_BVH_DEPTH             1 // nocheckin
+#define MIN_BVH_ENTRIES_TO_SPLIT  4
+
 //
 // https://jacco.ompf2.com/2022/04/13/how-to-build-a-bvh-part-1-basics/
 //

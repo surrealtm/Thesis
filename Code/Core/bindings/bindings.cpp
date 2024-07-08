@@ -245,7 +245,7 @@ extern "C" {
         }
 
         world->add_anchor("Inside"_s, vec3(0, 0, 0));
-        world->add_anchor("Outside"_s, vec3(0, 0, -40));
+        //world->add_anchor("Outside"_s, vec3(0, 0, -40));
 
         world->calculate_volumes();
 

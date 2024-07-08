@@ -6,7 +6,7 @@
 
 #include "typedefs.h"
 
-#define CELL_WORLD_SPACE_SIZE      2. // @Incomplete: Make this a dynamic variable, so that the user can define it when creating the world.
+#define CELL_WORLD_SPACE_SIZE      10. // nocheckin // @Incomplete: Make this a dynamic variable, so that the user can define it when creating the world.
 #define CELLS_PER_WORLD_SPACE_UNIT (1. / CELL_WORLD_SPACE_SIZE)
 
 struct World;
@@ -34,7 +34,6 @@ struct Flood_Fill {
     
     s64 hx, hy, hz; // Dimensions in cells
     v3i origin; // The first cell that was flooded (in cell coordinates)
-    v3i grid_center; // hx / 2, hy / 2, hz / 2
     vec3 world_space_center; // World Space Center of the cell grid.
     Cell *cells;
 };

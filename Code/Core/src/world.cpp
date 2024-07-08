@@ -131,7 +131,7 @@ b8 delimiter_triangle_should_be_clipped(Triangle *generated_triangle, Triangle *
 }
 
 static
-void tessellate_all_delimiter_triangles(Resizable_Array<Triangle> &triangles_to_clip, Resizable_Array<Triangle> &clipping_triangles, vec3 center_to_clip, vec3 clip_normal, b8 clip_against_plane) {
+void tessellate_all_triangles(Resizable_Array<Triangle> &triangles_to_clip, Resizable_Array<Triangle> &clipping_triangles, vec3 clip_normal, b8 clip_against_plane, b8 clip_triangles_behind, vec3 center_to_clip = vec3(0)) {
     Delimiter_Triangle_Should_Be_Clipped_Helper helper;
     helper.center_to_clip = center_to_clip;
     helper.clip_normal = clip_normal;
@@ -140,18 +140,12 @@ void tessellate_all_delimiter_triangles(Resizable_Array<Triangle> &triangles_to_
         for(s64 j = 0; j < clipping_triangles.count; ++j) {
             Triangle *t0 = &triangles_to_clip[i]; // This pointer might not be stable if we are growing triangles_to_clip a lot due to tessellation!
             Triangle *t1 = &clipping_triangles[j];
-            tessellate(t0, t1, clip_normal, &triangles_to_clip, clip_against_plane, (Triangle_Should_Be_Clipped) delimiter_triangle_should_be_clipped, &helper);
-        }
-    }
-}
 
-static
-void tessellate_all_root_triangles(Resizable_Array<Triangle> &triangles_to_clip, Resizable_Array<Triangle> &clipping_triangles, vec3 clip_normal) {
-    for(s64 i = 0; i < triangles_to_clip.count; ++i) {
-        for(s64 j = 0; j < clipping_triangles.count; ++j) {
-            Triangle *t0 = &triangles_to_clip[i]; // This pointer might not be stable if we are growing triangles_to_clip a lot due to tessellation!
-            Triangle *t1 = &clipping_triangles[j];
-            tessellate(t0, t1, clip_normal, &triangles_to_clip, false);
+            if(clip_triangles_behind) {
+                tessellate(t0, t1, clip_normal, &triangles_to_clip, clip_against_plane, (Triangle_Should_Be_Clipped) delimiter_triangle_should_be_clipped, &helper);
+            } else {
+                tessellate(t0, t1, clip_normal, &triangles_to_clip, clip_against_plane);
+            }
         }
     }
 }
@@ -166,13 +160,13 @@ void solve_delimiter_intersection(World *world, Delimiter_Intersection *intersec
     // t1 might not exist anymore after they have been clipped, which would lead to unexpected
     // results.
     //
-    Resizable_Array<Triangle> original_t0s = intersection->p0->triangles.copy(world->allocator); // @@Speed: Only copy this if we actually need it later. @@Speed: Maybe even start using a temp allocator for this.
+    Resizable_Array<Triangle> original_t0s = intersection->p0->triangles.copy(world->allocator);
 
     // Clip d0 based on the triangles of d1.
-    if(intersection->d0->level >= intersection->d1->level) tessellate_all_delimiter_triangles(intersection->p0->triangles, intersection->p1->triangles, intersection->d0->position, intersection->p1->n, false);
+    tessellate_all_triangles(intersection->p0->triangles, intersection->p1->triangles, intersection->p1->n, false, intersection->d0->level >= intersection->d1->level, intersection->d0->position);
 
     // Clip d1 based on the original triangles of d0.
-    if(intersection->d1->level >= intersection->d0->level) tessellate_all_delimiter_triangles(intersection->p1->triangles, original_t0s, intersection->d1->position, intersection->p0->n, false);
+    tessellate_all_triangles(intersection->p1->triangles, original_t0s, intersection->p0->n, false, intersection->d1->level >= intersection->d0->level, intersection->d1->position);
 
     original_t0s.clear();
 }
@@ -458,10 +452,10 @@ void World::clip_delimiters(b8 single_step) {
                     // :OriginalDelimiterTriangles
                     Resizable_Array<Triangle> original_t0s = delimiter_plane->triangles.copy(this->allocator); // @@Speed: Maybe even start using a temp allocator for this.
                     
-                    tessellate_all_delimiter_triangles(delimiter_plane->triangles, root_plane.triangles, delimiter.position, root_plane.n, true);
+                    tessellate_all_triangles(delimiter_plane->triangles, root_plane.triangles, root_plane.n, true, true, delimiter.position);
                     remove_all_triangles_behind_plane(delimiter_plane->triangles, &root_plane);
 
-                    tessellate_all_root_triangles(root_plane.triangles, original_t0s, delimiter_plane->n);
+                    tessellate_all_triangles(root_plane.triangles, original_t0s, delimiter_plane->n, false, false);
 
                     original_t0s.clear();
                 }

@@ -3,9 +3,6 @@
 #include "timing.h"
 #include "math/intersect.h"
 
-#define MAX_BVH_DEPTH             10
-#define MIN_BVH_ENTRIES_TO_SPLIT  4
-
 struct BVH_Node_Stack {
     BVH_Node *node;
     u32 depth;

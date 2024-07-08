@@ -7,7 +7,8 @@ static
 void maybe_add_entry_to_volume(World *world, vec3 cell_position, BVH_Entry* entry, Resizable_Array<Triangle> *volume) {
     // @Incomplete: Check for duplicates here, which could happen if a single triangle is in between two
     // flooded cells for example. We might just use a hash table with the entry pointer as a hash key?
-    if(!world->cast_ray_against_delimiters_and_root_planes(entry->center, cell_position - entry->center, 1.)) {
+    vec3 direction = cell_position - entry->center;
+    if(!world->cast_ray_against_delimiters_and_root_planes(entry->center + direction * CORE_EPSILON, direction, 1.)) { // We add a little offset to the position here so that we don't find the triangle that we are actually casting from...
         volume->add(entry->triangle);
     }
 }
