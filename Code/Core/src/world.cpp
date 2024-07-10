@@ -71,33 +71,35 @@ b8 check_edge_against_triangle(vec3 e0, vec3 e1, vec3 n0, vec3 n1, Triangle &tri
 }
 
 static
-void find_intersections(Delimiter *d0, Delimiter *d1, Resizable_Array<Delimiter_Intersection> &intersections) {
+void find_intersections(Triangulated_Plane &p0, Triangulated_Plane &p1, Delimiter *d0, Delimiter *d1, Resizable_Array<Delimiter_Intersection> &intersections) {
     // @@Speed: First check if the Triangulated_Planes have an intersection. If not, then there cannot be any
     // intersection between the actual triangles.
+    b8 intersection = false;
+    real distance = MAX_F32;
+
+    // We need to find the smallest distance for correct intersection resolution here, so we always need
+    // to check all triangles.
+    for(Triangle &t0 : p0.triangles) {
+        for(Triangle &t1 : p1.triangles) {
+            intersection |= check_edge_against_triangle(t0.p0, t0.p1, p0.n, p1.n, t1, d0->position, d1->position, distance);
+            intersection |= check_edge_against_triangle(t0.p1, t0.p2, p0.n, p1.n, t1, d0->position, d1->position, distance);
+            intersection |= check_edge_against_triangle(t0.p2, t0.p0, p0.n, p1.n, t1, d0->position, d1->position, distance);
+            intersection |= check_edge_against_triangle(t1.p0, t1.p1, p1.n, p0.n, t0, d1->position, d0->position, distance);
+            intersection |= check_edge_against_triangle(t1.p1, t1.p2, p1.n, p0.n, t0, d1->position, d0->position, distance);
+            intersection |= check_edge_against_triangle(t1.p2, t1.p0, p1.n, p0.n, t0, d1->position, d0->position, distance);
+        }
+    }
+
+    if(intersection) {
+        intersections.add({ distance, d0, d1, &p0, &p1 });
+    }
+}
+
+static
+void find_intersections(Delimiter *d0, Delimiter *d1, Resizable_Array<Delimiter_Intersection> &intersections) {
     for(s64 i = 0; i < d0->plane_count; ++i) {
-        Triangulated_Plane &p0 = d0->planes[i];
-
         for(s64 j = 0; j < d1->plane_count; ++j) {
-            Triangulated_Plane &p1 = d1->planes[j];
-            b8 intersection = false;
-            real distance = MAX_F32;
-
-            // @@Speed: Early exit.
-            
-            for(Triangle &t0 : p0.triangles) {
-                for(Triangle &t1 : p1.triangles) {
-                    intersection |= check_edge_against_triangle(t0.p0, t0.p1, p0.n, p1.n, t1, d0->position, d1->position, distance);
-                    intersection |= check_edge_against_triangle(t0.p1, t0.p2, p0.n, p1.n, t1, d0->position, d1->position, distance);
-                    intersection |= check_edge_against_triangle(t0.p2, t0.p0, p0.n, p1.n, t1, d0->position, d1->position, distance);
-                    intersection |= check_edge_against_triangle(t1.p0, t1.p1, p1.n, p0.n, t0, d1->position, d0->position, distance);
-                    intersection |= check_edge_against_triangle(t1.p1, t1.p2, p1.n, p0.n, t0, d1->position, d0->position, distance);
-                    intersection |= check_edge_against_triangle(t1.p2, t1.p0, p1.n, p0.n, t0, d1->position, d0->position, distance);
-                }
-            }
-
-            if(intersection) {
-                intersections.add({ distance, d0, d1, &p0, &p1 });
-            }
+            find_intersections(d0->planes[i], d1->planes[j], d0, d1, intersections);
         }
     }
 }
@@ -163,10 +165,10 @@ void solve_delimiter_intersection(World *world, Delimiter_Intersection *intersec
     Resizable_Array<Triangle> original_t0s = intersection->p0->triangles.copy(world->allocator);
 
     // Clip d0 based on the triangles of d1.
-    tessellate_all_triangles(intersection->p0->triangles, intersection->p1->triangles, intersection->p1->n, false, intersection->d0->level >= intersection->d1->level, intersection->d0->position);
+    tessellate_all_triangles(intersection->p0->triangles, intersection->p1->triangles, intersection->p1->n, false, intersection->d0 != intersection->d1 && intersection->d0->level >= intersection->d1->level, intersection->d0->position);
 
     // Clip d1 based on the original triangles of d0.
-    tessellate_all_triangles(intersection->p1->triangles, original_t0s, intersection->p0->n, false, intersection->d1->level >= intersection->d0->level, intersection->d1->position);
+    tessellate_all_triangles(intersection->p1->triangles, original_t0s, intersection->p0->n, false, intersection->d0 != intersection->d1 && intersection->d1->level >= intersection->d0->level, intersection->d1->position);
 
     original_t0s.clear();
 }
@@ -414,8 +416,23 @@ void World::clip_delimiters(b8 single_step) {
         intersections.allocator = this->allocator;
 
         for(s64 i = 0; i < this->delimiters.count; ++i) {
+            Delimiter *d0 = &this->delimiters[i];
+            
+            // Find intersections between clipping planes of the same delimiter, which can happen
+            // if a delimiter has planes on different axis. These planes will only tessellate each
+            // other (so that we can properly assemble anchor volumes), but they will not clip
+            // each other.
+            for(s64 j = 0; j < d0->plane_count; ++j) {
+                for(s64 k = j + 1; k < d0->plane_count; ++k) {
+                    find_intersections(d0->planes[j], d0->planes[k], d0, d0, intersections);
+                }
+            }
+
+            // Find intersections with all other delimiters. Only check delimiters after this one in
+            // the array to avoid duplicates.
             for(s64 j = i + 1; j < this->delimiters.count; ++j) {
-                find_intersections(&this->delimiters[i], &this->delimiters[j], intersections);
+                Delimiter *d1 = &this->delimiters[j];
+                find_intersections(d0, d1, intersections);
             }
         }
 
