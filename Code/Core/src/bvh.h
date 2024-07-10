@@ -5,7 +5,7 @@
 
 #include "typedefs.h"
 
-#define MAX_BVH_DEPTH             1 // nocheckin
+#define MAX_BVH_DEPTH             9
 #define MIN_BVH_ENTRIES_TO_SPLIT  4
 
 //

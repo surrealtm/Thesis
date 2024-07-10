@@ -111,9 +111,6 @@ void floodfill(Flood_Fill *ff, World *world, Allocator *allocator, vec3 world_sp
 
     ff->origin = world_space_to_cell_space(ff, world_space_center);
     definitely_add_cell_to_frontier(ff, ff->origin);
-
-    // nocheckin
-    vec3 origin_to_world_space_center = get_cell_world_space_center(ff, ff->origin);
     
     while(ff->frontier.count) {
         Cell *head = ff->frontier.pop_first(); // @@Speed: Pop last, that should be much more efficient. We don't care about order here, so that should not be a problem.
