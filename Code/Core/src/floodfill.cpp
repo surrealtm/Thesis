@@ -9,7 +9,7 @@
 static inline
 v3i world_space_to_cell_space(Flood_Fill *ff, vec3 world_space) {
     vec3 relative_to_center = world_space - ff->world_space_center;
-    vec3 scaled_relative    = relative_to_center * vec3(CELLS_PER_WORLD_SPACE_UNIT);
+    vec3 scaled_relative    = relative_to_center / vec3(ff->cell_world_space_size); // @@Speed: Use inverse instead of division.
     return v3i((s32) clamp(round(scaled_relative.x + ff->hx / 2. - 1), 0, ff->hx - 1),
                (s32) clamp(round(scaled_relative.y + ff->hy / 2. - 1), 0, ff->hy - 1),
                (s32) clamp(round(scaled_relative.z + ff->hz / 2. - 1), 0, ff->hz - 1));
@@ -79,9 +79,9 @@ Cell *get_cell(Flood_Fill *ff, v3i position) {
 }
 
 vec3 get_cell_world_space_center(Flood_Fill *ff, v3i position) {
-    real xoffset = position.x * CELL_WORLD_SPACE_SIZE - ff->origin.x * CELL_WORLD_SPACE_SIZE;
-    real yoffset = position.y * CELL_WORLD_SPACE_SIZE - ff->origin.y * CELL_WORLD_SPACE_SIZE;
-    real zoffset = position.z * CELL_WORLD_SPACE_SIZE - ff->origin.z * CELL_WORLD_SPACE_SIZE;
+    real xoffset = (position.x - ff->origin.x) * ff->cell_world_space_size;
+    real yoffset = (position.y - ff->origin.y) * ff->cell_world_space_size;
+    real zoffset = (position.z - ff->origin.z) * ff->cell_world_space_size;
 
     return ff->world_space_center + vec3(xoffset, yoffset, zoffset);
 }
@@ -90,17 +90,18 @@ vec3 get_cell_world_space_center(Flood_Fill *ff, Cell *cell) {
     return get_cell_world_space_center(ff, cell->position);
 }
 
-void floodfill(Flood_Fill *ff, World *world, Allocator *allocator, vec3 world_space_center) {
+void floodfill(Flood_Fill *ff, World *world, Allocator *allocator, vec3 world_space_center, real cell_world_space_size) {
     tmFunction(TM_FLOODING_COLOR);
 
+    ff->cell_world_space_size = cell_world_space_size;
     ff->allocator = allocator;
 
     // Make sure that we have an uneven number of cells, so that the origin cell is actually centered on the
     // world space center (with an even number of cells, an edge between two cells would be centered on the
-    // world space center)
-    ff->hx        = ceil_to_uneven(world->half_size.x * CELLS_PER_WORLD_SPACE_UNIT * 2);
-    ff->hy        = ceil_to_uneven(world->half_size.y * CELLS_PER_WORLD_SPACE_UNIT * 2);
-    ff->hz        = ceil_to_uneven(world->half_size.z * CELLS_PER_WORLD_SPACE_UNIT * 2);
+    // world space center).
+    ff->hx        = ceil_to_uneven(world->half_size.x / ff->cell_world_space_size * 2.);
+    ff->hy        = ceil_to_uneven(world->half_size.y / ff->cell_world_space_size * 2.);
+    ff->hz        = ceil_to_uneven(world->half_size.z / ff->cell_world_space_size * 2.);
 
     ff->cells     = (Cell *) ff->allocator->allocate(ff->hx * ff->hy * ff->hz * sizeof(Cell));
     ff->world_space_center = world_space_center; // The world is centered around (0, 0, 0) by default.

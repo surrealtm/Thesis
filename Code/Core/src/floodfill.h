@@ -6,9 +6,6 @@
 
 #include "typedefs.h"
 
-#define CELL_WORLD_SPACE_SIZE      10. // @Incomplete: Make this a dynamic variable, so that the user can define it when creating the world.
-#define CELLS_PER_WORLD_SPACE_UNIT (1. / CELL_WORLD_SPACE_SIZE)
-
 struct World;
 struct Allocator;
 
@@ -33,13 +30,15 @@ struct Flood_Fill {
     Resizable_Array<Cell *> flooded_cells; // So that we can quickly iterate over all flooded cells in the assembler.
     
     s64 hx, hy, hz; // Dimensions in cells
+    real cell_world_space_size; // In world space
     v3i origin; // The first cell that was flooded (in cell coordinates)
     vec3 world_space_center; // World Space Center of the cell grid.
+
     Cell *cells;
 };
 
 Cell *get_cell(Flood_Fill *ff, v3i position);
 vec3 get_cell_world_space_center(Flood_Fill *ff, v3i position);
 vec3 get_cell_world_space_center(Flood_Fill *ff, Cell *cell);
-void floodfill(Flood_Fill *ff, World *world, Allocator *allocator, vec3 world_space_center);
+void floodfill(Flood_Fill *ff, World *world, Allocator *allocator, vec3 world_space_center, real cell_world_space_size);
 void deallocate_flood_fill(Flood_Fill *ff);

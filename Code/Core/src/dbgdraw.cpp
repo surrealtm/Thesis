@@ -186,8 +186,8 @@ void debug_draw_bvh(Dbg_Internal_Draw_Data &_internal, BVH *bvh) {
 }
 
 static
-void debug_draw_flood_fill_cell_center(Dbg_Internal_Draw_Data &_internal, vec3 center, Dbg_Draw_Color color) {
-    real half_size = .1 * CELL_WORLD_SPACE_SIZE;
+void debug_draw_flood_fill_cell_center(Dbg_Internal_Draw_Data &_internal, Flood_Fill *ff, vec3 center, Dbg_Draw_Color color) {
+    real half_size = .1 * ff->cell_world_space_size;
     f32 thickness = (f32) (half_size / 4.f);
     debug_draw_line(_internal, center - vec3(half_size, 0., 0.), center + vec3(half_size, 0., 0.), thickness, color);
     debug_draw_line(_internal, center - vec3(0., half_size, 0.), center + vec3(0., half_size, 0.), thickness, color);
@@ -205,7 +205,7 @@ void debug_draw_flood_fill(Dbg_Internal_Draw_Data &_internal, Flood_Fill *ff) {
                 // Draw the outline. Only draw the "required" lines to avoid a lot of overhead by duplicate lines.
                 //
                 {
-					real half_size       = CELL_WORLD_SPACE_SIZE / 2.f;
+					real half_size       = ff->cell_world_space_size / 2.f;
 					f32 thickness        = dbg_flood_fill_cell_thickness;
 					Dbg_Draw_Color color = dbg_flood_fill_cell_color;
                     
@@ -247,11 +247,11 @@ void debug_draw_flood_fill(Dbg_Internal_Draw_Data &_internal, Flood_Fill *ff) {
                     case CELL_Untouched: break;
 
                     case CELL_Currently_In_Frontier:
-                        debug_draw_flood_fill_cell_center(_internal, center, dbg_cell_frontier_color);
+                        debug_draw_flood_fill_cell_center(_internal, ff, center, dbg_cell_frontier_color);
                         break;
                         
                     case CELL_Has_Been_Flooded:
-                        debug_draw_flood_fill_cell_center(_internal, center, dbg_cell_flooded_color);
+                        debug_draw_flood_fill_cell_center(_internal, ff, center, dbg_cell_flooded_color);
                         //_internal.lines.add({ center, dbg_v3f(get_cell_world_space_center(ff, cell->added_from_cell)), dbg_cell_relation_thickness, dbg_cell_relation_color.r, dbg_cell_relation_color.r, dbg_cell_relation_color.b }); // Draw a connection between the cell that added this cell to the frontier.
                         break;
                     }
@@ -260,7 +260,7 @@ void debug_draw_flood_fill(Dbg_Internal_Draw_Data &_internal, Flood_Fill *ff) {
         }
     }
 
-    debug_draw_flood_fill_cell_center(_internal, ff->world_space_center, Dbg_Draw_Color { 255, 0, 0, 255 });
+    debug_draw_flood_fill_cell_center(_internal, ff, ff->world_space_center, Dbg_Draw_Color { 255, 0, 0, 255 });
 }
 
 Debug_Draw_Data debug_draw_world(World *world, Debug_Draw_Options options) {
