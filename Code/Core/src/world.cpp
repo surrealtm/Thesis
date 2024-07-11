@@ -508,8 +508,8 @@ void World::build_anchor_volumes(real cell_world_space_size) {
         Hardware_Time now = os_get_hardware_time();
         if(os_convert_hardware_time(now - calculation_start, Seconds) > 1) {
             printf("Calculated volume for anchor %" PRId64 " of %" PRId64 " (total: %fs, this anchor: %fs)\n", anchor_index, this->anchors.count, os_convert_hardware_time(now - calculation_start, Seconds), os_convert_hardware_time(now - anchor_start, Seconds));
-            anchor_start = now;
         }
+        anchor_start = now;
     }
 }
 

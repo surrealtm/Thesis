@@ -74,22 +74,34 @@ void BVH_Stats::print_to_stdout() {
     printf("  Total Node Count:  %" PRId64 "\n", this->total_node_count);
     printf("  Total Entry Count: %" PRId64 "\n", this->total_entry_count);
     printf("  AVG Fill Rate:     %f\n", this->total_entry_count / (f32) this->total_node_count);
+    printf("  AVG Shrinkage:     %f\n", this->average_shrinkage);
     printf("================== BVH ==================\n");
 
 }
 
-void BVH_Node::update_stats(BVH_Stats *stats, s64 depth) {
+void BVH_Node::update_stats(BVH_Node *parent, BVH_Stats *stats, s64 depth) {
     ++stats->total_node_count;
 
+    if(parent) {
+        real shrinkage = 1. - (this->volume() / parent->volume());
+        assert(shrinkage >= 0 && shrinkage <= 1);
+        stats->average_shrinkage += shrinkage;
+    }
+    
     if(this->leaf) {
         stats->max_leaf_depth      = max(stats->max_leaf_depth, depth);
         stats->min_leaf_depth      = min(stats->min_leaf_depth, depth);
         stats->max_entries_in_leaf = max(stats->max_entries_in_leaf, this->entry_count);
         stats->min_entries_in_leaf = min(stats->min_entries_in_leaf, this->entry_count);
     } else {
-        if(this->children[0]) this->children[0]->update_stats(stats, depth + 1);
-        if(this->children[1]) this->children[1]->update_stats(stats, depth + 1);
+        if(this->children[0]) this->children[0]->update_stats(this, stats, depth + 1);
+        if(this->children[1]) this->children[1]->update_stats(this, stats, depth + 1);
     }
+}
+
+real BVH_Node::volume() {
+    vec3 delta = this->max - this->min;
+    return delta.x * delta.y * delta.z;
 }
 
 void BVH::create(Allocator *allocator) {
@@ -310,8 +322,11 @@ BVH_Stats BVH::stats() {
     stats.min_entries_in_leaf = MAX_S64;
     stats.total_node_count    = 0;
     stats.total_entry_count   = this->entries.count;
+    stats.average_shrinkage   = 0.;
     
-    this->root.update_stats(&stats, 0);
+    this->root.update_stats(null, &stats, 0);
+
+    stats.average_shrinkage /= (real) stats.total_node_count;
     
     return stats;
 }

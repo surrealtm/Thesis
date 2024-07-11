@@ -19,12 +19,8 @@ struct BVH_Stats {
     s64 max_entries_in_leaf;
     s64 total_node_count;
     s64 total_entry_count;
-
-    // @Incomplete: Maybe figure out a way to represent the "shrinking" volume between the root node and all the
-    // leaf nodes. Essentially, the bigger this shrinkage, the better the BVH I think. (At least some metric).
-    // Right now, for the center_block test, this shrinkage is actually 0 (and therefore, the additional
-    // computational overhead is large).
-    
+    real average_shrinkage; // This shrinkage of a node is defined as (1 - my_volume / parent_volume). The closer this gets to 1, the more efficient the BVH representation is.
+        
     void print_to_stdout();
 };
 
@@ -47,8 +43,9 @@ struct BVH_Node {
     s64 first_entry_index, entry_count;
     BVH_Node *children[2];
     b8 leaf;
-
-    void update_stats(BVH_Stats *stats, s64 depth);
+    
+    void update_stats(BVH_Node *parent, BVH_Stats *stats, s64 depth);
+    real volume();
 };
 
 struct BVH {
