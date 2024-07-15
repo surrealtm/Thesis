@@ -386,9 +386,6 @@ void World::create_bvh() {
     }
     
     this->bvh->subdivide();
-
-    BVH_Stats stats = this->bvh->stats();
-    stats.print_to_stdout();
 }
 
 void World::create_bvh_from_triangles(Resizable_Array<Triangle> &triangles) {
@@ -400,9 +397,6 @@ void World::create_bvh_from_triangles(Resizable_Array<Triangle> &triangles) {
     for(Triangle &triangle : triangles) this->bvh->add(triangle);
     
     this->bvh->subdivide();
-
-    BVH_Stats stats = this->bvh->stats();
-    stats.print_to_stdout();
 }
 
 void World::clip_delimiters(b8 single_step) {
@@ -557,8 +551,8 @@ b8 World::cast_ray_against_delimiters_and_root_planes(vec3 ray_origin, vec3 ray_
 
 real get_random_real_uniform(real low, real high) {
 #if CORE_SINGLE_PRECISION
-    return get_random_f32_uniform(low, high);
+    return default_random_generator.random_f32(low, high);
 #else
-    return get_random_f64_uniform(low, high);
+    return default_random_generator.random_f64(low, high);
 #endif
 }

@@ -208,18 +208,22 @@ one_viewer_frame :: (viewer: *Viewer) {
 run_test :: (viewer: *Viewer, test_index: s64) {
     destroy_test_data(viewer);
 
+    viewer.test_name = TESTS[test_index].name;
+
+    start := get_hardware_time();
     core_begin_profiling();
     viewer.world_handle = TESTS[test_index].proc(viewer.stepping_mode);
     core_stop_profiling();
+    end := get_hardware_time();
 
+    print("Completed test '%' (%ms).\n", viewer.test_name, convert_hardware_time(end - start, .Milliseconds));
+    
     if viewer.world_handle != null {
+        viewer.profiling_data     = core_get_profiling_data();
         viewer.debug_draw_data    = core_debug_draw_world(viewer.world_handle, viewer.debug_draw_options);
         viewer.memory_information = core_get_memory_information(viewer.world_handle);
     }
-    
-    viewer.profiling_data  = core_get_profiling_data();
-    viewer.test_name       = TESTS[test_index].name;
-    
+        
     set_window_name(*viewer.window, sprint(*viewer.frame_allocator, "Viewer: %", viewer.test_name));
 }
 

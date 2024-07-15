@@ -43,7 +43,7 @@ void create_random_delimiters(World *world, s64 count) {
     const real small_size = static_cast<real>(.1);
 
     for(s64 i = 0; i < count; ++i) {
-        int small_dimension = get_random_u32(0, 3);
+        u64 small_dimension = default_random_generator.random_u64(0, 3);
                 
         vec3 size;
 
