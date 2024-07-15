@@ -14,17 +14,16 @@ core_destroy_world :: #foreign (world: World_Handle);
 
 /* ------------------------------------------------- Testing ------------------------------------------------- */
 
-core_do_world_step :: #foreign (world: World_Handle, step_mode: bool);
-
-core_do_house_test         :: #foreign (step_into: bool) -> World_Handle;
-core_do_bvh_test           :: #foreign (step_into: bool) -> World_Handle;
-core_do_large_volumes_test :: #foreign (step_into: bool) -> World_Handle;
-core_do_cutout_test        :: #foreign (step_into: bool) -> World_Handle;
-core_do_circle_test        :: #foreign (step_into: bool) -> World_Handle;
-core_do_u_shape_test       :: #foreign (step_into: bool) -> World_Handle;
-core_do_center_block_test  :: #foreign (step_into: bool) -> World_Handle;
-core_do_gallery_test       :: #foreign (step_into: bool) -> World_Handle;
-core_do_jobs_test          :: #foreign (step_into: bool) -> World_Handle;
+core_do_house_test         :: #foreign () -> World_Handle;
+core_do_bvh_test           :: #foreign () -> World_Handle;
+core_do_large_volumes_test :: #foreign () -> World_Handle;
+core_do_cutout_test        :: #foreign () -> World_Handle;
+core_do_circle_test        :: #foreign () -> World_Handle;
+core_do_u_shape_test       :: #foreign () -> World_Handle;
+core_do_center_block_test  :: #foreign () -> World_Handle;
+core_do_gallery_test       :: #foreign () -> World_Handle;
+core_do_roof_test          :: #foreign () -> World_Handle;
+core_do_jobs_test          :: #foreign () -> World_Handle;
 
 
 

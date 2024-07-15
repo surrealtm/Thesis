@@ -185,27 +185,25 @@ public class Core_Bindings {
 
 #if FOUNDATION_DEVELOPER
     /* ----------------------------------------------- Testing ----------------------------------------------- */
-    [DllImport("Core.dll")]
-    public static extern void core_do_world_step(World_Handle world_handle, bool step_mode);
 
     [DllImport("Core.dll")]
-    public static extern World_Handle core_do_house_test(bool step_into);
+    public static extern World_Handle core_do_house_test();
     [DllImport("Core.dll")]
-    public static extern World_Handle core_do_bvh_test(bool step_into);
+    public static extern World_Handle core_do_bvh_test();
     [DllImport("Core.dll")]
-    public static extern World_Handle core_do_large_volumes_test(bool step_into);
+    public static extern World_Handle core_do_large_volumes_test();
     [DllImport("Core.dll")]
-    public static extern World_Handle core_do_cutout_test(bool step_into);
+    public static extern World_Handle core_do_cutout_test();
     [DllImport("Core.dll")]
-    public static extern World_Handle core_do_circle_test(bool step_into);
+    public static extern World_Handle core_do_circle_test();
     [DllImport("Core.dll")]
-    public static extern World_Handle core_do_u_shape_test(bool step_into);
+    public static extern World_Handle core_do_u_shape_test();
     [DllImport("Core.dll")]
-    public static extern World_Handle core_do_center_block_test(bool step_into);
+    public static extern World_Handle core_do_center_block_test();
     [DllImport("Core.dll")]
-    public static extern World_Handle core_do_gallery_test(bool step_into);
+    public static extern World_Handle core_do_gallery_test();
     [DllImport("Core.dll")]
-    public static extern World_Handle core_do_jobs_test(bool step_into);
+    public static extern World_Handle core_do_jobs_test();
 
 
 

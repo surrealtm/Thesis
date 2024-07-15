@@ -13,6 +13,7 @@ public enum Test_Case {
     U_Shape,
     Center_Block,
     Gallery,
+    Roof,
     Jobs,
 }
 
@@ -87,6 +88,14 @@ public class Tester : MonoBehaviour {
 
         case Test_Case.Center_Block:
             this.world_handle = Core_Bindings.core_do_center_block_test(this.step_into);
+            break;
+
+        case Test_Case.Gallery:
+            this.world_handle = Core_Bindings.core_do_gallery_block_test(this.step_into);
+            break;
+
+        case Test_Case.Roof:
+            this.world_handle = Core_Bindings.core_do_roof_block_test(this.step_into);
             break;
 
         case Test_Case.Jobs:

@@ -95,7 +95,7 @@ struct World {
     // --- Internal implementation
     void create_bvh();
     void create_bvh_from_triangles(Resizable_Array<Triangle> &triangles);
-    void clip_delimiters(b8 single_step);
+    void clip_delimiters();
     void build_anchor_volumes(real cell_world_space_size = 10.);
 
     b8 cast_ray_against_delimiters_and_root_planes(vec3 ray_origin, vec3 ray_direction, real max_ray_distance);

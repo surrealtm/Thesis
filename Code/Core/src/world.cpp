@@ -110,6 +110,20 @@ Sort_Comparison_Result compare_delimiter_intersections(Delimiter_Intersection *l
 }
 
 static
+vec3 get_adjusted_clip_normal(vec3 input_normal, vec3 center_to_clip, vec3 clip_point) {
+    if(v3_dot_v3(input_normal, center_to_clip - clip_point) < 0.) {
+        input_normal = -input_normal;
+    }
+
+    return input_normal;
+}
+
+static
+vec3 get_adjusted_clip_normal(Triangulated_Plane *clipping_plane, vec3 center_to_clip) {
+    return get_adjusted_clip_normal(clipping_plane->n, center_to_clip, clipping_plane->triangles[0].p0);
+}
+
+static
 b8 delimiter_triangle_should_be_clipped(Triangle *generated_triangle, Triangle *clip_triangle, Delimiter_Triangle_Should_Be_Clipped_Helper *helper) {
     //
     // When clipping generated triangles while solving delimiter intersections, we
@@ -121,12 +135,8 @@ b8 delimiter_triangle_should_be_clipped(Triangle *generated_triangle, Triangle *
     // on the clip triangle (since the "actual" normal doesn't matter, just that the normal
     // faces towards the delimiter origin).
     //
-    vec3 adjusted_clip_normal = helper->clip_normal;
+    vec3 adjusted_clip_normal = get_adjusted_clip_normal(helper->clip_normal, helper->center_to_clip, clip_triangle->p0);
 
-    if(v3_dot_v3(adjusted_clip_normal, helper->center_to_clip - clip_triangle->p0) < 0.) {
-        adjusted_clip_normal = -adjusted_clip_normal;
-    }
-    
     b8 should_be_clipped = generated_triangle->all_points_behind_plane(clip_triangle, adjusted_clip_normal); // We need to check this, because if the two intersection points are not on the edges of the generated triangles, then we might generate triangles which are partially behind the clipping plane as intended.
     
     return should_be_clipped;
@@ -153,6 +163,31 @@ void tessellate_all_triangles(Resizable_Array<Triangle> &triangles_to_clip, Resi
 }
 
 static
+void remove_all_triangles_behind_plane(Resizable_Array<Triangle> &triangles_to_clip, Resizable_Array<Triangle> &plane_triangles, vec3 plane_normal) {
+    for(s64 i = 0; i < triangles_to_clip.count; ) {
+        Triangle *t0 = &triangles_to_clip[i];
+        b8 should_remove_triangle = false;
+
+        // @@Speed: Isn't a single no_point_before_plane enough here? Since that check does not actually depend
+        // on the vertices (clue is in the name plane dude).
+        for(s64 j = 0; j < plane_triangles.count; ++j) {
+            Triangle *t1 = &plane_triangles[j];
+
+            if(t0->no_point_before_plane(t1, plane_normal)) {
+                should_remove_triangle = true;
+                break;
+            }
+        }
+
+        if(should_remove_triangle) {
+            triangles_to_clip.remove(i);
+        } else {
+            ++i;
+        }
+    }
+}
+
+static
 void solve_delimiter_intersection(World *world, Delimiter_Intersection *intersection) {
     //
     // :OriginalDelimiterTriangles
@@ -166,34 +201,13 @@ void solve_delimiter_intersection(World *world, Delimiter_Intersection *intersec
 
     // Clip d0 based on the triangles of d1.
     tessellate_all_triangles(intersection->p0->triangles, intersection->p1->triangles, intersection->p1->n, false, intersection->d0 != intersection->d1 && intersection->d0->level >= intersection->d1->level, intersection->d0->position);
+    remove_all_triangles_behind_plane(intersection->p0->triangles, intersection->p1->triangles, get_adjusted_clip_normal(intersection->p1, intersection->d0->position));
 
     // Clip d1 based on the original triangles of d0.
     tessellate_all_triangles(intersection->p1->triangles, original_t0s, intersection->p0->n, false, intersection->d0 != intersection->d1 && intersection->d1->level >= intersection->d0->level, intersection->d1->position);
+    remove_all_triangles_behind_plane(intersection->p1->triangles, intersection->p0->triangles, get_adjusted_clip_normal(intersection->p0, intersection->d1->position));
 
     original_t0s.clear();
-}
-
-static
-void remove_all_triangles_behind_plane(Resizable_Array<Triangle> &triangles_to_clip, Triangulated_Plane *clipping_plane) {
-    for(s64 i = 0; i < triangles_to_clip.count; ) {
-        Triangle *t0 = &triangles_to_clip[i];
-        b8 should_remove_triangle = false;
-
-        for(s64 j = 0; j < clipping_plane->triangles.count; ++j) {
-            Triangle *t1 = &clipping_plane->triangles[j];
-
-            if(t0->no_point_before_plane(t1, clipping_plane->n)) {
-                should_remove_triangle = true;
-                break;
-            }
-        }
-
-        if(should_remove_triangle) {
-            triangles_to_clip.remove(i);
-        } else {
-            ++i;
-        }
-    }
 }
 
 
@@ -357,7 +371,7 @@ void World::add_centered_delimiter_clipping_plane(Delimiter *delimiter, Axis nor
 }
 
 void World::calculate_volumes() {
-    this->clip_delimiters(false);
+    this->clip_delimiters();
     this->create_bvh();
     this->build_anchor_volumes();
 }
@@ -399,7 +413,7 @@ void World::create_bvh_from_triangles(Resizable_Array<Triangle> &triangles) {
     this->bvh->subdivide();
 }
 
-void World::clip_delimiters(b8 single_step) {
+void World::clip_delimiters() {
     tmFunction(TM_WORLD_COLOR);
 
     {
@@ -464,7 +478,7 @@ void World::clip_delimiters(b8 single_step) {
                     Resizable_Array<Triangle> original_t0s = delimiter_plane->triangles.copy(this->allocator); // @@Speed: Maybe even start using a temp allocator for this.
                     
                     tessellate_all_triangles(delimiter_plane->triangles, root_plane.triangles, root_plane.n, true, true, delimiter.position);
-                    remove_all_triangles_behind_plane(delimiter_plane->triangles, &root_plane);
+                    remove_all_triangles_behind_plane(delimiter_plane->triangles, root_plane.triangles, root_plane.n);
 
                     tessellate_all_triangles(root_plane.triangles, original_t0s, delimiter_plane->n, false, false);
 

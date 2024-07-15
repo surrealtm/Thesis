@@ -65,7 +65,7 @@ REQUESTED_FPS: f64 : 60;
 
 Viewer_Test :: struct {
     name: string;
-    proc: (step_into: bool) -> World_Handle;
+    proc: () -> World_Handle;
 }
 
 TESTS: []Viewer_Test : {
@@ -77,6 +77,7 @@ TESTS: []Viewer_Test : {
         .{ "u_shape",       core_do_u_shape_test },
         .{ "center_block",  core_do_center_block_test },
         .{ "gallery",       core_do_gallery_test },
+        .{ "roof",          core_do_roof_test },
         .{ "jobs",          core_do_jobs_test },
 };
 
@@ -106,7 +107,6 @@ Viewer :: struct {
     
     // Core data.
     test_name: string;
-    stepping_mode:   bool = false;
     memory_tracking: bool = false;
     
     world_handle: World_Handle;
@@ -132,13 +132,6 @@ menu_bar :: (viewer: *Viewer) {
     
     ui_set_width(*viewer.ui, .Percentage_Of_Parent, 1, 0);
     ui_spacer(*viewer.ui);
-
-    if viewer.stepping_mode && viewer.world_handle && (ui_button(*viewer.ui, "Step") || viewer.window.key_repeated[.Space]) {
-        core_do_world_step(viewer.world_handle, viewer.stepping_mode);
-        rebuild_debug_draw_data(viewer);
-    }
-    
-    ui_toggle_button_with_pointer(*viewer.ui, "Step Mode", *viewer.stepping_mode);
 
     ui_set_width(*viewer.ui, .Label_Size, 10, 1);
     if ui_toggle_button_with_pointer(*viewer.ui, "Track Memory", *viewer.memory_tracking) {
@@ -212,7 +205,7 @@ run_test :: (viewer: *Viewer, test_index: s64) {
 
     start := get_hardware_time();
     core_begin_profiling();
-    viewer.world_handle = TESTS[test_index].proc(viewer.stepping_mode);
+    viewer.world_handle = TESTS[test_index].proc();
     core_stop_profiling();
     end := get_hardware_time();
 

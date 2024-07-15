@@ -76,8 +76,7 @@ Memory_Allocator_Information memory_allocator_information(string name, Allocator
 
 static
 void sample_job_procedure(void * /*user_pointer*/) {
-    World_Handle handle = core_do_bvh_test(false);
-    //World_Handle handle = core_do_center_block_test(false);
+    World_Handle handle = core_do_center_block_test();
     core_destroy_world(handle);
 }
 #endif
@@ -133,12 +132,7 @@ extern "C" {
 #if FOUNDATION_DEVELOPER
     /* ----------------------------------------------- Testing ------------------------------------------------ */
 
-    void core_do_world_step(World_Handle world_handle, b8 step_mode) {
-        World *world = (World *) world_handle;
-        world->clip_delimiters(step_mode);
-    }
-
-    World_Handle core_do_house_test(b8 step_into) {
+    World_Handle core_do_house_test() {
         tmZone("do_house_test", TM_SYSTEM_COLOR);
 
         World *world = (World *) core_create_world(100, 10, 100);
@@ -173,7 +167,7 @@ extern "C" {
         return (World_Handle) world;
     }
 
-    World_Handle core_do_bvh_test(b8 step_into) {
+    World_Handle core_do_bvh_test() {
         tmZone("do_bvh_test", TM_SYSTEM_COLOR);
         
         Resizable_Array<Triangle> debug_mesh = build_sample_triangle_mesh(Default_Allocator);
@@ -183,7 +177,7 @@ extern "C" {
         return world;
     }
 
-    World_Handle core_do_large_volumes_test(b8 step_into) {
+    World_Handle core_do_large_volumes_test() {
         tmZone("do_large_volumes_test", TM_SYSTEM_COLOR);
         
         World *world = (World *) core_create_world(100, 40, 100);
@@ -199,7 +193,7 @@ extern "C" {
         return world;
     }
     
-    World_Handle core_do_cutout_test(b8 step_into) {
+    World_Handle core_do_cutout_test() {
         tmFunction(TM_SYSTEM_COLOR);
 
         World *world = (World *) core_create_world(50, 10, 50);
@@ -224,7 +218,7 @@ extern "C" {
         return world;
     }
 
-    World_Handle core_do_circle_test(b8 step_into) {
+    World_Handle core_do_circle_test() {
         tmFunction(TM_SYSTEM_COLOR);
 
         World *world = (World *) core_create_world(50, 1, 50);
@@ -252,7 +246,7 @@ extern "C" {
         return world;
     }
 
-    World_Handle core_do_u_shape_test(b8 step_into) {
+    World_Handle core_do_u_shape_test() {
         tmFunction(TM_SYSTEM_COLOR);
 
         World *world = (World *) core_create_world(50, 10, 50);
@@ -274,7 +268,7 @@ extern "C" {
         return world;
     }
 
-    World_Handle core_do_center_block_test(b8 step_into) {
+    World_Handle core_do_center_block_test() {
         tmFunction(TM_SYSTEM_COLOR);
 
         World *world = (World *) core_create_world(50, 10, 50);
@@ -290,7 +284,7 @@ extern "C" {
         return world;
     }
 
-    World_Handle core_do_gallery_test(b8 step_into) {
+    World_Handle core_do_gallery_test() {
         tmFunction(TM_SYSTEM_COLOR);
 
         World *world = (World *) core_create_world(20, 10, 20);
@@ -331,7 +325,38 @@ extern "C" {
         return world;
     }
 
-    World_Handle core_do_jobs_test(b8 step_into) {   
+    World_Handle core_do_roof_test() {
+        tmFunction(TM_SYSTEM_COLOR);
+
+        World *world = (World *) core_create_world(20, 10, 20);
+        
+        f64 inner = 5.0;
+        f64 angle = 0.1;
+
+        
+        auto wall_north = world->add_delimiter("WallNorth"_s, vec3(0, 0, -inner), vec3(inner, .25, .5), vec3(+angle, 0, 0), 0);
+        world->add_centered_delimiter_clipping_plane(wall_north, AXIS_Z);
+
+        auto wall_south = world->add_delimiter("WallSouth"_s, vec3(0, 0, +inner), vec3(inner, .25, .5), vec3(-angle, 0, 0), 0);
+        world->add_centered_delimiter_clipping_plane(wall_south, AXIS_Z);
+
+        auto wall_east = world->add_delimiter("WallEast"_s, vec3(+inner, 0, 0), vec3(.5, .25, inner), vec3(0, 0, +angle), 0);
+        world->add_centered_delimiter_clipping_plane(wall_east, AXIS_X);
+        
+        auto wall_west = world->add_delimiter("WallWest"_s, vec3(-inner, 0, 0), vec3(.5, .25, inner), vec3(0, 0, -angle), 0);
+        world->add_centered_delimiter_clipping_plane(wall_west, AXIS_X);
+
+        auto bottom = world->add_delimiter("Bottom"_s, vec3(0, 0, 0), vec3(inner, .25, inner), vec3(0, 0, 0), 0);
+        world->add_centered_delimiter_clipping_plane(bottom, AXIS_Y);
+        
+        world->add_anchor("room"_s, vec3(0, 1, 0));
+
+        world->calculate_volumes();
+
+        return world;        
+    }
+    
+    World_Handle core_do_jobs_test() {   
         tmFunction(TM_DEFAULT_COLOR);
         Job_System jobs;
         create_job_system(&jobs, 10);
