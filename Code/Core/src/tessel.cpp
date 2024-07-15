@@ -78,13 +78,13 @@ b8 far_point_inside_outer_triangle(Tessellator *tessellator, s64 c0, s64 c1, s64
 
     // @Cut'N'Paste: From point_inside_triangle in intersect.cpp.
     {
-#define sign(p0, p1, p2) ((p0.x - p2.x) * (p1.y - p2.y) - (p1.x - p2.x) * (p0.y - p2.y))
+#define edge_sign(p0, p1, p2) ((p0.x - p2.x) * (p1.y - p2.y) - (p1.x - p2.x) * (p0.y - p2.y))
 
-        real d0 = sign(f, p0, p1);
-        real d1 = sign(f, p1, p2);
-        real d2 = sign(f, p2, p0);
+        real d0 = edge_sign(f, p0, p1);
+        real d1 = edge_sign(f, p1, p2);
+        real d2 = edge_sign(f, p2, p0);
 
-#undef sign
+#undef edge_sign
 
         // Handle cases in which the point lies on the edge of a triangle, in which case we may
         // get very small positive or negative numbers.
@@ -214,7 +214,7 @@ void generate_new_triangle(Tessellator *tessellator, vec3 p0, vec3 p1, vec3 p2) 
 }
 
 
-s64 tessellate(Triangle *input, Triangle *clip, vec3 clip_normal, Resizable_Array<Triangle> *output, b8 clip_against_plane, Triangle_Should_Be_Clipped triangle_should_be_clipped_proc, void *triangle_should_be_clipped_user_pointer) {
+b8 tessellate(Triangle *input, Triangle *clip, vec3 clip_normal, Resizable_Array<Triangle> *output, b8 clip_against_plane, Triangle_Should_Be_Clipped triangle_should_be_clipped_proc, void *triangle_should_be_clipped_user_pointer) {
     tmFunction(TM_TESSEL_COLOR);
 
     Tessellator tessellator;
@@ -270,7 +270,7 @@ s64 tessellate(Triangle *input, Triangle *clip, vec3 clip_normal, Resizable_Arra
     // happens, we know that the triangle lies on the clipping plane and therefore does not require
     // further tessellation.
     //
-    if(tessellator.intersection_count != 2) return 0;
+    if(tessellator.intersection_count != 2) return tessellator.intersection_count > 0;
 
     calculate_barycentric_coefficients(tessellator.input_corner[0], tessellator.input_corner[1], tessellator.input_corner[2], tessellator.intersection_point[0], &tessellator.barycentric_coefficients[0][0], &tessellator.barycentric_coefficients[0][1], &tessellator.barycentric_coefficients[0][2]);
     calculate_barycentric_coefficients(tessellator.input_corner[0], tessellator.input_corner[1], tessellator.input_corner[2], tessellator.intersection_point[1], &tessellator.barycentric_coefficients[1][0], &tessellator.barycentric_coefficients[1][1], &tessellator.barycentric_coefficients[1][2]);
@@ -297,7 +297,7 @@ s64 tessellate(Triangle *input, Triangle *clip, vec3 clip_normal, Resizable_Arra
     // are on a clipping plane. Due to precision errors, we might get intersections between those
     // corners, since the edge is on the clipping triangle...
     //
-    if(intersection_point_is_corner[0] && intersection_point_is_corner[1]) return 0;
+    if(intersection_point_is_corner[0] && intersection_point_is_corner[1]) return tessellator.intersection_count > 0;
     
     //
     // So there are two intersection points on the triangle. We now want to tessellate the triangle
@@ -403,5 +403,5 @@ s64 tessellate(Triangle *input, Triangle *clip, vec3 clip_normal, Resizable_Arra
         generate_new_triangle(&tessellator, near, ext, far);
     }
 
-    return tessellator.generated_triangle_count;
+    return tessellator.intersection_count > 0;
 }
