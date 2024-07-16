@@ -80,6 +80,7 @@ struct Triangle {
 };
 
 struct Triangulated_Plane {
+    vec3 o; // For intersection distance heuristics
     vec3 n;
     Resizable_Array<Triangle> triangles;
 

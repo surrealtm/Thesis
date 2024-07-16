@@ -17,7 +17,8 @@
 
 struct Delimiter_Intersection {
     vec3 point; // @@Speed: Just for debugging
-    real total_distance; // The (squared) distance from this point to d0 + The (squared) distance from this point to d1.
+    real primary_distance; // nocheckin: Docs
+    real secondary_distance; // nocheckin: Docs
     Delimiter *d0, *d1;
     Triangulated_Plane *p0, *p1;
 };
@@ -29,7 +30,7 @@ struct Delimiter_Triangle_Should_Be_Clipped_Helper {
 
 // Adapted from: check_against_triangle in tessel.cpp
 static
-b8 check_edge_against_triangle(World *world, vec3 e0, vec3 e1, vec3 n0, vec3 n1, Triangle &triangle, vec3 o0, vec3 o1, real &nearest_distance, vec3 &intersection) {
+b8 check_edge_against_triangle(World *world, vec3 e0, vec3 e1, vec3 n0, vec3 n1, Triangle &triangle, vec3 o0, vec3 o1, real &primary_distance, real &secondary_distance, vec3 &intersection) {
     vec3 direction = e1 - e0;
 
     Triangle_Intersection_Result<real> result = ray_double_sided_triangle_intersection(e0, direction, triangle.p0, triangle.p1, triangle.p2);
@@ -60,17 +61,19 @@ b8 check_edge_against_triangle(World *world, vec3 e0, vec3 e1, vec3 n0, vec3 n1,
     // the Z-axis).
     //
     vec3 point = e0 + direction * result.distance;
-
-    vec3 _cross = v3_normalize(v3_cross_v3(n0, n1));
-    vec3 factor = vec3(1. - fabs(_cross.x), 1. - fabs(_cross.y), 1. - fabs(_cross.z)); // This is a heuristic on trying to find the best possible distance for sorting intersections. We ignore the "vertical" component by essentially projecting both delimiters onto a 2d plane, because that seems to be what a human would do?
-    vec3 delta0 = (o0 - point) * factor;
-    vec3 delta1 = (o1 - point) * factor;
-
-    real distance = v3_length2(delta0) + v3_length2(delta1);
     
-    if(distance < nearest_distance) {
-        nearest_distance = distance;
-        intersection     = point;
+    vec3 _cross = v3_normalize(v3_cross_v3(n0, n1));
+
+    vec3 secondary_factor = vec3(fabs(_cross.x), fabs(_cross.y), fabs(_cross.z));
+    vec3 primary_factor = 1. - secondary_factor; // This is a heuristic on trying to find the best possible distance for sorting intersections. We ignore the "vertical" component by essentially projecting both delimiters onto a 2d plane, because that seems to be what a human would do?
+
+    real this_primary_distance   = v3_length2((point - o0) * primary_factor)   + v3_length2((point - o1) * primary_factor);
+    real this_secondary_distance = v3_length2((point - o0) * secondary_factor) + v3_length2((point - o1) * secondary_factor);
+    
+    if(this_primary_distance < primary_distance || (this_primary_distance <= primary_distance && this_secondary_distance < secondary_distance)) {
+        primary_distance   = this_primary_distance;
+        secondary_distance = this_secondary_distance;
+        intersection       = point;
     }
 
     return true;
@@ -81,24 +84,24 @@ void find_intersections(World *world, Triangulated_Plane &p0, Triangulated_Plane
     // @@Speed: First check if the Triangulated_Planes have an intersection. If not, then there cannot be any
     // intersection between the actual triangles.
     b8 intersection = false;
-    real distance = MAX_F32;
+    real primary_distance = MAX_F32, secondary_distance = MAX_F32;
     vec3 point;
 
     // We need to find the smallest distance for correct intersection resolution here, so we always need
     // to check all triangles.
     for(Triangle &t0 : p0.triangles) {
         for(Triangle &t1 : p1.triangles) {
-            intersection |= check_edge_against_triangle(world, t0.p0, t0.p1, p0.n, p1.n, t1, d0->position, d1->position, distance, point);
-            intersection |= check_edge_against_triangle(world, t0.p1, t0.p2, p0.n, p1.n, t1, d0->position, d1->position, distance, point);
-            intersection |= check_edge_against_triangle(world, t0.p2, t0.p0, p0.n, p1.n, t1, d0->position, d1->position, distance, point);
-            intersection |= check_edge_against_triangle(world, t1.p0, t1.p1, p1.n, p0.n, t0, d1->position, d0->position, distance, point);
-            intersection |= check_edge_against_triangle(world, t1.p1, t1.p2, p1.n, p0.n, t0, d1->position, d0->position, distance, point);
-            intersection |= check_edge_against_triangle(world, t1.p2, t1.p0, p1.n, p0.n, t0, d1->position, d0->position, distance, point);
+            intersection |= check_edge_against_triangle(world, t0.p0, t0.p1, p0.n, p1.n, t1, p0.o, p1.o, primary_distance, secondary_distance, point);
+            intersection |= check_edge_against_triangle(world, t0.p1, t0.p2, p0.n, p1.n, t1, p0.o, p1.o, primary_distance, secondary_distance, point);
+            intersection |= check_edge_against_triangle(world, t0.p2, t0.p0, p0.n, p1.n, t1, p0.o, p1.o, primary_distance, secondary_distance, point);
+            intersection |= check_edge_against_triangle(world, t1.p0, t1.p1, p1.n, p0.n, t0, p1.o, p0.o, primary_distance, secondary_distance, point);
+            intersection |= check_edge_against_triangle(world, t1.p1, t1.p2, p1.n, p0.n, t0, p1.o, p0.o, primary_distance, secondary_distance, point);
+            intersection |= check_edge_against_triangle(world, t1.p2, t1.p0, p1.n, p0.n, t0, p1.o, p0.o, primary_distance, secondary_distance, point);
         }
     }
 
     if(intersection) {
-        intersections.add({ point, distance, d0, d1, &p0, &p1 });
+        intersections.add({ point, primary_distance, secondary_distance, d0, d1, &p0, &p1 });
     }
 }
 
@@ -111,9 +114,17 @@ void find_intersections(World *world, Delimiter *d0, Delimiter *d1, Resizable_Ar
     }
 }
 
+static inline
+Sort_Comparison_Result compare_distances(real lhs, real rhs) {
+    if(lhs < rhs) return SORT_Lhs_Is_Smaller;
+    if(lhs > rhs) return SORT_Lhs_Is_Bigger;
+    return SORT_Lhs_Equals_Rhs;
+}
+
 static
-Sort_Comparison_Result compare_delimiter_intersections(Delimiter_Intersection *lhs, Delimiter_Intersection *rhs) {
-    return (lhs->total_distance < rhs->total_distance) ? SORT_Lhs_Is_Smaller : (lhs->total_distance > rhs->total_distance ? SORT_Lhs_Is_Bigger : SORT_Lhs_Equals_Rhs);
+Sort_Comparison_Result compare_delimiter_intersections(Delimiter_Intersection *lhs, Delimiter_Intersection *rhs) {   
+    auto primary = compare_distances(lhs->primary_distance, rhs->primary_distance);
+    return primary == SORT_Lhs_Equals_Rhs ? compare_distances(lhs->secondary_distance, rhs->secondary_distance) : primary;
 }
 
 static
@@ -474,7 +485,7 @@ void World::clip_delimiters() {
         // Sort the intersections array.
         //
         sort(intersections.data, intersections.count, compare_delimiter_intersections);
-
+        
         //
         // Solve all the intersections by clipping the two delimiters against
         // each other (if that intersection is actually still present, but that

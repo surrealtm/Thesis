@@ -55,6 +55,7 @@ void Triangulated_Plane::create(Allocator *allocator, vec3 c, vec3 n, vec3 left,
     vec3 p2 = c + right + top;
     vec3 p3 = c + right + bottom;
 
+    this->o = c;
     this->n = n;
     this->triangles.allocator = allocator;
     this->triangles.add({ p0, p3, p1 });
