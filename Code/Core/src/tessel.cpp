@@ -5,7 +5,7 @@
 #include "math/intersect.h"
 #include "timing.h"
 
-#define TESSEL_DEBUG_PRINT false // @@Ship: Remove this.
+#define TESSEL_DEBUG_PRINT false
 
 struct Tessellator {
     // The corner points and normal of the input triangle, copied since we will modify
@@ -104,13 +104,23 @@ s8 get_closest_intersection_point_to_corner(Tessellator *tessellator, s64 point_
 static inline
 void maybe_add_intersection_point(Tessellator *tessellator, vec3 point) {
     //
-    // If a corner of the triangle lies on the clipping plane, we may get two intersection points
-    // for that, one for each edge of this corner. We only want to add the point once here.
-    // Doing something like 'distance > 0 && distance <= 1' (or 'distance >= 0 && distance < 1')
-    // is fishy and adds too much numeric instability unfortunately...
+    // In theory, checking two triangles can only ever generate either 0 or exactly 2 intersection points. In
+    // practice however, due to numerical precision issues, we might get more than 2 (because multiple edges
+    // detect the same point...). If we have more than 2 intersection points, ignore the duplicate ones.
+    // If the triangle is essentially a line however, we still want these two intersection points reported
+    // to tessellate the triangle properly, so that we ensure this "line" doesn't extend beyond delimiters!
     //
-    if(tessellator->intersection_count >= 1 && points_almost_identical(point, tessellator->intersection_point[0])) return;
-    if(tessellator->intersection_count >= 2 && points_almost_identical(point, tessellator->intersection_point[1])) return;
+    if(tessellator->intersection_count == 2 && (points_almost_identical(point, tessellator->intersection_point[0]) || points_almost_identical(point, tessellator->intersection_point[1]))) {
+        // If we already have two intersection points and this point is similar to eat least one of them, then
+        // we can just ignore this new point.
+        return;
+    }
+
+    if(tessellator->intersection_count == 2 && points_almost_identical(tessellator->intersection_point[0], tessellator->intersection_point[1])) {
+        // If we have a new intersection point, but the two existing ones are similar, ignore one of the existing
+        // ones and add this one to the list.
+        tessellator->intersection_count = 1;
+    }
 
     assert(tessellator->intersection_count < 2); // A triangle-plane intersection can only have two (unique) intersection points.
     tessellator->intersection_point[tessellator->intersection_count] = point;
@@ -124,7 +134,6 @@ void check_edge_against_triangle(Tessellator *tessellator, vec3 e0, vec3 e1, Tri
     // orientation. We always want to tessellate the triangle, no matter whether the edge passed in
     // through the "forward" or "backward" side of the triangle.
     //
-
     vec3 direction = e1 - e0;
 
     Triangle_Intersection_Result<real> result = ray_double_sided_triangle_intersection(e0, direction, triangle->p0, triangle->p1, triangle->p2);
@@ -143,7 +152,6 @@ void check_edge_against_plane(Tessellator *tessellator, vec3 e0, vec3 e1) {
     // orientation. We always want to tessellate the triangle, no matter whether the edge passed in
     // through the "forward" or "backward" side of the triangle.
     //
-
     vec3 direction = e1 - e0;
 
     real distance;
@@ -172,17 +180,16 @@ void generate_new_triangle(Tessellator *tessellator, vec3 p0, vec3 p1, vec3 p2) 
 #endif
         return;
     }
-        
-    vec3 n = v3_cross_v3(p1 - p0, p2 - p0);
 
-    real estimated_surface_area = v3_length2(n) / 2;
-    if(estimated_surface_area < CORE_EPSILON) {
+    vec3 n = v3_cross_v3(p1 - p0, p2 - p0) / static_cast<real>(2);
+    real estimated_surface_area = fabs(v3_dot_v3(n, n));
+    if(estimated_surface_area <= CORE_EPSILON) {
 #if TESSEL_DEBUG_PRINT
-        printf("    Rejected triangle due to estimated surface area being too small.\n");
+        printf("    Rejected triangle due to small surface area.\n");
 #endif
         return;
     }
-
+    
     //
     // Do some custom checking of whether this triangle should be generated at all. This heavily depends on
     // the usage of the tessellation output, and therefore a procedure pointer is provided.
@@ -197,7 +204,7 @@ void generate_new_triangle(Tessellator *tessellator, vec3 p0, vec3 p1, vec3 p2) 
     
 #if TESSEL_DEBUG_PRINT
     printf("    Generated triangle: %f, %f, %f | %f, %f, %f | %f, %f, %f\n", p0.x, p0.y, p0.z, p1.x, p1.y, p1.z, p2.x, p2.y, p2.z);
-    printf("        Surface Area: %f\n", estimated_surface_area);
+    printf("        Surface area: %f\n", estimated_surface_area);
 #endif
 
     if(tessellator->generated_triangle_count == 0) {
@@ -213,8 +220,7 @@ void generate_new_triangle(Tessellator *tessellator, vec3 p0, vec3 p1, vec3 p2) 
     ++tessellator->generated_triangle_count;
 }
 
-
-b8 tessellate(Triangle *input, Triangle *clip, vec3 clip_normal, Resizable_Array<Triangle> *output, b8 clip_against_plane, Triangle_Should_Be_Clipped triangle_should_be_clipped_proc, void *triangle_should_be_clipped_user_pointer) {
+Tessellation_Result tessellate(Triangle *input, Triangle *clip, vec3 clip_normal, Resizable_Array<Triangle> *output, b8 clip_against_plane, Triangle_Should_Be_Clipped triangle_should_be_clipped_proc, void *triangle_should_be_clipped_user_pointer) {
     tmFunction(TM_TESSEL_COLOR);
 
     Tessellator tessellator;
@@ -270,8 +276,8 @@ b8 tessellate(Triangle *input, Triangle *clip, vec3 clip_normal, Resizable_Array
     // happens, we know that the triangle lies on the clipping plane and therefore does not require
     // further tessellation.
     //
-    if(tessellator.intersection_count != 2) return tessellator.intersection_count > 0;
-
+    if(tessellator.intersection_count != 2) return TESSELLATION_No_Intersection;
+    
     calculate_barycentric_coefficients(tessellator.input_corner[0], tessellator.input_corner[1], tessellator.input_corner[2], tessellator.intersection_point[0], &tessellator.barycentric_coefficients[0][0], &tessellator.barycentric_coefficients[0][1], &tessellator.barycentric_coefficients[0][2]);
     calculate_barycentric_coefficients(tessellator.input_corner[0], tessellator.input_corner[1], tessellator.input_corner[2], tessellator.intersection_point[1], &tessellator.barycentric_coefficients[1][0], &tessellator.barycentric_coefficients[1][1], &tessellator.barycentric_coefficients[1][2]);
 
@@ -297,7 +303,7 @@ b8 tessellate(Triangle *input, Triangle *clip, vec3 clip_normal, Resizable_Array
     // are on a clipping plane. Due to precision errors, we might get intersections between those
     // corners, since the edge is on the clipping triangle...
     //
-    if(intersection_point_is_corner[0] && intersection_point_is_corner[1]) return tessellator.intersection_count > 0;
+    if(intersection_point_is_corner[0] && intersection_point_is_corner[1]) return TESSELLATION_No_Intersection;
     
     //
     // So there are two intersection points on the triangle. We now want to tessellate the triangle
@@ -337,7 +343,7 @@ b8 tessellate(Triangle *input, Triangle *clip, vec3 clip_normal, Resizable_Array
     tessellator.first_corner_index     = (tessellator.extension_corner_index + 1) % 3;
     tessellator.second_corner_index    = (tessellator.extension_corner_index + 2) % 3;
     tessellator.near_intersection_point_index = closest_intersection_point_index[tessellator.extension_corner_index];
-    tessellator.far_intersection_point_index  = (closest_intersection_point_index[tessellator.extension_corner_index] + 1) % 2;
+    tessellator.far_intersection_point_index  = (tessellator.near_intersection_point_index + 1) % 2;
 
     vec3 ext    = tessellator.input_corner[tessellator.extension_corner_index];
     vec3 first  = tessellator.input_corner[tessellator.first_corner_index];
@@ -348,10 +354,12 @@ b8 tessellate(Triangle *input, Triangle *clip, vec3 clip_normal, Resizable_Array
 #if TESSEL_DEBUG_PRINT
     printf("Tessellating triangle: %f, %f, %f | %f, %f, %f | %f, %f, %f\n", ext.x, ext.y, ext.z, first.x, first.y, first.z, second.x, second.y, second.z);
     printf("    Clipping triangle: %f, %f, %f | %f, %f, %f | %f, %f, %f\n", clip->p0.x, clip->p0.y, clip->p0.z, clip->p1.x, clip->p1.y, clip->p1.z, clip->p2.x, clip->p2.y, clip->p2.z);
+    printf("    Intersection points: %f, %f, %f | %f, %f, %f\n", tessellator.intersection_point[0].x, tessellator.intersection_point[0].y, tessellator.intersection_point[0].z, tessellator.intersection_point[1].x, tessellator.intersection_point[1].y, tessellator.intersection_point[1].z);
 
-    printf("    Near: %f, %f, %f | %f, %f, %f\n", near.x, near.y, near.z, far.x, far.y, far.z);
+    printf("    Near, Far: %f, %f, %f | %f, %f, %f\n", near.x, near.y, near.z, far.x, far.y, far.z);
 
-    printf("    Barycentric: %f, %f, %f | %f, %f, %f\n", tessellator.barycentric_coefficients[tessellator.near_intersection_point_index][tessellator.extension_corner_index],
+    printf("    Barycentric: %f, %f, %f | %f, %f, %f\n",
+           tessellator.barycentric_coefficients[tessellator.near_intersection_point_index][tessellator.extension_corner_index],
            tessellator.barycentric_coefficients[tessellator.near_intersection_point_index][tessellator.first_corner_index],
            tessellator.barycentric_coefficients[tessellator.near_intersection_point_index][tessellator.second_corner_index],
            tessellator.barycentric_coefficients[tessellator.far_intersection_point_index][tessellator.extension_corner_index],
@@ -391,8 +399,8 @@ b8 tessellate(Triangle *input, Triangle *clip, vec3 clip_normal, Resizable_Array
         generate_new_triangle(&tessellator, near, far, first);
         generate_new_triangle(&tessellator, near, ext, far);
     } else {
-        // The far point must be inside the triangle (near, second, extension)
-        assert(far_point_inside_outer_triangle(&tessellator, tessellator.second_corner_index, tessellator.extension_corner_index, tessellator.first_corner_index));
+        // The far point must be inside the triangle (near, second, extension). Note that this assertion in code
+        // might actully fail due to precision issues... Sigh.
 #if TESSEL_DEBUG_PRINT
         printf("    Ext - Second\n");
 #endif
@@ -403,5 +411,5 @@ b8 tessellate(Triangle *input, Triangle *clip, vec3 clip_normal, Resizable_Array
         generate_new_triangle(&tessellator, near, ext, far);
     }
 
-    return tessellator.intersection_count > 0;
+    return tessellator.generated_triangle_count > 0 ? TESSELLATION_Success : TESSELLATION_Intersection_But_No_Triangles;
 }

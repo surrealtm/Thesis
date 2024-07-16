@@ -331,9 +331,9 @@ extern "C" {
         World *world = (World *) core_create_world(20, 10, 20);
         
         f64 inner = 5.0;
-        f64 angle = 0.1;
+        f64 angle = 0.01;
 
-        const b8 only_centered = true; // @Incomplete: There is still some glitchiness when setting this to false.
+        const b8 only_centered = false; // @Incomplete: There is still some glitchiness when setting this to false.
         
         auto wall_north = world->add_delimiter("WallNorth"_s, vec3(0, 0, -inner), vec3(inner, .25, .5), vec3(+angle, 0, 0), 1);
         auto wall_south = world->add_delimiter("WallSouth"_s, vec3(0, 0, +inner), vec3(inner, .25, .5), vec3(-angle, 0, 0), 1);

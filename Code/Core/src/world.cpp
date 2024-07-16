@@ -155,19 +155,32 @@ b8 tessellate_all_triangles(Resizable_Array<Triangle> &triangles_to_clip, Resiza
     helper.center_to_clip = center_to_clip;
     helper.clip_normal = clip_normal;
 
-    b8 any_intersection = 0;
+    b8 any_intersection = false;
     
-    for(s64 i = 0; i < triangles_to_clip.count; ++i) {
+    for(s64 i = 0; i < triangles_to_clip.count; ) {       
+        b8 increase_i = true;
+
         for(s64 j = 0; j < clipping_triangles.count; ++j) {
             Triangle *t0 = &triangles_to_clip[i]; // This pointer might not be stable if we are growing triangles_to_clip a lot due to tessellation!
             Triangle *t1 = &clipping_triangles[j];
 
+            Tessellation_Result result;
             if(clip_triangles_behind) {
-                any_intersection |= tessellate(t0, t1, clip_normal, &triangles_to_clip, clip_against_plane, (Triangle_Should_Be_Clipped) delimiter_triangle_should_be_clipped, &helper);
+                result = tessellate(t0, t1, clip_normal, &triangles_to_clip, clip_against_plane, (Triangle_Should_Be_Clipped) delimiter_triangle_should_be_clipped, &helper);
             } else {
-                any_intersection |= tessellate(t0, t1, clip_normal, &triangles_to_clip, clip_against_plane);
+                result = tessellate(t0, t1, clip_normal, &triangles_to_clip, clip_against_plane);
             }
+
+            if(result == TESSELLATION_Intersection_But_No_Triangles) {
+                triangles_to_clip.remove(i); // All would-be triangles were rejected, so remove the input one and go on.
+                increase_i = false;
+                break;
+            }
+
+            any_intersection |= result != TESSELLATION_No_Intersection;
         }
+
+        if(increase_i) ++i;
     }
 
     return any_intersection;

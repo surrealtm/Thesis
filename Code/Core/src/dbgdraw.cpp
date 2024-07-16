@@ -48,7 +48,7 @@ static f32 dbg_bvh_depth_thickness_map[] = {
 static_assert(ARRAY_COUNT(dbg_bvh_depth_color_map) == ARRAY_COUNT(dbg_bvh_depth_thickness_map), "These two arrays must be of the same size.");
 
 const f32 dbg_anchor_radius             = 0.5f;
-const f32 dbg_wireframe_thickness       = 0.03f;
+const f32 dbg_wireframe_thickness       = 0.01f;
 const f32 dbg_normal_thickness          = 0.2f;
 const f32 dbg_flood_fill_cell_thickness = 0.03f;
 const f32 dbg_axis_gizmo_thickness      = 0.2f;
