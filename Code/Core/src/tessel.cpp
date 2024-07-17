@@ -181,7 +181,7 @@ void generate_new_triangle(Tessellator *tessellator, vec3 p0, vec3 p1, vec3 p2) 
         return;
     }
 
-    vec3 n = v3_cross_v3(p1 - p0, p2 - p0) / static_cast<real>(2);
+    vec3 n = v3_cross_v3(p1 - p0, p2 - p0);
     real estimated_surface_area = fabs(v3_dot_v3(n, n));
     if(estimated_surface_area <= CORE_EPSILON) {
 #if TESSEL_DEBUG_PRINT

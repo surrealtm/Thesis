@@ -116,7 +116,7 @@ b8 delimiter_triangle_should_be_clipped(Triangle *generated_triangle, Triangle *
     //
     vec3 adjusted_clip_normal = get_adjusted_clip_normal(helper->clip_normal, helper->center_to_clip, clip_triangle->p0);
 
-    b8 should_be_clipped = generated_triangle->all_points_behind_plane(clip_triangle, adjusted_clip_normal); // We need to check this, because if the two intersection points are not on the edges of the generated triangles, then we might generate triangles which are partially behind the clipping plane as intended.
+    b8 should_be_clipped = generated_triangle->no_point_in_front_of_plane(clip_triangle->p0, adjusted_clip_normal); // We need to check this, because if the two intersection points are not on the edges of the generated triangles, then we might generate triangles which are partially behind the clipping plane as intended.
     
     return should_be_clipped;
 }
@@ -143,13 +143,13 @@ b8 tessellate_all_triangles(Resizable_Array<Triangle> &triangles_to_clip, Resiza
                 result = tessellate(t0, t1, clip_normal, &triangles_to_clip, clip_against_plane);
             }
 
+            any_intersection |= result != TESSELLATION_No_Intersection;
+
             if(result == TESSELLATION_Intersection_But_No_Triangles) {
                 triangles_to_clip.remove(i); // All would-be triangles were rejected, so remove the input one and go on.
                 increase_i = false;
                 break;
             }
-
-            any_intersection |= result != TESSELLATION_No_Intersection;
         }
 
         if(increase_i) ++i;
@@ -169,7 +169,7 @@ void remove_all_triangles_behind_plane(Resizable_Array<Triangle> &triangles_to_c
         for(s64 j = 0; j < plane_triangles.count; ++j) {
             Triangle *t1 = &plane_triangles[j];
 
-            if(t0->no_point_before_plane(t1, plane_normal)) {
+            if(!t0->no_point_behind_plane(t1->p0, plane_normal)) {
                 should_remove_triangle = true;
                 break;
             }
@@ -194,7 +194,7 @@ void solve_delimiter_intersection(World *world, Delimiter_Intersection *intersec
     // results.
     //
     Resizable_Array<Triangle> original_t0s = intersection->p0->triangles.copy(world->allocator);
-
+    
     // Clip d0 based on the triangles of d1.
     b8 clip_p0_triangles   = intersection->d0 != intersection->d1 && intersection->d0->level >= intersection->d1->level;
     b8 any_p0_intersection = tessellate_all_triangles(intersection->p0->triangles, intersection->p1->triangles, intersection->p1->n, false, clip_p0_triangles, intersection->d0->position);
@@ -203,8 +203,8 @@ void solve_delimiter_intersection(World *world, Delimiter_Intersection *intersec
     // Clip d1 based on the original triangles of d0.
     b8 clip_p1_triangles   = intersection->d0 != intersection->d1 && intersection->d1->level >= intersection->d0->level;
     b8 any_p1_intersection = tessellate_all_triangles(intersection->p1->triangles, original_t0s, intersection->p0->n, false, clip_p1_triangles, intersection->d1->position);
-    if(clip_p1_triangles && any_p1_intersection) remove_all_triangles_behind_plane(intersection->p1->triangles, intersection->p0->triangles, get_adjusted_clip_normal(intersection->p0, intersection->d1->position));
-
+    if(clip_p1_triangles && any_p1_intersection) remove_all_triangles_behind_plane(intersection->p1->triangles, original_t0s, get_adjusted_clip_normal(intersection->p0, intersection->d1->position));
+    
     original_t0s.clear();
 }
 

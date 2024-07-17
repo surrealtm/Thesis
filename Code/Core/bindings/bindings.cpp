@@ -333,7 +333,7 @@ extern "C" {
         f64 inner = 5.0;
         f64 angle = 0.1;
 
-        const b8 only_centered = false; // @Incomplete: There is still some glitchiness when setting this to false.
+        const b8 only_centered = false;
         
         auto wall_north = world->add_delimiter("WallNorth"_s, vec3(0, 0, -inner), vec3(inner, .25, .5), vec3(+angle, 0, 0), 1);
         auto wall_south = world->add_delimiter("WallSouth"_s, vec3(0, 0, +inner), vec3(inner, .25, .5), vec3(-angle, 0, 0), 1);
@@ -352,8 +352,8 @@ extern "C" {
             world->add_delimiter_clipping_planes(wall_west,  AXIS_X);
         }
 
-        //auto bottom = world->add_delimiter("Bottom"_s, vec3(0, -1, 0), vec3(inner, .25, inner), vec3(0, 0, 0), 0);
-        //world->add_centered_delimiter_clipping_plane(bottom, AXIS_Y);
+        auto bottom = world->add_delimiter("Bottom"_s, vec3(0, -1, 0), vec3(inner, .25, inner), vec3(0, 0, 0), 0);
+        world->add_centered_delimiter_clipping_plane(bottom, AXIS_Y);
         
         world->add_anchor("room"_s, vec3(0, 1, 0));
 

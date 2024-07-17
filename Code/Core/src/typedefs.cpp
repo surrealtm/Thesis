@@ -18,32 +18,17 @@ b8 Triangle::is_dead() {
     return this->approximate_surface_area() <= CORE_EPSILON;
 }
 
-b8 Triangle::all_points_behind_plane(Triangle *plane, vec3 plane_normal) {
-    //
-    // Returns true if this triangle is on the "backface" side of the plane, meaning
-    // in the opposite direction of the plane's normal. This usually means we should clip
-    // this triangle.
-    //
-    real d0 = v3_dot_v3(this->p0 - plane->p0, plane_normal);
-    real d1 = v3_dot_v3(this->p1 - plane->p0, plane_normal);
-    real d2 = v3_dot_v3(this->p2 - plane->p0, plane_normal);
-
-    //
-    // Return true if no point is on the "frontface" of the clipping triangle, AND at least one
-    // point is not on the clipping triangle. We don't want to clip triangles which lie on the
-    // plane.
-    //
-    return d0 <= CORE_EPSILON && d1 <= CORE_EPSILON && d2 <= CORE_EPSILON && (d0 < -CORE_EPSILON || d1 < -CORE_EPSILON || d2 < -CORE_EPSILON);
+b8 Triangle::no_point_behind_plane(vec3 plane_origin, vec3 plane_normal) {
+    real d0 = v3_dot_v3(this->p0 - plane_origin, plane_normal);
+    real d1 = v3_dot_v3(this->p1 - plane_origin, plane_normal);
+    real d2 = v3_dot_v3(this->p2 - plane_origin, plane_normal);
+    return d0 >= -CORE_EPSILON && d1 >= -CORE_EPSILON && d2 >= -CORE_EPSILON;
 }
 
-b8 Triangle::no_point_before_plane(Triangle *plane, vec3 plane_normal) {
-    //
-    // Ensures that all points of this triangle lie on the "frontface" of the clipping triangle.
-    //
-    real d0 = v3_dot_v3(this->p0 - plane->p0, plane_normal);
-    real d1 = v3_dot_v3(this->p1 - plane->p0, plane_normal);
-    real d2 = v3_dot_v3(this->p2 - plane->p0, plane_normal);
-
+b8 Triangle::no_point_in_front_of_plane(vec3 plane_origin, vec3 plane_normal) {
+    real d0 = v3_dot_v3(this->p0 - plane_origin, plane_normal);
+    real d1 = v3_dot_v3(this->p1 - plane_origin, plane_normal);
+    real d2 = v3_dot_v3(this->p2 - plane_origin, plane_normal);
     return d0 <= CORE_EPSILON && d1 <= CORE_EPSILON && d2 <= CORE_EPSILON;
 }
 
