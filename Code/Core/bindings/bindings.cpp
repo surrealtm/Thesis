@@ -325,7 +325,7 @@ extern "C" {
         return world;
     }
 
-    World_Handle core_do_roof_test() {
+    World_Handle core_do_louvre_test() {
         tmFunction(TM_SYSTEM_COLOR);
 
         World *world = (World *) core_create_world(20, 10, 20);
@@ -352,8 +352,8 @@ extern "C" {
             world->add_delimiter_clipping_planes(wall_west,  AXIS_X);
         }
 
-        auto bottom = world->add_delimiter("Bottom"_s, vec3(0, -1, 0), vec3(inner, .25, inner), vec3(0, 0, 0), 0);
-        world->add_centered_delimiter_clipping_plane(bottom, AXIS_Y);
+        //auto bottom = world->add_delimiter("Bottom"_s, vec3(0, -1, 0), vec3(inner, .25, inner), vec3(0, 0, 0), 0);
+        //world->add_centered_delimiter_clipping_plane(bottom, AXIS_Y);
         
         world->add_anchor("room"_s, vec3(0, 1, 0));
 

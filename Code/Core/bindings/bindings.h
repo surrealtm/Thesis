@@ -40,7 +40,7 @@ extern "C" {
     EXPORT World_Handle core_do_u_shape_test();
     EXPORT World_Handle core_do_center_block_test();
     EXPORT World_Handle core_do_gallery_test();
-    EXPORT World_Handle core_do_roof_test();
+    EXPORT World_Handle core_do_louvre_test();
     EXPORT World_Handle core_do_jobs_test();
     
 

@@ -22,7 +22,7 @@ core_do_circle_test        :: #foreign () -> World_Handle;
 core_do_u_shape_test       :: #foreign () -> World_Handle;
 core_do_center_block_test  :: #foreign () -> World_Handle;
 core_do_gallery_test       :: #foreign () -> World_Handle;
-core_do_roof_test          :: #foreign () -> World_Handle;
+core_do_louvre_test        :: #foreign () -> World_Handle;
 core_do_jobs_test          :: #foreign () -> World_Handle;
 
 

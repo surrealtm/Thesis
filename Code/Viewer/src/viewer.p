@@ -77,7 +77,7 @@ TESTS: []Viewer_Test : {
         .{ "u_shape",       core_do_u_shape_test },
         .{ "center_block",  core_do_center_block_test },
         .{ "gallery",       core_do_gallery_test },
-        .{ "roof",          core_do_roof_test },
+        .{ "louvre",        core_do_louvre_test },
         .{ "jobs",          core_do_jobs_test },
 };
 
