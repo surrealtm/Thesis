@@ -142,13 +142,13 @@ extern "C" {
         //world->add_anchor("Garden"_s, vec3(0, -3, -30));
         
         auto hallway_wall = world->add_delimiter("HallwayWall"_s, vec3(-2, -3, +6), vec3(7.5, .25, .5), vec3(0, 0, 0), 1);
-        world->add_delimiter_clipping_planes(hallway_wall, AXIS_Z, VIRTUAL_EXTENSION_Positive_U | VIRTUAL_EXTENSION_Positive_V | VIRTUAL_EXTENSION_Negative_V);
+        world->add_centered_delimiter_clipping_plane(hallway_wall, AXIS_Z, VIRTUAL_EXTENSION_Positive_U | VIRTUAL_EXTENSION_Positive_V | VIRTUAL_EXTENSION_Negative_V);
 
         auto kitchen_wall0 = world->add_delimiter("KitchenWall0"_s, vec3(0, -3, -7), vec3(.5, .25, 2.5), vec3(0, 0, 0), 1);
-        world->add_delimiter_clipping_planes(kitchen_wall0, AXIS_X, VIRTUAL_EXTENSION_Positive_U | VIRTUAL_EXTENSION_Negative_U | VIRTUAL_EXTENSION_Positive_V);
+        world->add_centered_delimiter_clipping_plane(kitchen_wall0, AXIS_X, VIRTUAL_EXTENSION_Positive_U | VIRTUAL_EXTENSION_Negative_U | VIRTUAL_EXTENSION_Positive_V);
         
         auto kitchen_wall1 = world->add_delimiter("KitchenWall1"_s, vec3(-7, -3, 0), vec3(2.5, .25, .5), vec3(0, 0, 0), 1);
-        world->add_delimiter_clipping_planes(kitchen_wall1, AXIS_Z, VIRTUAL_EXTENSION_Positive_U | VIRTUAL_EXTENSION_Positive_V | VIRTUAL_EXTENSION_Negative_V);
+        world->add_centered_delimiter_clipping_plane(kitchen_wall1, AXIS_Z, VIRTUAL_EXTENSION_Positive_U | VIRTUAL_EXTENSION_Positive_V | VIRTUAL_EXTENSION_Negative_V);
         
         auto outer_wall_north = world->add_delimiter("OuterWallNorth"_s, vec3(0, -3, -10), vec3(10, .25, .5), vec3(0, 0, 0), 0);
         world->add_delimiter_clipping_planes(outer_wall_north, AXIS_Z);

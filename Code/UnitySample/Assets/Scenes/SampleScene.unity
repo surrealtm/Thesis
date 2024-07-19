@@ -169,7 +169,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   camera: {fileID: 963194227}
   debug_draw_options: 4214
-  test_case: 0
+  test_case: 1
 --- !u!1 &279637227
 GameObject:
   m_ObjectHideFlags: 0
