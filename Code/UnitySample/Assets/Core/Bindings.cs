@@ -203,6 +203,8 @@ public class Core_Bindings {
     [DllImport("Core.dll")]
     public static extern World_Handle core_do_gallery_test();
     [DllImport("Core.dll")]
+    public static extern World_Handle core_do_louvre_test();
+    [DllImport("Core.dll")]
     public static extern World_Handle core_do_jobs_test();
 
 
@@ -265,6 +267,10 @@ public unsafe class Core_Helpers {
         return new Quaternion(q.x, q.y, q.z, q.w);
     }
     
+    private static double euler_angles_to_turns(double angles) {
+        return angles / 360.0f;
+    }
+
 
 
     public static World_Handle create_world_from_scene() {
@@ -294,7 +300,11 @@ public unsafe class Core_Helpers {
             
             Transform transform = d.gameObject.transform;
             Bounds bounds = renderer.bounds;
-            s64 index = Core_Bindings.core_add_delimiter(world_handle, transform.position.x, transform.position.y, transform.position.z, bounds.extents.x, bounds.extents.y, bounds.extents.z, transform.eulerAngles.x, transform.eulerAngles.y, transform.eulerAngles.z, d.level);
+            s64 index = Core_Bindings.core_add_delimiter(world_handle, 
+                transform.position.x, transform.position.y, transform.position.z, 
+                transform.lossyScale.x / 2, transform.lossyScale.y / 2, transform.lossyScale.z / 2, 
+                euler_angles_to_turns(transform.eulerAngles.x), euler_angles_to_turns(transform.eulerAngles.y), euler_angles_to_turns(transform.eulerAngles.z), 
+                d.level);
 
             if(d.x) Core_Bindings.core_add_delimiter_clipping_planes(world_handle, index, Axis_Index.AXIS_X);
             if(d.y) Core_Bindings.core_add_delimiter_clipping_planes(world_handle, index, Axis_Index.AXIS_Y);

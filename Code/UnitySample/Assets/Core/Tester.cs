@@ -13,7 +13,7 @@ public enum Test_Case {
     U_Shape,
     Center_Block,
     Gallery,
-    Roof,
+    Louvre,
     Jobs,
 }
 
@@ -41,7 +41,6 @@ public class Tester : MonoBehaviour {
         }
     }
 
-    public bool step_into = false;
     public Camera camera = null;
     public Debug_Draw_Options debug_draw_options = Debug_Draw_Options.Everything;
     public Test_Case test_case = Test_Case.House;
@@ -63,43 +62,43 @@ public class Tester : MonoBehaviour {
             break;
 
         case Test_Case.House:
-            this.world_handle = Core_Bindings.core_do_house_test(this.step_into);
+            this.world_handle = Core_Bindings.core_do_house_test();
             break;
 
         case Test_Case.BVH:
-            this.world_handle = Core_Bindings.core_do_bvh_test(this.step_into);
+            this.world_handle = Core_Bindings.core_do_bvh_test();
             break;
 
         case Test_Case.Large_Volumes:
-            this.world_handle = Core_Bindings.core_do_large_volumes_test(this.step_into);
+            this.world_handle = Core_Bindings.core_do_large_volumes_test();
             break;
 
         case Test_Case.Cutout:
-            this.world_handle = Core_Bindings.core_do_cutout_test(this.step_into);
+            this.world_handle = Core_Bindings.core_do_cutout_test();
             break;
 
         case Test_Case.Circle:
-            this.world_handle = Core_Bindings.core_do_circle_test(this.step_into);
+            this.world_handle = Core_Bindings.core_do_circle_test();
             break;
 
         case Test_Case.U_Shape:
-            this.world_handle = Core_Bindings.core_do_u_shape_test(this.step_into);
+            this.world_handle = Core_Bindings.core_do_u_shape_test();
             break;
 
         case Test_Case.Center_Block:
-            this.world_handle = Core_Bindings.core_do_center_block_test(this.step_into);
+            this.world_handle = Core_Bindings.core_do_center_block_test();
             break;
 
         case Test_Case.Gallery:
-            this.world_handle = Core_Bindings.core_do_gallery_block_test(this.step_into);
+            this.world_handle = Core_Bindings.core_do_gallery_test();
             break;
 
-        case Test_Case.Roof:
-            this.world_handle = Core_Bindings.core_do_roof_block_test(this.step_into);
+        case Test_Case.Louvre:
+            this.world_handle = Core_Bindings.core_do_louvre_test();
             break;
 
         case Test_Case.Jobs:
-            this.world_handle = Core_Bindings.core_do_jobs_test(this.step_into);
+            this.world_handle = Core_Bindings.core_do_jobs_test();
             break;
         }
 
