@@ -184,7 +184,7 @@ public class Core_Bindings {
     [DllImport("Core.dll")]
     public static extern s64 core_add_delimiter(World_Handle world, double x, double y, double z, double hx, double hy, double hz, double rx, double ry, double rz, u8 level);
     [DllImport("Core.dll")]
-    public static extern void core_add_delimiter_plane(World_Handle world, s64 delimiter_index, Axis_Index axis_index, bool centered);
+    public static extern void core_add_delimiter_plane(World_Handle world, s64 delimiter_index, Axis_Index axis_index, bool centered, bool extended);
     [DllImport("Core.dll")]
     public static extern void core_calculate_volumes(World_Handle world);
     
@@ -274,11 +274,16 @@ public unsafe class Core_Helpers {
         return new Quaternion(q.x, q.y, q.z, q.w);
     }
     
-    private static double euler_angles_to_turns(double angles) {
-        return angles / 360.0f;
+    private static Vector3 euler_angles_to_turns(Vector3 angles) {
+        return new Vector3(angles.x / 360.0f, angles.y / 360.0f, angles.z / 360.0f);
     }
 
 
+
+    private static void add_delimiter_planes(World_Handle world_handle, s64 delimiter, Axis_Index axis, bool centered, bool extended) {
+        Core_Bindings.core_add_delimiter_plane(world_handle, delimiter, axis, centered, extended);
+        if(!centered) Core_Bindings.core_add_delimiter_plane(world_handle, delimiter, axis + 3, centered, extended);
+    }
 
     public static World_Handle create_world_from_scene() {
         // Determine the bounding box of this entire level so that we can
@@ -308,26 +313,19 @@ public unsafe class Core_Helpers {
             Transform transform = d.gameObject.transform;
             Bounds bounds = renderer.bounds;
             
+            Vector3 position = bounds.center;
+            Vector3 size     = new Vector3(transform.lossyScale.x * bounds.extents.x, transform.lossyScale.y * bounds.extents.y, transform.lossyScale.z * bounds.extents.z);
+            Vector3 rotation = euler_angles_to_turns(transform.eulerAngles);
+
             s64 index = Core_Bindings.core_add_delimiter(world_handle, 
-                transform.position.x, transform.position.y, transform.position.z, 
-                transform.lossyScale.x * bounds.extents.x, transform.lossyScale.y * bounds.extents.y, transform.lossyScale.z * bounds.extents.z, 
-                euler_angles_to_turns(transform.eulerAngles.x), euler_angles_to_turns(transform.eulerAngles.y), euler_angles_to_turns(transform.eulerAngles.z), 
+                position.x, position.y, position.z, 
+                size.x, size.y, size.z, 
+                rotation.x, rotation.y, rotation.z,
                 d.level);
 
-            if(d.x) {
-                Core_Bindings.core_add_delimiter_plane(world_handle, index, Axis_Index.AXIS_POSITIVE_X, false);
-                //Core_Bindings.core_add_delimiter_plane(world_handle, index, Axis_Index.AXIS_NEGATIVE_X, false);
-            }
-
-            if(d.y) {
-                Core_Bindings.core_add_delimiter_plane(world_handle, index, Axis_Index.AXIS_POSITIVE_Y, false);
-                Core_Bindings.core_add_delimiter_plane(world_handle, index, Axis_Index.AXIS_NEGATIVE_Y, false);
-            }
-
-            if(d.z) {
-                Core_Bindings.core_add_delimiter_plane(world_handle, index, Axis_Index.AXIS_POSITIVE_Z, false);
-                Core_Bindings.core_add_delimiter_plane(world_handle, index, Axis_Index.AXIS_NEGATIVE_Z, false);
-            }
+            if(d.x) add_delimiter_planes(world_handle, index, Axis_Index.AXIS_X, d.centered, d.extended);
+            if(d.y) add_delimiter_planes(world_handle, index, Axis_Index.AXIS_Y, d.centered, d.extended);
+            if(d.z) add_delimiter_planes(world_handle, index, Axis_Index.AXIS_Z, d.centered, d.extended);
         }
 
         Core_Bindings.core_calculate_volumes(world_handle);

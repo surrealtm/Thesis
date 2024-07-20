@@ -99,6 +99,8 @@ MonoBehaviour:
   x: 1
   y: 0
   z: 0
+  centered: 0
+  extended: 0
   level: 0
 --- !u!1 &3131940572752089602
 GameObject:

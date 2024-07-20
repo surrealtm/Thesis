@@ -25,6 +25,7 @@ public class Manager : MonoBehaviour {
     void destroy_world() {
         if(this.world_handle.valid()) Core_Bindings.core_destroy_world(world_handle);
         Core_Helpers.clear_debug_draw();
+        this.world_handle.invalidate();
     }
 
     void create_world() {
@@ -39,6 +40,7 @@ public class Manager : MonoBehaviour {
     }
 
     void Start() {
+        this.world_handle.invalidate();
         this.create_world();
     }
 
