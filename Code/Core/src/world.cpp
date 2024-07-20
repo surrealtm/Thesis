@@ -313,15 +313,16 @@ void World::add_delimiter_plane(Delimiter *delimiter, Axis_Index normal_axis, b8
 
     real virtual_extension_scale = max(max(this->half_size.x, this->half_size.y), this->half_size.z) * 2.f; // Uniformly scale the clipping plane to cover the entire world space, before it will probably get cut down later.
     
-    Axis_Index n_axis = (Axis_Index) (normal_axis       % 3);
-    Axis_Index u_axis = (Axis_Index) ((normal_axis + 1) % 3);
-    Axis_Index v_axis = (Axis_Index) ((normal_axis + 2) % 3);
+    Axis_Index n_axis = (Axis_Index) ((normal_axis + 0) % AXIS_COUNT);
+    Axis_Index u_axis = (Axis_Index) ((normal_axis + 1) % AXIS_COUNT);
+    Axis_Index v_axis = (Axis_Index) ((normal_axis + 2) % AXIS_COUNT);
+
+    vec3 a = delimiter->local_scaled_axes[n_axis] * axis_sign(normal_axis);
+    vec3 n = delimiter->local_unit_axes[n_axis]   * axis_sign(normal_axis);
+    vec3 u = delimiter->local_unit_axes[u_axis];
+    vec3 v = delimiter->local_unit_axes[v_axis];
     
-    vec3 n = delimiter->local_unit_axes[n_axis] * axis_sign(n_axis);
-    vec3 u = delimiter->local_unit_axes[u_axis] * axis_sign(u_axis);
-    vec3 v = delimiter->local_unit_axes[v_axis] * axis_sign(v_axis);
-    
-    vec3 forward_extension = +(centered ? 0 : n);
+    vec3 forward_extension = +(centered != false ? 0 : a);
     vec3 left_extension    = -(virtual_extension & VIRTUAL_EXTENSION_Negative_U ? u * virtual_extension_scale : delimiter->local_scaled_axes[u_axis]);
     vec3 right_extension   = +(virtual_extension & VIRTUAL_EXTENSION_Positive_U ? u * virtual_extension_scale : delimiter->local_scaled_axes[u_axis]);
     vec3 top_extension     = -(virtual_extension & VIRTUAL_EXTENSION_Negative_V ? v * virtual_extension_scale : delimiter->local_scaled_axes[v_axis]);
@@ -334,7 +335,7 @@ void World::add_delimiter_plane(Delimiter *delimiter, Axis_Index normal_axis, b8
 
 void World::add_both_delimiter_planes(Delimiter *delimiter, Axis_Index normal_axis, Virtual_Extension virtual_extension) {
     this->add_delimiter_plane(delimiter, normal_axis, false, virtual_extension);
-    this->add_delimiter_plane(delimiter, (Axis_Index) ((normal_axis + AXIS_COUNT) % AXIS_COUNT), false, virtual_extension);
+    this->add_delimiter_plane(delimiter, (Axis_Index) (normal_axis + AXIS_COUNT), false, virtual_extension);
 }
 
 void World::calculate_volumes() {

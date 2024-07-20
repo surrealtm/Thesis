@@ -34,20 +34,20 @@ public struct Memory_Information_Handle { System.IntPtr __handle; public Memory_
 
 [Flags]
 public enum Debug_Draw_Options : uint {
-    Nothing             = 0x0,
-    BVH                 = 0x1,
-    Anchors             = 0x2,
-    Delimiters          = 0x4,
-    Clipping_Faces      = 0x8,
-    Clipping_Wireframes = 0x10,
-    Volume_Faces        = 0x20,
-    Volume_Wireframes   = 0x40,
-    Labels              = 0x1000,
-    Normals             = 0x2000,
-    Axis_Gizmo          = 0x4000,
-    Root_Planes         = 0x8000,
-    Flood_Fill          = 0x10000,
-    Everything          = 0xffffffff,
+    Nothing              = 0x0,
+    BVH                  = 0x1,
+    Anchors              = 0x2,
+    Delimiters           = 0x4,
+    Delimiter_Faces      = 0x8,
+    Delimiter_Wireframes = 0x10,
+    Volume_Faces         = 0x20,
+    Volume_Wireframes    = 0x40,
+    Labels               = 0x1000,
+    Normals              = 0x2000,
+    Axis_Gizmo           = 0x4000,
+    Root_Planes          = 0x8000,
+    Flood_Fill           = 0x10000,
+    Everything           = 0xffffffff,
 }
 
 public unsafe struct v3f {
@@ -161,6 +161,13 @@ public unsafe struct Memory_Information {
 /* ------------------------------------------------- Bindings ------------------------------------------------- */
 
 public enum Axis_Index {
+    AXIS_POSITIVE_X = 0,
+    AXIS_POSITIVE_Y = 1,
+    AXIS_POSITIVE_Z = 2,
+    AXIS_NEGATIVE_X = 0,
+    AXIS_NEGATIVE_Y = 1,
+    AXIS_NEGATIVE_Z = 2,
+
     AXIS_X = 0,
     AXIS_Y = 1,
     AXIS_Z = 2,
@@ -177,7 +184,7 @@ public class Core_Bindings {
     [DllImport("Core.dll")]
     public static extern s64 core_add_delimiter(World_Handle world, double x, double y, double z, double hx, double hy, double hz, double rx, double ry, double rz, u8 level);
     [DllImport("Core.dll")]
-    public static extern void core_add_delimiter_clipping_planes(World_Handle world, s64 delimiter_index, Axis_Index axis_index);
+    public static extern void core_add_delimiter_plane(World_Handle world, s64 delimiter_index, Axis_Index axis_index, bool centered);
     [DllImport("Core.dll")]
     public static extern void core_calculate_volumes(World_Handle world);
     
@@ -300,15 +307,27 @@ public unsafe class Core_Helpers {
             
             Transform transform = d.gameObject.transform;
             Bounds bounds = renderer.bounds;
+            
             s64 index = Core_Bindings.core_add_delimiter(world_handle, 
                 transform.position.x, transform.position.y, transform.position.z, 
-                transform.lossyScale.x / 2, transform.lossyScale.y / 2, transform.lossyScale.z / 2, 
+                transform.lossyScale.x * bounds.extents.x, transform.lossyScale.y * bounds.extents.y, transform.lossyScale.z * bounds.extents.z, 
                 euler_angles_to_turns(transform.eulerAngles.x), euler_angles_to_turns(transform.eulerAngles.y), euler_angles_to_turns(transform.eulerAngles.z), 
                 d.level);
 
-            if(d.x) Core_Bindings.core_add_delimiter_clipping_planes(world_handle, index, Axis_Index.AXIS_X);
-            if(d.y) Core_Bindings.core_add_delimiter_clipping_planes(world_handle, index, Axis_Index.AXIS_Y);
-            if(d.z) Core_Bindings.core_add_delimiter_clipping_planes(world_handle, index, Axis_Index.AXIS_Z);
+            if(d.x) {
+                Core_Bindings.core_add_delimiter_plane(world_handle, index, Axis_Index.AXIS_POSITIVE_X, false);
+                //Core_Bindings.core_add_delimiter_plane(world_handle, index, Axis_Index.AXIS_NEGATIVE_X, false);
+            }
+
+            if(d.y) {
+                Core_Bindings.core_add_delimiter_plane(world_handle, index, Axis_Index.AXIS_POSITIVE_Y, false);
+                Core_Bindings.core_add_delimiter_plane(world_handle, index, Axis_Index.AXIS_NEGATIVE_Y, false);
+            }
+
+            if(d.z) {
+                Core_Bindings.core_add_delimiter_plane(world_handle, index, Axis_Index.AXIS_POSITIVE_Z, false);
+                Core_Bindings.core_add_delimiter_plane(world_handle, index, Axis_Index.AXIS_NEGATIVE_Z, false);
+            }
         }
 
         Core_Bindings.core_calculate_volumes(world_handle);
@@ -447,8 +466,14 @@ public unsafe class Core_Helpers {
     }
 
     public static void clear_debug_draw() {
-        foreach(GameObject obj in dbg_draw_objects) {
-            GameObject.Destroy(obj);
+        if(Application.isEditor) {
+            foreach(GameObject obj in dbg_draw_objects) {
+                GameObject.DestroyImmediate(obj);
+            }
+        } else {
+            foreach(GameObject obj in dbg_draw_objects) {
+                GameObject.Destroy(obj);
+            }
         }
 
         dbg_draw_objects.Clear();
