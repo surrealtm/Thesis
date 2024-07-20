@@ -42,9 +42,9 @@ debug_draw_options_panel :: (viewer: *Viewer) {
 
         new_options = debug_draw_option_box(viewer, new_options, "BVH", .BVH);
         new_options = debug_draw_option_box(viewer, new_options, "Anchors", .Anchors);
-        new_options = debug_draw_option_box(viewer, new_options, "Boundaries", .Boundaries);
-        new_options = debug_draw_option_box(viewer, new_options, "Clipping Faces", .Clipping_Faces);
-        new_options = debug_draw_option_box(viewer, new_options, "Clipping Wireframes", .Clipping_Wireframes);
+        new_options = debug_draw_option_box(viewer, new_options, "Boundaries", .Delimiters);
+        new_options = debug_draw_option_box(viewer, new_options, "Delimiter Faces", .Delimiter_Faces);
+        new_options = debug_draw_option_box(viewer, new_options, "Delimiter Wireframes", .Delimiter_Wireframes);
         new_options = debug_draw_option_box(viewer, new_options, "Volume Faces", .Volume_Faces);
         new_options = debug_draw_option_box(viewer, new_options, "Volume Wireframes", .Volume_Wireframes);
         new_options = debug_draw_option_box(viewer, new_options, "Labels", .Labels);
@@ -69,9 +69,9 @@ debug_draw_options_panel :: (viewer: *Viewer) {
 
             if new_options & .BVH                   append_string(*builder, " | .BVH");
             if new_options & .Anchors               append_string(*builder, " | .Anchors");
-            if new_options & .Boundaries            append_string(*builder, " | .Boundaries");
-            if new_options & .Clipping_Faces        append_string(*builder, " | .Clipping_Faces");
-            if new_options & .Clipping_Wireframes   append_string(*builder, " | .Clipping_Wireframes");
+            if new_options & .Delimiters            append_string(*builder, " | .Delimiters");
+            if new_options & .Delimiter_Faces       append_string(*builder, " | .Delimiter_Faces");
+            if new_options & .Delimiter_Wireframes  append_string(*builder, " | .Delimiter_Wireframes");
             if new_options & .Volume_Faces          append_string(*builder, " | .Volume_Faces");
             if new_options & .Volume_Wireframes     append_string(*builder, " | .Volume_Wireframes");
             if new_options & .Labels                append_string(*builder, " | .Labels");

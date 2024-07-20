@@ -48,11 +48,18 @@ constexpr real CORE_SMALL_EPSILON = 0.0000001; // :CORE_SMALL_EPSILON
 
 
 /* ----------------------------------------------- 3D Geometry ----------------------------------------------- */
-
-enum Axis {
-    AXIS_X = 0,
-    AXIS_Y = 1,
-    AXIS_Z = 2,
+    
+enum Axis_Index {
+    AXIS_POSITIVE_X = 0,
+    AXIS_POSITIVE_Y = 1,
+    AXIS_POSITIVE_Z = 2,
+    AXIS_NEGATIVE_X = 3,
+    AXIS_NEGATIVE_Y = 4,
+    AXIS_NEGATIVE_Z = 5,
+    
+    AXIS_X = AXIS_POSITIVE_X,
+    AXIS_Y = AXIS_POSITIVE_Y,
+    AXIS_Z = AXIS_POSITIVE_Z,
     AXIS_COUNT = 3,
 };
 
@@ -88,3 +95,5 @@ struct Triangulated_Plane {
     void create(Allocator *allocator, vec3 c, vec3 u, vec3 v);
     b8 cast_ray(vec3 ray_origin, vec3 ray_direction, real ray_distance, b8 early_return);
 };
+
+real axis_sign(Axis_Index index); // 1 for positive, -1 for negative axis.

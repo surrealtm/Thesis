@@ -5,12 +5,28 @@
 
 /* ----------------------------------------------- General API ----------------------------------------------- */
 
+Axis_Index :: enum {
+    Positive_X :: 0;
+    Positive_Y :: 1;
+    Positive_Z :: 2;
+    Negative_X :: 3;
+    Negative_Y :: 4;
+    Negative_Z :: 5;
+
+    X :: 0;
+    Y :: 1;
+    Z :: 2;
+}
+
 World_Handle :: *void;
 
-core_create_world ::  #foreign (x: f64, y: f64, z: f64) -> World_Handle;
+core_create_world  :: #foreign (x: f64, y: f64, z: f64) -> World_Handle;
 core_destroy_world :: #foreign (world: World_Handle);
+core_add_anchor    :: #foreign (world: World_Handle, x: f64, y: f64, z: f64);
+core_add_delimiter :: #foreign (world: World_Handle, x: f64, y: f64, z: f64, hx: f64, hy: f64, hz: f64, rx: f64, ry: f64, rz: f64) -> s64;
+core_add_delimiter_plane :: #foreign (world: World_Handle, delimiter_index: s64, axis_index: Axis_Index, centered: bool);
 
-
+                                
 
 /* ------------------------------------------------- Testing ------------------------------------------------- */
 
@@ -30,20 +46,20 @@ core_do_jobs_test          :: #foreign () -> World_Handle;
 /* ------------------------------------------------ Debug Draw ------------------------------------------------ */
 
 Debug_Draw_Options :: enum {
-    Nothing             :: 0x0;
-    BVH                 :: 0x1;
-    Anchors             :: 0x2;
-    Boundaries          :: 0x4;
-    Clipping_Faces      :: 0x8;
-    Clipping_Wireframes :: 0x10;
-    Volume_Faces        :: 0x20;
-    Volume_Wireframes   :: 0x40;
-    Labels              :: 0x1000;
-    Normals             :: 0x2000;
-    Axis_Gizmo          :: 0x4000;
-    Root_Planes         :: 0x8000;
-    Flood_Fill          :: 0x10000;
-    Everything          :: 0xffffffff;
+    Nothing              :: 0x0;
+    BVH                  :: 0x1;
+    Anchors              :: 0x2;
+    Delimiters           :: 0x4;
+    Delimiter_Faces      :: 0x8;
+    Delimiter_Wireframes :: 0x10;
+    Volume_Faces         :: 0x20;
+    Volume_Wireframes    :: 0x40;
+    Labels               :: 0x1000;
+    Normals              :: 0x2000;
+    Axis_Gizmo           :: 0x4000;
+    Root_Planes          :: 0x8000;
+    Flood_Fill           :: 0x10000;
+    Everything           :: 0xffffffff;
 }
 
 Debug_Draw_Line :: struct {

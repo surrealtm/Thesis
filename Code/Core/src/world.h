@@ -52,8 +52,8 @@ struct World {
     Anchor *add_anchor(string dbg_name, vec3 position);
     Delimiter *add_delimiter(vec3 position, vec3 size, vec3 rotation, u8 level);
     Delimiter *add_delimiter(string dbg_name, vec3 position, vec3 size, vec3 rotation, u8 level);
-    void add_delimiter_clipping_planes(Delimiter *delimiter, Axis normal_axis, Virtual_Extension virtual_extension = VIRTUAL_EXTENSION_All);
-    void add_centered_delimiter_clipping_plane(Delimiter *delimiter, Axis normal_axis, Virtual_Extension virtual_extension = VIRTUAL_EXTENSION_All);
+    void add_delimiter_plane(Delimiter *delimiter, Axis_Index normal_axis, b8 centered = false, Virtual_Extension virtual_extension = VIRTUAL_EXTENSION_All);
+    void add_both_delimiter_planes(Delimiter *delimiter, Axis_Index normal_axis, Virtual_Extension virtual_extension = VIRTUAL_EXTENSION_All);
     void calculate_volumes();
 
 

@@ -282,16 +282,16 @@ Delimiter *World::add_delimiter(vec3 position, vec3 half_size, vec3 rotation, u8
 
     quat quaternion = qt_from_euler_turns(rotation);
 
-    Delimiter *delimiter                 = this->delimiters.push();
-    delimiter->position                  = position;
-    delimiter->local_scaled_axes[AXIS_X] = qt_rotate(quaternion, vec3(half_size.x, 0, 0));
-    delimiter->local_scaled_axes[AXIS_Y] = qt_rotate(quaternion, vec3(0, half_size.y, 0));
-    delimiter->local_scaled_axes[AXIS_Z] = qt_rotate(quaternion, vec3(0, 0, half_size.z));
-    delimiter->local_unit_axes[AXIS_X]   = qt_rotate(quaternion, vec3(1, 0, 0));
-    delimiter->local_unit_axes[AXIS_Y]   = qt_rotate(quaternion, vec3(0, 1, 0));
-    delimiter->local_unit_axes[AXIS_Z]   = qt_rotate(quaternion, vec3(0, 0, 1));
-    delimiter->plane_count               = 0;
-    delimiter->level                     = level;
+    Delimiter *delimiter                          = this->delimiters.push();
+    delimiter->position                           = position;
+    delimiter->local_scaled_axes[AXIS_POSITIVE_X] = qt_rotate(quaternion, vec3(half_size.x, 0, 0));
+    delimiter->local_scaled_axes[AXIS_POSITIVE_Y] = qt_rotate(quaternion, vec3(0, half_size.y, 0));
+    delimiter->local_scaled_axes[AXIS_POSITIVE_Z] = qt_rotate(quaternion, vec3(0, 0, half_size.z));
+    delimiter->local_unit_axes[AXIS_POSITIVE_X]   = qt_rotate(quaternion, vec3(1, 0, 0));
+    delimiter->local_unit_axes[AXIS_POSITIVE_Y]   = qt_rotate(quaternion, vec3(0, 1, 0));
+    delimiter->local_unit_axes[AXIS_POSITIVE_Z]   = qt_rotate(quaternion, vec3(0, 0, 1));
+    delimiter->plane_count                        = 0;
+    delimiter->level                              = level;
     
     delimiter->dbg_half_size = half_size;
     delimiter->dbg_rotation  = quaternion;
@@ -305,44 +305,7 @@ Delimiter *World::add_delimiter(string dbg_name, vec3 position, vec3 half_size, 
     return delimiter;
 }
 
-void World::add_delimiter_clipping_planes(Delimiter *delimiter, Axis normal_axis, Virtual_Extension virtual_extension) {
-    tmFunction(TM_WORLD_COLOR);
-
-    assert(normal_axis >= 0 && normal_axis < AXIS_COUNT);
-    assert(delimiter->plane_count + 2 <= ARRAY_COUNT(delimiter->planes));
-
-    real virtual_extension_scale = max(max(this->half_size.x, this->half_size.y), this->half_size.z) * 2.f; // Uniformly scale the clipping plane to cover the entire world space, before it will probably get cut down later.
-
-    Axis u_axis = (Axis) ((normal_axis + 1) % 3);
-    Axis v_axis = (Axis) ((normal_axis + 2) % 3);
-    
-    vec3 a = delimiter->local_scaled_axes[normal_axis];
-    vec3 n = delimiter->local_unit_axes[normal_axis];
-    vec3 u = delimiter->local_unit_axes[u_axis];
-    vec3 v = delimiter->local_unit_axes[v_axis];
-
-    real left_extension   = virtual_extension & VIRTUAL_EXTENSION_Negative_U ? virtual_extension_scale : v3_length(delimiter->local_scaled_axes[u_axis]);
-    real right_extension  = virtual_extension & VIRTUAL_EXTENSION_Positive_U ? virtual_extension_scale : v3_length(delimiter->local_scaled_axes[u_axis]);
-    real top_extension    = virtual_extension & VIRTUAL_EXTENSION_Negative_V ? virtual_extension_scale : v3_length(delimiter->local_scaled_axes[v_axis]);
-    real bottom_extension = virtual_extension & VIRTUAL_EXTENSION_Positive_V ? virtual_extension_scale : v3_length(delimiter->local_scaled_axes[v_axis]);
-
-    //
-    // A delimiter owns an actual volume, which means that the clipping plane
-    // shouldn't actually go through the center, but be aligned with the sides
-    // of this volume. This, in turn, means that there should actually be two
-    // clipping planes, one on each side of the axis.
-    //
-
-    Triangulated_Plane *p0 = &delimiter->planes[delimiter->plane_count];
-    p0->create(this->allocator, delimiter->position + a,  n, -u * left_extension, u * right_extension, -v * top_extension, v * bottom_extension);
-    ++delimiter->plane_count;
-    
-    Triangulated_Plane *p1 = &delimiter->planes[delimiter->plane_count];
-    p1->create(this->allocator, delimiter->position - a, -n, -u * left_extension, u * right_extension, -v * top_extension, v * bottom_extension);
-    ++delimiter->plane_count;
-}
-
-void World::add_centered_delimiter_clipping_plane(Delimiter *delimiter, Axis normal_axis, Virtual_Extension virtual_extension) {
+void World::add_delimiter_plane(Delimiter *delimiter, Axis_Index normal_axis, b8 centered, Virtual_Extension virtual_extension) {
     tmFunction(TM_WORLD_COLOR);
 
     assert(normal_axis >= 0 && normal_axis < AXIS_COUNT);
@@ -350,22 +313,28 @@ void World::add_centered_delimiter_clipping_plane(Delimiter *delimiter, Axis nor
 
     real virtual_extension_scale = max(max(this->half_size.x, this->half_size.y), this->half_size.z) * 2.f; // Uniformly scale the clipping plane to cover the entire world space, before it will probably get cut down later.
     
-    Axis u_axis = (Axis) ((normal_axis + 1) % 3);
-    Axis v_axis = (Axis) ((normal_axis + 2) % 3);
+    Axis_Index n_axis = (Axis_Index) (normal_axis       % 3);
+    Axis_Index u_axis = (Axis_Index) ((normal_axis + 1) % 3);
+    Axis_Index v_axis = (Axis_Index) ((normal_axis + 2) % 3);
     
-    vec3 a = delimiter->local_scaled_axes[normal_axis];
-    vec3 n = delimiter->local_unit_axes[normal_axis];
-    vec3 u = delimiter->local_unit_axes[(normal_axis + 1) % 3];
-    vec3 v = delimiter->local_unit_axes[(normal_axis + 2) % 3];
+    vec3 n = delimiter->local_unit_axes[n_axis] * axis_sign(n_axis);
+    vec3 u = delimiter->local_unit_axes[u_axis] * axis_sign(u_axis);
+    vec3 v = delimiter->local_unit_axes[v_axis] * axis_sign(v_axis);
     
-    real left_extension   = virtual_extension & VIRTUAL_EXTENSION_Negative_U ? virtual_extension_scale : v3_length(delimiter->local_scaled_axes[u_axis]);
-    real right_extension  = virtual_extension & VIRTUAL_EXTENSION_Positive_U ? virtual_extension_scale : v3_length(delimiter->local_scaled_axes[u_axis]);
-    real top_extension    = virtual_extension & VIRTUAL_EXTENSION_Negative_V ? virtual_extension_scale : v3_length(delimiter->local_scaled_axes[v_axis]);
-    real bottom_extension = virtual_extension & VIRTUAL_EXTENSION_Positive_V ? virtual_extension_scale : v3_length(delimiter->local_scaled_axes[v_axis]);
+    vec3 forward_extension = +(centered ? 0 : n);
+    vec3 left_extension    = -(virtual_extension & VIRTUAL_EXTENSION_Negative_U ? u * virtual_extension_scale : delimiter->local_scaled_axes[u_axis]);
+    vec3 right_extension   = +(virtual_extension & VIRTUAL_EXTENSION_Positive_U ? u * virtual_extension_scale : delimiter->local_scaled_axes[u_axis]);
+    vec3 top_extension     = -(virtual_extension & VIRTUAL_EXTENSION_Negative_V ? v * virtual_extension_scale : delimiter->local_scaled_axes[v_axis]);
+    vec3 bottom_extension  = +(virtual_extension & VIRTUAL_EXTENSION_Positive_V ? v * virtual_extension_scale : delimiter->local_scaled_axes[v_axis]);
     
     Triangulated_Plane *p0 = &delimiter->planes[delimiter->plane_count];
-    p0->create(this->allocator, delimiter->position, n, -u * left_extension, u * right_extension, -v * top_extension, v * bottom_extension);
+    p0->create(this->allocator, delimiter->position + forward_extension, n, left_extension, right_extension, top_extension, bottom_extension);
     ++delimiter->plane_count;
+}
+
+void World::add_both_delimiter_planes(Delimiter *delimiter, Axis_Index normal_axis, Virtual_Extension virtual_extension) {
+    this->add_delimiter_plane(delimiter, normal_axis, false, virtual_extension);
+    this->add_delimiter_plane(delimiter, (Axis_Index) ((normal_axis + AXIS_COUNT) % AXIS_COUNT), false, virtual_extension);
 }
 
 void World::calculate_volumes() {

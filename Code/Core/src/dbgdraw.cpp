@@ -292,7 +292,7 @@ Debug_Draw_Data debug_draw_world(World *world, Debug_Draw_Options options) {
         }
 	}
 
-	if(options & DEBUG_DRAW_Clipping_Faces) {
+	if(options & DEBUG_DRAW_Delimiter_Faces) {
 		if(options & DEBUG_DRAW_Root_Planes) {
 			for(Triangulated_Plane &plane : world->root_clipping_planes) {
                 debug_draw_triangulated_plane(_internal, &plane, dbg_root_plane_color);
@@ -308,7 +308,7 @@ Debug_Draw_Data debug_draw_world(World *world, Debug_Draw_Options options) {
         }		
     }
 
-	if(options & DEBUG_DRAW_Clipping_Wireframes) {
+	if(options & DEBUG_DRAW_Delimiter_Wireframes) {
 		if(options & DEBUG_DRAW_Root_Planes) {
 			for(Triangulated_Plane &plane : world->root_clipping_planes) {
                 debug_draw_triangulated_plane_wireframe(_internal, &plane, dbg_root_plane_color);

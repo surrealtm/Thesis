@@ -115,7 +115,7 @@ Viewer :: struct {
     memory_information: Memory_Information;
     
     profiling_show_summary: bool;    
-    debug_draw_options: Debug_Draw_Options = .Anchors | .Boundaries | .Clipping_Wireframes | .Volume_Faces | .Volume_Wireframes;
+    debug_draw_options: Debug_Draw_Options = .Anchors | .Delimiters | .Delimiter_Wireframes | .Volume_Faces | .Volume_Wireframes;
     //debug_draw_options: Debug_Draw_Options = .BVH;
 }
 

@@ -68,3 +68,9 @@ b8 Triangulated_Plane::cast_ray(vec3 ray_origin, vec3 ray_direction, real max_ra
  early_exit:
     return hit_something;
 }
+
+
+
+real axis_sign(Axis_Index index) {
+    return index < AXIS_COUNT ? 1 : -1;
+}
