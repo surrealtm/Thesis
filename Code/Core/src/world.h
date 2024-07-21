@@ -54,7 +54,7 @@ struct World {
     Delimiter *add_delimiter(string dbg_name, vec3 position, vec3 size, vec3 rotation, u8 level);
     void add_delimiter_plane(Delimiter *delimiter, Axis_Index normal_axis, b8 centered = false, Virtual_Extension virtual_extension = VIRTUAL_EXTENSION_All);
     void add_both_delimiter_planes(Delimiter *delimiter, Axis_Index normal_axis, Virtual_Extension virtual_extension = VIRTUAL_EXTENSION_All);
-    void calculate_volumes();
+    void calculate_volumes(real cell_world_space_size = 10.);
 
 
 
@@ -96,7 +96,7 @@ struct World {
     void create_bvh();
     void create_bvh_from_triangles(Resizable_Array<Triangle> &triangles);
     void clip_delimiters();
-    void build_anchor_volumes(real cell_world_space_size = 10.);
+    void build_anchor_volumes(real cell_world_space_size);
 
     b8 point_inside_bounds(vec3 point);
     b8 cast_ray_against_delimiters_and_root_planes(vec3 ray_origin, vec3 ray_direction, real max_ray_distance);

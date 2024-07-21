@@ -109,7 +109,7 @@ public class Tester : MonoBehaviour {
 
     public World_Handle create_world_from_scene() {
         this.destroy_world();
-        this.world_handle = Core_Helpers.create_world_from_scene();
+        this.world_handle = Core_Helpers.create_world_from_scene(1.0);
         return this.world_handle;
     }
 

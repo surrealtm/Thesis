@@ -18,6 +18,12 @@ Axis_Index :: enum {
     Z :: 2;
 }
 
+Virtual_Extension :: enum {
+    None :: 0x0;
+    U    :: 0x3;
+    V    :: 0xc;
+}
+
 World_Handle :: *void;
 
 core_create_world  :: #foreign (x: f64, y: f64, z: f64) -> World_Handle;

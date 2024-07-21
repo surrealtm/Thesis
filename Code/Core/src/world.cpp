@@ -338,10 +338,10 @@ void World::add_both_delimiter_planes(Delimiter *delimiter, Axis_Index normal_ax
     this->add_delimiter_plane(delimiter, (Axis_Index) (normal_axis + AXIS_COUNT), false, virtual_extension);
 }
 
-void World::calculate_volumes() {
+void World::calculate_volumes(real cell_world_space_size) {
     this->clip_delimiters();
     this->create_bvh();
-    this->build_anchor_volumes();
+    this->build_anchor_volumes(cell_world_space_size);
 }
 
 

@@ -96,11 +96,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8aaccc51b6207474c89f9b3a9836d619, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  x: 1
-  y: 0
-  z: 0
-  centered: 0
-  extended: 0
+  planes:
+  - axis: 0
+    centered: 0
+    extend_u: 1
+    extend_v: 0
+  - axis: 3
+    centered: 0
+    extend_u: 1
+    extend_v: 0
   level: 0
 --- !u!1 &3131940572752089602
 GameObject:

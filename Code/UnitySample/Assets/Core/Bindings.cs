@@ -164,13 +164,15 @@ public enum Axis_Index {
     AXIS_POSITIVE_X = 0,
     AXIS_POSITIVE_Y = 1,
     AXIS_POSITIVE_Z = 2,
-    AXIS_NEGATIVE_X = 0,
-    AXIS_NEGATIVE_Y = 1,
-    AXIS_NEGATIVE_Z = 2,
+    AXIS_NEGATIVE_X = 3,
+    AXIS_NEGATIVE_Y = 4,
+    AXIS_NEGATIVE_Z = 5,
+}
 
-    AXIS_X = 0,
-    AXIS_Y = 1,
-    AXIS_Z = 2,
+public enum Virtual_Extension {
+    VIRTUAL_EXTENSION_None = 0x0,
+    VIRTUAL_EXTENSION_U    = 0x3,
+    VIRTUAL_EXTENSION_V    = 0xc,
 }
 
 public class Core_Bindings {
@@ -184,9 +186,9 @@ public class Core_Bindings {
     [DllImport("Core.dll")]
     public static extern s64 core_add_delimiter(World_Handle world, double x, double y, double z, double hx, double hy, double hz, double rx, double ry, double rz, u8 level);
     [DllImport("Core.dll")]
-    public static extern void core_add_delimiter_plane(World_Handle world, s64 delimiter_index, Axis_Index axis_index, bool centered, bool extended);
+    public static extern void core_add_delimiter_plane(World_Handle world, s64 delimiter_index, Axis_Index axis_index, bool centered, Virtual_Extension extension);
     [DllImport("Core.dll")]
-    public static extern void core_calculate_volumes(World_Handle world);
+    public static extern void core_calculate_volumes(World_Handle world, f64 cell_world_space_size);
     
 
 
@@ -280,12 +282,11 @@ public unsafe class Core_Helpers {
 
 
 
-    private static void add_delimiter_planes(World_Handle world_handle, s64 delimiter, Axis_Index axis, bool centered, bool extended) {
-        Core_Bindings.core_add_delimiter_plane(world_handle, delimiter, axis, centered, extended);
-        if(!centered) Core_Bindings.core_add_delimiter_plane(world_handle, delimiter, axis + 3, centered, extended);
+    private static void add_delimiter_plane(World_Handle world_handle, s64 delimiter, Axis_Index axis, bool centered, Virtual_Extension extension) {
+        Core_Bindings.core_add_delimiter_plane(world_handle, delimiter, axis, centered, extension);
     }
 
-    public static World_Handle create_world_from_scene() {
+    public static World_Handle create_world_from_scene(double cell_world_space_size) {
         // Determine the bounding box of this entire level so that we can
         // speed up the world creation.
         Bounds b = new Bounds(Vector3.zero, Vector3.zero);
@@ -323,12 +324,15 @@ public unsafe class Core_Helpers {
                 rotation.x, rotation.y, rotation.z,
                 d.level);
 
-            if(d.x) add_delimiter_planes(world_handle, index, Axis_Index.AXIS_X, d.centered, d.extended);
-            if(d.y) add_delimiter_planes(world_handle, index, Axis_Index.AXIS_Y, d.centered, d.extended);
-            if(d.z) add_delimiter_planes(world_handle, index, Axis_Index.AXIS_Z, d.centered, d.extended);
+            foreach(Delimiter_Plane p in d.planes) {
+                Virtual_Extension extension = Virtual_Extension.VIRTUAL_EXTENSION_None;
+                if(p.extend_u) extension |= Virtual_Extension.VIRTUAL_EXTENSION_U;
+                if(p.extend_v) extension |= Virtual_Extension.VIRTUAL_EXTENSION_V;
+                add_delimiter_plane(world_handle, index, p.axis, p.centered, extension);
+            }
         }
 
-        Core_Bindings.core_calculate_volumes(world_handle);
+        Core_Bindings.core_calculate_volumes(world_handle, cell_world_space_size);
 
         return world_handle;
     }

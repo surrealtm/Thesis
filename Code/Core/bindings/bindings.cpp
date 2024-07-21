@@ -117,14 +117,14 @@ extern "C" {
         return world->delimiters.count - 1;
     }
 
-    void core_add_delimiter_plane(World_Handle world_handle, s64 delimiter_index, Axis_Index axis, b8 centered, b8 extended) {
+    void core_add_delimiter_plane(World_Handle world_handle, s64 delimiter_index, Axis_Index axis, b8 centered, Virtual_Extension extension) {
         World *world = (World *) world_handle;
-        world->add_delimiter_plane(&world->delimiters[delimiter_index], axis, centered, extended ? VIRTUAL_EXTENSION_All : VIRTUAL_EXTENSION_None);
+        world->add_delimiter_plane(&world->delimiters[delimiter_index], axis, centered, extension);
     }
 
-    void core_calculate_volumes(World_Handle world_handle) {
+    void core_calculate_volumes(World_Handle world_handle, f64 cell_world_space_size) {
         World *world = (World *) world_handle;
-        world->calculate_volumes();
+        world->calculate_volumes((real) cell_world_space_size);
     }
 
 
