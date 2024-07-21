@@ -8,8 +8,7 @@
 
 static inline
 v3i world_space_to_cell_space(Flood_Fill *ff, vec3 world_space) {
-    vec3 relative_to_center = world_space - ff->world_space_center;
-    vec3 scaled_relative    = relative_to_center / vec3(ff->cell_world_space_size); // @@Speed: Use inverse instead of division.
+    vec3 scaled_relative = (world_space - ff->world_to_cell_space_transform) / vec3(ff->cell_world_space_size); // @@Speed: Use inverse instead of division.
     return v3i((s32) clamp(round(scaled_relative.x + ff->hx / 2. - 1), 0, ff->hx - 1),
                (s32) clamp(round(scaled_relative.y + ff->hy / 2. - 1), 0, ff->hy - 1),
                (s32) clamp(round(scaled_relative.z + ff->hz / 2. - 1), 0, ff->hz - 1));
@@ -79,18 +78,18 @@ Cell *get_cell(Flood_Fill *ff, v3i position) {
 }
 
 vec3 get_cell_world_space_center(Flood_Fill *ff, v3i position) {
-    real xoffset = (position.x - ff->origin.x) * ff->cell_world_space_size;
-    real yoffset = (position.y - ff->origin.y) * ff->cell_world_space_size;
-    real zoffset = (position.z - ff->origin.z) * ff->cell_world_space_size;
+    real xoffset = position.x * ff->cell_world_space_size - ff->cell_to_world_space_transform.x;
+    real yoffset = position.y * ff->cell_world_space_size - ff->cell_to_world_space_transform.y;
+    real zoffset = position.z * ff->cell_world_space_size - ff->cell_to_world_space_transform.z;
 
-    return ff->world_space_center + vec3(xoffset, yoffset, zoffset);
+    return vec3(xoffset, yoffset, zoffset);
 }
 
 vec3 get_cell_world_space_center(Flood_Fill *ff, Cell *cell) {
     return get_cell_world_space_center(ff, cell->position);
 }
 
-void floodfill(Flood_Fill *ff, World *world, Allocator *allocator, vec3 world_space_center, real cell_world_space_size) {
+void floodfill(Flood_Fill *ff, World *world, Allocator *allocator, vec3 flood_fill_origin, real cell_world_space_size) {
     tmFunction(TM_FLOODING_COLOR);
 
     ff->cell_world_space_size = cell_world_space_size;
@@ -99,18 +98,23 @@ void floodfill(Flood_Fill *ff, World *world, Allocator *allocator, vec3 world_sp
     // Make sure that we have an uneven number of cells, so that the origin cell is actually centered on the
     // world space center (with an even number of cells, an edge between two cells would be centered on the
     // world space center).
-    ff->hx        = ceil_to_uneven(world->half_size.x / ff->cell_world_space_size * 2.);
-    ff->hy        = ceil_to_uneven(world->half_size.y / ff->cell_world_space_size * 2.);
-    ff->hz        = ceil_to_uneven(world->half_size.z / ff->cell_world_space_size * 2.);
+    ff->hx = ceil_to_uneven(world->half_size.x / ff->cell_world_space_size * 2.);
+    ff->hy = ceil_to_uneven(world->half_size.y / ff->cell_world_space_size * 2.);
+    ff->hz = ceil_to_uneven(world->half_size.z / ff->cell_world_space_size * 2.);
 
-    ff->cells     = (Cell *) ff->allocator->allocate(ff->hx * ff->hy * ff->hz * sizeof(Cell));
-    ff->world_space_center = world_space_center; // The world is centered around (0, 0, 0) by default.
+    ff->world_to_cell_space_transform = vec3(fmod(flood_fill_origin.x, ff->cell_world_space_size), fmod(flood_fill_origin.y, ff->cell_world_space_size), fmod(flood_fill_origin.z, ff->cell_world_space_size));
+    
+    ff->cell_to_world_space_transform = vec3(ff->hx / 2, ff->hy / 2, ff->hz / 2) * ff->cell_world_space_size -
+        ff->world_to_cell_space_transform;
+    
+    ff->cells = (Cell *) ff->allocator->allocate(ff->hx * ff->hy * ff->hz * sizeof(Cell));
     ff->frontier.allocator = allocator;
+    ff->flooded_cells.allocator = allocator;
     ff->world = world;
     
     memset(ff->cells, 0, ff->hx * ff->hy * ff->hz * sizeof(Cell)); // @@Speed: The allocator should guarantee zero-initialization anyway, so this seems unncessary. We probably want to reuse a Flood_Fill struct later though, so at that point it might become necessary again...
 
-    ff->origin = world_space_to_cell_space(ff, world_space_center);
+    ff->origin = world_space_to_cell_space(ff, flood_fill_origin);
     definitely_add_cell_to_frontier(ff, ff->origin);
     
     while(ff->frontier.count) {

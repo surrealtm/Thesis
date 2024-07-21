@@ -29,10 +29,11 @@ struct Flood_Fill {
     Resizable_Array<Cell *> frontier;
     Resizable_Array<Cell *> flooded_cells; // So that we can quickly iterate over all flooded cells in the assembler.
     
-    s64 hx, hy, hz; // Dimensions in cells
+    s32 hx, hy, hz; // Dimensions in cells
     real cell_world_space_size; // In world space
+    vec3 cell_to_world_space_transform;
+    vec3 world_to_cell_space_transform;
     v3i origin; // The first cell that was flooded (in cell coordinates)
-    vec3 world_space_center; // World Space Center of the cell grid.
 
     Cell *cells;
 };

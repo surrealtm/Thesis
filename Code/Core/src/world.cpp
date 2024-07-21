@@ -467,7 +467,7 @@ void World::build_anchor_volumes(real cell_world_space_size) {
         if(this->current_flood_fill != null) deallocate_flood_fill(this->current_flood_fill);
 
         this->current_flood_fill = this->allocator->New<Flood_Fill>();
-        floodfill(this->current_flood_fill, this, this->allocator, anchor.position, cell_world_space_size);
+        floodfill(this->current_flood_fill, this, this->allocator, anchor.position, cell_world_space_size); // nocheckin
 
 #if USE_MARCHING_CUBES_FOR_VOLUMES
         marching_cubes(&anchor.volume, this->current_flood_fill);

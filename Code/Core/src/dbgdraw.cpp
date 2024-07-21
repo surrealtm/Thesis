@@ -260,7 +260,8 @@ void debug_draw_flood_fill(Dbg_Internal_Draw_Data &_internal, Flood_Fill *ff) {
         }
     }
 
-    debug_draw_flood_fill_cell_center(_internal, ff, ff->world_space_center, Dbg_Draw_Color { 255, 0, 0, 255 });
+    vec3 origin_world_space = get_cell_world_space_center(ff, ff->origin);
+    debug_draw_flood_fill_cell_center(_internal, ff, origin_world_space, Dbg_Draw_Color { 255, 0, 0, 255 });
 }
 
 Debug_Draw_Data debug_draw_world(World *world, Debug_Draw_Options options) {
