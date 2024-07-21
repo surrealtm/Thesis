@@ -33,10 +33,7 @@ public class Manager : MonoBehaviour {
     void create_world() {
         this.destroy_world();
 
-        Core_Bindings.core_begin_profiling();
-        this.world_handle = Core_Helpers.create_world_from_scene(cell_world_space_size);
-        Core_Bindings.core_stop_profiling();
-        Core_Helpers.print_profiling(this.world_handle, false);
+        this.world_handle = Core_Helpers.create_world_from_scene_and_print_profiling(cell_world_space_size);
         
         Core_Helpers.debug_draw_world(this.world_handle, this.debug_draw_options, true);
     }

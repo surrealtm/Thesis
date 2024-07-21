@@ -1,3 +1,5 @@
+#if FOUNDATION_DEVELOPER
+
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -155,3 +157,5 @@ public class Tester : MonoBehaviour {
         this.rerun_test_flag = true;
     }
 }
+
+#endif

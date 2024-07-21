@@ -1,4 +1,4 @@
-#define FOUNDATION_DEVELOPER
+//#define FOUNDATION_DEVELOPER
 
 using System;
 using System.Runtime.InteropServices;
@@ -192,6 +192,14 @@ public class Core_Bindings {
     
 
 
+    /* ---------------------------------------------- Debug Draw --------------------------------------------- */
+
+    [DllImport("Core.dll")]
+    public static extern Debug_Draw_Data core_debug_draw_world(World_Handle world_handle, Debug_Draw_Options options);
+    [DllImport("Core.dll")]
+    public static extern void core_free_debug_draw_data(Debug_Draw_Data_Handle data);
+
+
 #if FOUNDATION_DEVELOPER
     /* ----------------------------------------------- Testing ----------------------------------------------- */
 
@@ -215,15 +223,6 @@ public class Core_Bindings {
     public static extern World_Handle core_do_louvre_test();
     [DllImport("Core.dll")]
     public static extern World_Handle core_do_jobs_test();
-
-
-
-    /* ---------------------------------------------- Debug Draw --------------------------------------------- */
-
-    [DllImport("Core.dll")]
-    public static extern Debug_Draw_Data core_debug_draw_world(World_Handle world_handle, Debug_Draw_Options options);
-    [DllImport("Core.dll")]
-    public static extern void core_free_debug_draw_data(Debug_Draw_Data_Handle data);
 
 
 
@@ -303,6 +302,7 @@ public unsafe class Core_Helpers {
         World_Handle world_handle = Core_Bindings.core_create_world(x, y, z);
 
         foreach (Anchor a in UnityEngine.Object.FindObjectsOfType(typeof(Anchor))) {
+            if(a.disabled) continue;
             Transform transform = a.gameObject.transform;
             Core_Bindings.core_add_anchor(world_handle, transform.position.x, transform.position.y, transform.position.z);
         }
@@ -333,6 +333,21 @@ public unsafe class Core_Helpers {
         }
 
         Core_Bindings.core_calculate_volumes(world_handle, cell_world_space_size);
+
+        return world_handle;
+    }
+
+    public static World_Handle create_world_from_scene_and_print_profiling(double cell_world_space_size) {
+#if FOUNDATION_DEVELOPER
+        Core_Bindings.core_begin_profiling();
+#endif
+
+        World_Handle world_handle = create_world_from_scene(cell_world_space_size);
+
+#if FOUNDATION_DEVELOPER
+        Core_Bindings.core_stop_profiling();
+        Core_Helpers.print_profiling(this.world_handle, false);
+#endif
 
         return world_handle;
     }
@@ -502,6 +517,7 @@ public unsafe class Core_Helpers {
     }
     
     public static void print_profiling(World_Handle world_handle, bool include_timeline) {
+#if FOUNDATION_DEVELOPER
         {
             Timing_Data timing_data = Core_Bindings.core_get_profiling_data();
 
@@ -536,5 +552,6 @@ public unsafe class Core_Helpers {
 
             Core_Bindings.core_free_memory_information(new Memory_Information_Handle((IntPtr) (&memory_information)));
         }
+#endif
     }
 };

@@ -129,6 +129,18 @@ extern "C" {
 
 
     
+    /* ---------------------------------------------- Debug Draw ---------------------------------------------- */
+
+    Debug_Draw_Data core_debug_draw_world(World_Handle world, Debug_Draw_Options options) {
+        return debug_draw_world((World *) world, options);
+    }
+
+    void core_free_debug_draw_data(Debug_Draw_Data *data) {
+        free_debug_draw_data(data);
+    }
+    
+    
+
 #if FOUNDATION_DEVELOPER
     /* ----------------------------------------------- Testing ------------------------------------------------ */
 
@@ -375,18 +387,6 @@ extern "C" {
 
         destroy_job_system(&jobs, JOB_SYSTEM_Wait_On_All_Jobs);
         return null;
-    }
-    
-
-
-    /* ---------------------------------------------- Debug Draw ---------------------------------------------- */
-
-    Debug_Draw_Data core_debug_draw_world(World_Handle world, Debug_Draw_Options options) {
-        return debug_draw_world((World *) world, options);
-    }
-
-    void core_free_debug_draw_data(Debug_Draw_Data *data) {
-        free_debug_draw_data(data);
     }
     
     
