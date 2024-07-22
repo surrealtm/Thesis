@@ -314,8 +314,14 @@ public unsafe class Core_Helpers {
             Transform transform = d.gameObject.transform;
             Bounds bounds = renderer.bounds;
             
+            Vector3 scale    = transform.lossyScale;
+            Vector3 extents  = transform.rotation * (bounds.max - transform.position) - transform.rotation * (bounds.min - transform.position); // Turn into local space
+            extents.x = Math.Abs(extents.x) / 2.0f;
+            extents.y = Math.Abs(extents.y) / 2.0f;
+            extents.z = Math.Abs(extents.z) / 2.0f;
+
             Vector3 position = bounds.center;
-            Vector3 size     = new Vector3(transform.lossyScale.x * bounds.extents.x, transform.lossyScale.y * bounds.extents.y, transform.lossyScale.z * bounds.extents.z);
+            Vector3 size     = new Vector3(scale.x * extents.x, scale.y * extents.y, scale.z * extents.z);
             Vector3 rotation = euler_angles_to_turns(transform.eulerAngles);
 
             s64 index = Core_Bindings.core_add_delimiter(world_handle, 

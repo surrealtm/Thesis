@@ -251,6 +251,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8c10ba1b165dff940b3a707c98523073, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  disabled: 0
 --- !u!135 &613465419
 SphereCollider:
   m_ObjectHideFlags: 0
@@ -618,9 +619,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8aaccc51b6207474c89f9b3a9836d619, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  x: 0
-  y: 0
-  z: 1
+  planes:
+  - axis: 0
+    centered: 0
+    extend_u: 1
+    extend_v: 1
   level: 1
 --- !u!1 &1060373816
 GameObject:
@@ -669,6 +672,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8c10ba1b165dff940b3a707c98523073, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  disabled: 0
 --- !u!135 &1060373819
 SphereCollider:
   m_ObjectHideFlags: 0
