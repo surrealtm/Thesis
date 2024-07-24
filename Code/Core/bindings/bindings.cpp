@@ -111,9 +111,9 @@ extern "C" {
         return world->anchors.count - 1;
     }
 
-    s64 core_add_delimiter(World_Handle world_handle, f64 x, f64 y, f64 z, f64 hx, f64 hy, f64 hz, f64 rx, f64 ry, f64 rz, u8 level) {
+    s64 core_add_delimiter(World_Handle world_handle, f64 x, f64 y, f64 z, f64 hx, f64 hy, f64 hz, f64 rx, f64 ry, f64 rz, f64 rw, u8 level) {
         World *world = (World *) world_handle;
-        world->add_delimiter(vec3((real) x, (real) y, (real) z), vec3((real) hx, (real) hy, (real) hz), vec3((real) rx, (real) ry, (real) rz), level);
+        world->add_delimiter(vec3((real) x, (real) y, (real) z), vec3((real) hx, (real) hy, (real) hz), quat((real) rx, (real) ry, (real) rz, (real) rw), level);
         return world->delimiters.count - 1;
     }
 

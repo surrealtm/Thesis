@@ -278,28 +278,36 @@ Anchor *World::add_anchor(string dbg_name, vec3 position) {
 }
 
 Delimiter *World::add_delimiter(vec3 position, vec3 half_size, vec3 rotation, u8 level) {
+    return this->add_delimiter(position, half_size, qt_from_euler_turns(rotation), level);
+}
+
+Delimiter *World::add_delimiter(vec3 position, vec3 half_size, quat rotation, u8 level) {
     tmFunction(TM_WORLD_COLOR);
 
-    quat quaternion = qt_from_euler_turns(rotation);
-
-    Delimiter *delimiter                          = this->delimiters.push();
-    delimiter->position                           = position;
-    delimiter->local_scaled_axes[AXIS_POSITIVE_X] = qt_rotate(quaternion, vec3(half_size.x, 0, 0));
-    delimiter->local_scaled_axes[AXIS_POSITIVE_Y] = qt_rotate(quaternion, vec3(0, half_size.y, 0));
-    delimiter->local_scaled_axes[AXIS_POSITIVE_Z] = qt_rotate(quaternion, vec3(0, 0, half_size.z));
-    delimiter->local_unit_axes[AXIS_POSITIVE_X]   = qt_rotate(quaternion, vec3(1, 0, 0));
-    delimiter->local_unit_axes[AXIS_POSITIVE_Y]   = qt_rotate(quaternion, vec3(0, 1, 0));
-    delimiter->local_unit_axes[AXIS_POSITIVE_Z]   = qt_rotate(quaternion, vec3(0, 0, 1));
-    delimiter->plane_count                        = 0;
-    delimiter->level                              = level;
+    Delimiter *delimiter                 = this->delimiters.push();
+    delimiter->position                  = position;
+    delimiter->local_scaled_axes[AXIS_X] = qt_rotate(rotation, vec3(half_size.x, 0, 0));
+    delimiter->local_scaled_axes[AXIS_Y] = qt_rotate(rotation, vec3(0, half_size.y, 0));
+    delimiter->local_scaled_axes[AXIS_Z] = qt_rotate(rotation, vec3(0, 0, half_size.z));
+    delimiter->local_unit_axes[AXIS_X]   = qt_rotate(rotation, vec3(1, 0, 0));
+    delimiter->local_unit_axes[AXIS_Y]   = qt_rotate(rotation, vec3(0, 1, 0));
+    delimiter->local_unit_axes[AXIS_Z]   = qt_rotate(rotation, vec3(0, 0, 1));
+    delimiter->plane_count               = 0;
+    delimiter->level                     = level;
     
     delimiter->dbg_half_size = half_size;
-    delimiter->dbg_rotation  = quaternion;
+    delimiter->dbg_rotation  = rotation;
 
     return delimiter;
 }
 
 Delimiter *World::add_delimiter(string dbg_name, vec3 position, vec3 half_size, vec3 rotation, u8 level) {
+    Delimiter *delimiter = this->add_delimiter(position, half_size, rotation, level);
+    delimiter->dbg_name = copy_string(this->allocator, dbg_name);
+    return delimiter;
+}
+
+Delimiter *World::add_delimiter(string dbg_name, vec3 position, vec3 half_size, quat rotation, u8 level) {
     Delimiter *delimiter = this->add_delimiter(position, half_size, rotation, level);
     delimiter->dbg_name = copy_string(this->allocator, dbg_name);
     return delimiter;

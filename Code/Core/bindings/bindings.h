@@ -21,7 +21,7 @@ extern "C" {
     EXPORT World_Handle core_create_world(f64 x, f64 y, f64 z);
     EXPORT void core_destroy_world(World_Handle world);
     EXPORT s64 core_add_anchor(World_Handle world, f64 x, f64 y, f64);
-    EXPORT s64 core_add_delimiter(World_Handle world, f64 x, f64 y, f64 z, f64 hx, f64 hy, f64 hz, f64 rx, f64 ry, f64 rz, u8 level);
+    EXPORT s64 core_add_delimiter(World_Handle world, f64 x, f64 y, f64 z, f64 hx, f64 hy, f64 hz, f64 rx, f64 ry, f64 rz, f64 rw, u8 level);
     EXPORT void core_add_delimiter_plane(World_Handle world, s64 delimiter_index, Axis_Index axis_index, b8 centered, Virtual_Extension extension);
     EXPORT void core_calculate_volumes(World_Handle world, f64 cell_world_space_size);
     

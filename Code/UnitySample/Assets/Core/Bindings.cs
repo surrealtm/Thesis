@@ -184,7 +184,7 @@ public class Core_Bindings {
     [DllImport("Core.dll")]
     public static extern s64 core_add_anchor(World_Handle world, double x, double y, double z);
     [DllImport("Core.dll")]
-    public static extern s64 core_add_delimiter(World_Handle world, double x, double y, double z, double hx, double hy, double hz, double rx, double ry, double rz, u8 level);
+    public static extern s64 core_add_delimiter(World_Handle world, double x, double y, double z, double hx, double hy, double hz, double rx, double ry, double rz, double rw, u8 level);
     [DllImport("Core.dll")]
     public static extern void core_add_delimiter_plane(World_Handle world, s64 delimiter_index, Axis_Index axis_index, bool centered, Virtual_Extension extension);
     [DllImport("Core.dll")]
@@ -279,11 +279,11 @@ public unsafe class Core_Helpers {
         return new Vector3(angles.x / 360.0f, angles.y / 360.0f, angles.z / 360.0f);
     }
 
-
-
-    private static void add_delimiter_plane(World_Handle world_handle, s64 delimiter, Axis_Index axis, bool centered, Virtual_Extension extension) {
-        Core_Bindings.core_add_delimiter_plane(world_handle, delimiter, axis, centered, extension);
+    private static Vector3 mul(Vector3 lhs, Vector3 rhs) {
+        return new Vector3(lhs.x * rhs.x, lhs.y * rhs.y, lhs.z * rhs.z);
     }
+
+
 
     public static World_Handle create_world_from_scene(double cell_world_space_size) {
         // Determine the bounding box of this entire level so that we can
@@ -308,33 +308,36 @@ public unsafe class Core_Helpers {
         }
 
         foreach (Delimiter d in UnityEngine.Object.FindObjectsOfType(typeof(Delimiter))) {
+            MeshFilter mesh_filter;
+            if(!d.TryGetComponent(out mesh_filter)) continue;
+
             Renderer renderer;
             if(!d.TryGetComponent(out renderer)) continue;
             
             Transform transform = d.gameObject.transform;
-            Bounds bounds = renderer.bounds;
+            Bounds bounds = mesh_filter.mesh.bounds;
             
             Vector3 scale    = transform.lossyScale;
-            Vector3 extents  = transform.rotation * (bounds.max - transform.position) - transform.rotation * (bounds.min - transform.position); // Turn into local space
+            Vector3 extents  = mul(scale, bounds.max) - mul(scale, bounds.min); // Turn into local space
             extents.x = Math.Abs(extents.x) / 2.0f;
             extents.y = Math.Abs(extents.y) / 2.0f;
             extents.z = Math.Abs(extents.z) / 2.0f;
 
-            Vector3 position = bounds.center;
-            Vector3 size     = new Vector3(scale.x * extents.x, scale.y * extents.y, scale.z * extents.z);
-            Vector3 rotation = euler_angles_to_turns(transform.eulerAngles);
+            Vector3 position    = renderer.bounds.center;
+            Vector3 size        = extents;
+            Quaternion rotation = transform.rotation;
 
             s64 index = Core_Bindings.core_add_delimiter(world_handle, 
                 position.x, position.y, position.z, 
                 size.x, size.y, size.z, 
-                rotation.x, rotation.y, rotation.z,
+                rotation.x, rotation.y, rotation.z, rotation.w,
                 d.level);
 
             foreach(Delimiter_Plane p in d.planes) {
                 Virtual_Extension extension = Virtual_Extension.VIRTUAL_EXTENSION_None;
                 if(p.extend_u) extension |= Virtual_Extension.VIRTUAL_EXTENSION_U;
                 if(p.extend_v) extension |= Virtual_Extension.VIRTUAL_EXTENSION_V;
-                add_delimiter_plane(world_handle, index, p.axis, p.centered, extension);
+                Core_Bindings.core_add_delimiter_plane(world_handle, index, p.axis, p.centered, extension);
             }
         }
 
