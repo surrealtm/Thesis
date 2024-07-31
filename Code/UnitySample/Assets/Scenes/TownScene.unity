@@ -5657,7 +5657,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   query_object: {fileID: 403131080}
-  debug_draw_options: 48
+  debug_draw_options: 32
   cell_world_space_size: 1
 --- !u!1001 &1147311747
 PrefabInstance:
@@ -8068,7 +8068,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1777615955}
   m_LocalRotation: {x: 0.60469556, y: -0, z: -0, w: 0.7964568}
-  m_LocalPosition: {x: 1.87, y: 9.18, z: -3.52}
+  m_LocalPosition: {x: 1.87, y: 10.02, z: -3.52}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
