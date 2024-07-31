@@ -15,6 +15,7 @@
 /* ------------------------------------------------- Objects ------------------------------------------------- */
 
 struct Anchor {
+    s64 id; // Just the index into the world's anchor array.
     vec3 position;
     Resizable_Array<Triangle> volume;
 
@@ -23,6 +24,7 @@ struct Anchor {
 };
 
 struct Delimiter {
+    s64 id;
     u8 level;
     vec3 position;
     vec3 local_scaled_axes[AXIS_COUNT]; // The three coordinate axis in the local transform (meaning: rotated) of this delimiter.
@@ -57,6 +59,7 @@ struct World {
     void add_delimiter_plane(Delimiter *delimiter, Axis_Index normal_axis, b8 centered = false, Virtual_Extension virtual_extension = VIRTUAL_EXTENSION_All);
     void add_both_delimiter_planes(Delimiter *delimiter, Axis_Index normal_axis, Virtual_Extension virtual_extension = VIRTUAL_EXTENSION_All);
     void calculate_volumes(real cell_world_space_size = 10.);
+    Anchor *query(vec3 point);
 
 
 

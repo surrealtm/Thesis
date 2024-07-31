@@ -66,7 +66,7 @@ void fill_cell(Flood_Fill *ff, Cell *cell) {
 static
 s32 ceil_to_uneven(real value) {
     s32 result = (s32) ceil(value);
-    result = (result % 1 == 0) ? result + 1 : result;
+    result = (result % 2 == 0) ? result + 1 : result;
     return result;
 }
 
@@ -94,6 +94,7 @@ void floodfill(Flood_Fill *ff, World *world, Allocator *allocator, vec3 flood_fi
 
     ff->cell_world_space_size = cell_world_space_size;
     ff->allocator = allocator;
+    ff->world = world;
 
     // Make sure that we have an uneven number of cells, so that the origin cell is actually centered on the
     // world space center (with an even number of cells, an edge between two cells would be centered on the
@@ -108,9 +109,8 @@ void floodfill(Flood_Fill *ff, World *world, Allocator *allocator, vec3 flood_fi
         ff->world_to_cell_space_transform;
     
     ff->cells = (Cell *) ff->allocator->allocate(ff->hx * ff->hy * ff->hz * sizeof(Cell));
-    ff->frontier.allocator = allocator;
+    ff->frontier.allocator      = allocator;
     ff->flooded_cells.allocator = allocator;
-    ff->world = world;
     
     memset(ff->cells, 0, ff->hx * ff->hy * ff->hz * sizeof(Cell)); // @@Speed: The allocator should guarantee zero-initialization anyway, so this seems unncessary. We probably want to reuse a Flood_Fill struct later though, so at that point it might become necessary again...
 

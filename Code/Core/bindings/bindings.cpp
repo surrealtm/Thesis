@@ -107,14 +107,14 @@ extern "C" {
 
     s64 core_add_anchor(World_Handle world_handle, f64 x, f64 y, f64 z) {
         World *world = (World *) world_handle;
-        world->add_anchor(vec3((real) x, (real) y, (real) z));
-        return world->anchors.count - 1;
+        Anchor *anchor = world->add_anchor(vec3((real) x, (real) y, (real) z));
+        return anchor->id;
     }
 
     s64 core_add_delimiter(World_Handle world_handle, f64 x, f64 y, f64 z, f64 hx, f64 hy, f64 hz, f64 rx, f64 ry, f64 rz, f64 rw, u8 level) {
         World *world = (World *) world_handle;
-        world->add_delimiter(vec3((real) x, (real) y, (real) z), vec3((real) hx, (real) hy, (real) hz), quat((real) rx, (real) ry, (real) rz, (real) rw), level);
-        return world->delimiters.count - 1;
+        Delimiter *delimiter = world->add_delimiter(vec3((real) x, (real) y, (real) z), vec3((real) hx, (real) hy, (real) hz), quat((real) rx, (real) ry, (real) rz, (real) rw), level);
+        return delimiter->id;
     }
 
     void core_add_delimiter_plane(World_Handle world_handle, s64 delimiter_index, Axis_Index axis, b8 centered, Virtual_Extension extension) {
@@ -125,6 +125,12 @@ extern "C" {
     void core_calculate_volumes(World_Handle world_handle, f64 cell_world_space_size) {
         World *world = (World *) world_handle;
         world->calculate_volumes((real) cell_world_space_size);
+    }
+
+    s64 core_query_point(World_Handle world_handle, f64 x, f64 y, f64 z) {
+        World *world = (World *) world_handle;
+        Anchor *anchor = world->query(vec3((real) x, (real) y, (real) z));
+        return anchor != null ? anchor->id : -1;
     }
 
 

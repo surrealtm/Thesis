@@ -19,9 +19,12 @@ public class Manager : MonoBehaviour {
         }
     }
 
+    [SerializeField] GameObject query_object;
+
     public Debug_Draw_Options debug_draw_options = Debug_Draw_Options.Delimiter_Wireframes;
     public double cell_world_space_size = 2.0;
     private World_Handle world_handle;
+    private Anchor current_residing_anchor = null;
 
     void destroy_world() {
         if(this.world_handle.valid()) Core_Bindings.core_destroy_world(world_handle);
@@ -41,6 +44,23 @@ public class Manager : MonoBehaviour {
     void Start() {
         this.world_handle.invalidate();
         this.create_world();
+    }
+
+    void Update() {
+        this.current_residing_anchor = null;
+
+        if(this.query_object != null) {
+            this.current_residing_anchor = Core_Helpers.query_world(this.world_handle, this.query_object.transform.position);
+        }
+    }
+
+    void OnGUI() {
+        Rect rect = new Rect(10, 10, 256, 32);
+        if(this.current_residing_anchor != null) {
+            GUI.Label(rect, "Current Anchor: " + this.current_residing_anchor.name);
+        } else {
+            GUI.Label(rect, "Outside any anchor");
+        }
     }
 
     void Destroy() {

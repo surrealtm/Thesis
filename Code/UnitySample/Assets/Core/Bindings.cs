@@ -189,7 +189,9 @@ public class Core_Bindings {
     public static extern void core_add_delimiter_plane(World_Handle world, s64 delimiter_index, Axis_Index axis_index, bool centered, Virtual_Extension extension);
     [DllImport("Core.dll")]
     public static extern void core_calculate_volumes(World_Handle world, f64 cell_world_space_size);
-    
+    [DllImport("Core.dll")]
+    public static extern s64 core_query_point(World_Handle world, f64 x, f64 y, f64 z);
+
 
 
     /* ---------------------------------------------- Debug Draw --------------------------------------------- */
@@ -304,7 +306,7 @@ public unsafe class Core_Helpers {
         foreach (Anchor a in UnityEngine.Object.FindObjectsOfType(typeof(Anchor))) {
             if(a.disabled) continue;
             Transform transform = a.gameObject.transform;
-            Core_Bindings.core_add_anchor(world_handle, transform.position.x, transform.position.y, transform.position.z);
+            a.internal_id = Core_Bindings.core_add_anchor(world_handle, transform.position.x, transform.position.y, transform.position.z);
         }
 
         foreach (Delimiter d in UnityEngine.Object.FindObjectsOfType(typeof(Delimiter))) {
@@ -361,6 +363,16 @@ public unsafe class Core_Helpers {
         return world_handle;
     }
 
+
+    public static Anchor query_world(World_Handle world_handle, Vector3 position) {
+        s64 id = Core_Bindings.core_query_point(world_handle, position.x, position.y, position.z);
+
+        foreach (Anchor a in UnityEngine.Object.FindObjectsOfType(typeof(Anchor))) {
+            if(a.internal_id == id) return a;
+        }
+
+        return null;
+    }
 
 
     public static void draw_primitive(GameObject root, PrimitiveType primitive_type, Vector3 position, Quaternion rotation, Vector3 size, Color color) {

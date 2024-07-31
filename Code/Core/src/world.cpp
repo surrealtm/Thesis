@@ -210,6 +210,28 @@ void solve_delimiter_intersection(World *world, Delimiter_Intersection *intersec
 
 
 
+/* ---------------------------------------------- Volume Query ---------------------------------------------- */
+
+static
+b8 point_inside_volume(Resizable_Array<Triangle> &triangles, vec3 point) {
+    s64 count = 0;
+
+    vec3 ray_origin = point;
+    vec3 ray_direction = vec3(0, -1, 0);
+    
+    for(Triangle triangle : triangles) {
+        auto triangle_result = ray_double_sided_triangle_intersection(ray_origin, ray_direction, triangle.p0, triangle.p1, triangle.p2);
+        if(!triangle_result.intersection) continue;
+        if(triangle_result.distance < -CORE_EPSILON) continue;
+        if(triangle_result.distance < CORE_EPSILON) return true; // Point is exactly on the triangle, which we consider inside the volume.
+        ++count;        
+    }
+    
+    return count % 2 == 1;
+}
+
+
+
 /* -------------------------------------------------- World -------------------------------------------------- */
 
 void World::create(vec3 half_size) {
@@ -265,6 +287,7 @@ Anchor *World::add_anchor(vec3 position) {
     tmFunction(TM_WORLD_COLOR);
 
     Anchor *anchor   = this->anchors.push();
+    anchor->id       = this->anchors.count - 1;
     anchor->position = position;
     anchor->volume.allocator = this->allocator;
 
@@ -285,6 +308,7 @@ Delimiter *World::add_delimiter(vec3 position, vec3 half_size, quat rotation, u8
     tmFunction(TM_WORLD_COLOR);
 
     Delimiter *delimiter                 = this->delimiters.push();
+    delimiter->id                        = this->delimiters.count - 1;
     delimiter->position                  = position;
     delimiter->local_scaled_axes[AXIS_X] = qt_rotate(rotation, vec3(half_size.x, 0, 0));
     delimiter->local_scaled_axes[AXIS_Y] = qt_rotate(rotation, vec3(0, half_size.y, 0));
@@ -350,6 +374,18 @@ void World::calculate_volumes(real cell_world_space_size) {
     this->clip_delimiters();
     this->create_bvh();
     this->build_anchor_volumes(cell_world_space_size);
+}
+
+Anchor *World::query(vec3 point) {
+    //
+    // For now, just be stupid and query every single volume by doing a ray cast against every
+    // single triangle of the volume.
+    //
+    for(Anchor &all : this->anchors) {
+        if(point_inside_volume(all.volume, point)) return &all;
+    }
+    
+    return null;
 }
 
 
@@ -475,7 +511,7 @@ void World::build_anchor_volumes(real cell_world_space_size) {
         if(this->current_flood_fill != null) deallocate_flood_fill(this->current_flood_fill);
 
         this->current_flood_fill = this->allocator->New<Flood_Fill>();
-        floodfill(this->current_flood_fill, this, this->allocator, anchor.position, cell_world_space_size); // nocheckin
+        floodfill(this->current_flood_fill, this, this->allocator, anchor.position, cell_world_space_size);
 
 #if USE_MARCHING_CUBES_FOR_VOLUMES
         marching_cubes(&anchor.volume, this->current_flood_fill);
