@@ -1,14 +1,14 @@
 #include "../bindings/bindings.h"
+#include "serialized_setup.cpp"
+#include "os_specific.h"
+#include "memutils.h"
 
 int main() {
-#if FOUNDATION_DEVELOPER
-    core_begin_profiling();
-    World_Handle world = core_do_house_test();
-    core_stop_profiling();
-    core_print_profiling(false);
-    core_print_memory_information(world);
-    core_destroy_world(world);
-#endif
+    Hardware_Time start = os_get_hardware_time();
+    setup_world(); // Serialized from unity!
+    Hardware_Time end = os_get_hardware_time();
 
+    printf("Test case took %.2f, %.2fmb.\n", os_convert_hardware_time(end - start, Seconds), convert_to_memory_unit(os_get_working_set_size(), Megabytes));
+    
     return 0;
 }

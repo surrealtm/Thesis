@@ -389,7 +389,6 @@ Anchor *World::query(vec3 point) {
 }
 
 
-
 void World::create_bvh() {
     tmFunction(TM_WORLD_COLOR);
 

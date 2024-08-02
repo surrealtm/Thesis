@@ -26,6 +26,7 @@ extern "C" {
     EXPORT void core_calculate_volumes(World_Handle world, f64 cell_world_space_size);
     EXPORT s64 core_query_point(World_Handle world, f64 x, f64 y, f64 z);
 
+    
 
     /* ---------------------------------------------- Debug Draw ---------------------------------------------- */
     

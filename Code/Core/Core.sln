@@ -29,6 +29,8 @@ Global
 		Release|x86 = Release|x86
 		ReleaseDll|x64 = ReleaseDll|x64
 		ReleaseDll|x86 = ReleaseDll|x86
+		Ship|x64 = Ship|x64
+		Ship|x86 = Ship|x86
 		ShipDll|x64 = ShipDll|x64
 		ShipDll|x86 = ShipDll|x86
 	EndGlobalSection
@@ -49,6 +51,10 @@ Global
 		{4068DA6A-66E9-48D9-B488-144C024E2439}.ReleaseDll|x64.Build.0 = ReleaseDll|x64
 		{4068DA6A-66E9-48D9-B488-144C024E2439}.ReleaseDll|x86.ActiveCfg = ReleaseDll|Win32
 		{4068DA6A-66E9-48D9-B488-144C024E2439}.ReleaseDll|x86.Build.0 = ReleaseDll|Win32
+		{4068DA6A-66E9-48D9-B488-144C024E2439}.Ship|x64.ActiveCfg = Ship|x64
+		{4068DA6A-66E9-48D9-B488-144C024E2439}.Ship|x64.Build.0 = Ship|x64
+		{4068DA6A-66E9-48D9-B488-144C024E2439}.Ship|x86.ActiveCfg = Ship|Win32
+		{4068DA6A-66E9-48D9-B488-144C024E2439}.Ship|x86.Build.0 = Ship|Win32
 		{4068DA6A-66E9-48D9-B488-144C024E2439}.ShipDll|x64.ActiveCfg = ShipDll|x64
 		{4068DA6A-66E9-48D9-B488-144C024E2439}.ShipDll|x64.Build.0 = ShipDll|x64
 		{4068DA6A-66E9-48D9-B488-144C024E2439}.ShipDll|x86.ActiveCfg = ShipDll|Win32
@@ -61,6 +67,8 @@ Global
 		{72D3B058-1646-45CC-9FF2-B7443A75B3A1}.Release|x86.ActiveCfg = Release|x64
 		{72D3B058-1646-45CC-9FF2-B7443A75B3A1}.ReleaseDll|x64.ActiveCfg = Release|x64
 		{72D3B058-1646-45CC-9FF2-B7443A75B3A1}.ReleaseDll|x86.ActiveCfg = Release|x64
+		{72D3B058-1646-45CC-9FF2-B7443A75B3A1}.Ship|x64.ActiveCfg = Release|x64
+		{72D3B058-1646-45CC-9FF2-B7443A75B3A1}.Ship|x86.ActiveCfg = Release|x64
 		{72D3B058-1646-45CC-9FF2-B7443A75B3A1}.ShipDll|x64.ActiveCfg = Release|x64
 		{72D3B058-1646-45CC-9FF2-B7443A75B3A1}.ShipDll|x86.ActiveCfg = Release|x64
 	EndGlobalSection

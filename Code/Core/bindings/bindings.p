@@ -31,8 +31,10 @@ core_destroy_world :: #foreign (world: World_Handle);
 core_add_anchor    :: #foreign (world: World_Handle, x: f64, y: f64, z: f64);
 core_add_delimiter :: #foreign (world: World_Handle, x: f64, y: f64, z: f64, hx: f64, hy: f64, hz: f64, rx: f64, ry: f64, rz: f64) -> s64;
 core_add_delimiter_plane :: #foreign (world: World_Handle, delimiter_index: s64, axis_index: Axis_Index, centered: bool, extended: bool);
+core_calculate_volumes   :: #foreign (world: World_Handle, cell_world_space_size: f64);
+core_query_point         :: #foreign (world: World_Handle, x: f64, y: f64, z: f64) -> s64;
 
-                                
+
 
 /* ------------------------------------------------- Testing ------------------------------------------------- */
 

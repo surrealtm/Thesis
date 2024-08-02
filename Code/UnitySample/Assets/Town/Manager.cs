@@ -16,6 +16,10 @@ public class Manager : MonoBehaviour {
             if(GUILayout.Button("Destroy")) {
                 ((Manager) this.target).destroy_world();                
             }
+
+            if(GUILayout.Button("Serialize")) {
+                ((Manager) this.target).serialize_world();                
+            }
         }
     }
 
@@ -36,11 +40,15 @@ public class Manager : MonoBehaviour {
     void create_world() {
         this.destroy_world();
 
-        this.world_handle = Core_Helpers.create_world_from_scene_and_print_profiling(cell_world_space_size);
+        this.world_handle = Core_Helpers.create_world_from_scene_and_print_profiling(this.cell_world_space_size);
         
         Core_Helpers.debug_draw_world(this.world_handle, this.debug_draw_options, true);
     }
 
+    void serialize_world() {
+        Core_Helpers.serialize_world_setup_code("C:/source/Thesis/Code/Core/src/serialized_setup.cpp", this.cell_world_space_size);
+    }
+    
     void Start() {
         this.world_handle.invalidate();
         this.create_world();

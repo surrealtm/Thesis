@@ -132,7 +132,7 @@ extern "C" {
         Anchor *anchor = world->query(vec3((real) x, (real) y, (real) z));
         return anchor != null ? anchor->id : -1;
     }
-
+    
 
     
     /* ---------------------------------------------- Debug Draw ---------------------------------------------- */

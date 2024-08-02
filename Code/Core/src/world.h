@@ -60,7 +60,7 @@ struct World {
     void add_both_delimiter_planes(Delimiter *delimiter, Axis_Index normal_axis, Virtual_Extension virtual_extension = VIRTUAL_EXTENSION_All);
     void calculate_volumes(real cell_world_space_size = 10.);
     Anchor *query(vec3 point);
-
+    
 
 
     // --- Internal data structures

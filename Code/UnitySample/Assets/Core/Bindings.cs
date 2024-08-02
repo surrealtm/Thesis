@@ -1,6 +1,8 @@
 //#define FOUNDATION_DEVELOPER
 
 using System;
+using System.Text;
+using System.IO;
 using System.Runtime.InteropServices;
 using System.Collections.Generic;
 
@@ -191,7 +193,7 @@ public class Core_Bindings {
     public static extern void core_calculate_volumes(World_Handle world, f64 cell_world_space_size);
     [DllImport("Core.dll")]
     public static extern s64 core_query_point(World_Handle world, f64 x, f64 y, f64 z);
-
+    
 
 
     /* ---------------------------------------------- Debug Draw --------------------------------------------- */
@@ -261,6 +263,24 @@ public unsafe class Core_Helpers {
     private static bool draw_data_setup = false;
     private static List<GameObject> dbg_draw_objects = new List<GameObject>();
 
+    private class Delimiter_Helper {
+        public bool valid;
+        public Vector3 position;
+        public Vector3 size;
+        public Quaternion rotation;
+
+        public Delimiter_Helper() {
+            this.valid = false;
+        }
+
+        public Delimiter_Helper(Vector3 position, Vector3 size, Quaternion rotation) {
+            this.valid    = true;
+            this.position = position;
+            this.size     = size;
+            this.rotation = rotation;
+        }
+    }
+    
     private static Color color(u8 r, u8 g, u8 b) {
         return new Color(r / 255.0f, g / 255.0f, b / 255.0f, 1);
     }
@@ -285,11 +305,7 @@ public unsafe class Core_Helpers {
         return new Vector3(lhs.x * rhs.x, lhs.y * rhs.y, lhs.z * rhs.z);
     }
 
-
-
-    public static World_Handle create_world_from_scene(double cell_world_space_size) {
-        // Determine the bounding box of this entire level so that we can
-        // speed up the world creation.
+    private static Vector3 calculate_world_size() {
         Bounds b = new Bounds(Vector3.zero, Vector3.zero);
         foreach (Renderer r in UnityEngine.Object.FindObjectsOfType(typeof(Renderer))) {
             b.Encapsulate(r.bounds);
@@ -297,11 +313,46 @@ public unsafe class Core_Helpers {
         
         // The world is centered around the origin and has equal extents from there,
         // so we must transform that here.
-        double x = (b.max.x > -b.min.x) ? b.max.x : -b.min.x;
-        double y = (b.max.y > -b.min.y) ? b.max.y : -b.min.y;
-        double z = (b.max.z > -b.min.z) ? b.max.z : -b.min.z;
+        float x = (b.max.x > -b.min.x) ? b.max.x : -b.min.x;
+        float y = (b.max.y > -b.min.y) ? b.max.y : -b.min.y;
+        float z = (b.max.z > -b.min.z) ? b.max.z : -b.min.z;
 
-        World_Handle world_handle = Core_Bindings.core_create_world(x, y, z);
+        return new Vector3(x, y, z);
+    }
+
+    private static Delimiter_Helper find_delimiter_transform(Delimiter d) {
+        MeshFilter mesh_filter;
+        Renderer renderer;
+
+        if(!d.TryGetComponent(out mesh_filter)) {
+            return new Delimiter_Helper();
+        }
+
+        if(!d.TryGetComponent(out renderer)) {
+            return new Delimiter_Helper();
+        }
+        
+        Transform transform = d.gameObject.transform;
+        Bounds bounds = mesh_filter.sharedMesh.bounds;
+            
+        Vector3 scale    = transform.lossyScale;
+        Vector3 extents  = mul(scale, bounds.max) - mul(scale, bounds.min); // Turn into local space
+        extents.x = Math.Abs(extents.x) / 2.0f;
+        extents.y = Math.Abs(extents.y) / 2.0f;
+        extents.z = Math.Abs(extents.z) / 2.0f;
+
+        Vector3 position    = renderer.bounds.center;
+        Vector3 size        = extents;
+        Quaternion rotation = transform.rotation;
+
+        return new Delimiter_Helper(position, size, rotation);
+    }
+    
+
+
+    public static World_Handle create_world_from_scene(double cell_world_space_size) {
+        Vector3 size = calculate_world_size();
+        World_Handle world_handle = Core_Bindings.core_create_world(size.x, size.y, size.z);
 
         foreach (Anchor a in UnityEngine.Object.FindObjectsOfType(typeof(Anchor))) {
             if(a.disabled) continue;
@@ -310,29 +361,13 @@ public unsafe class Core_Helpers {
         }
 
         foreach (Delimiter d in UnityEngine.Object.FindObjectsOfType(typeof(Delimiter))) {
-            MeshFilter mesh_filter;
-            if(!d.TryGetComponent(out mesh_filter)) continue;
-
-            Renderer renderer;
-            if(!d.TryGetComponent(out renderer)) continue;
+            Delimiter_Helper transform = find_delimiter_transform(d);
+            if(!transform.valid) continue;
             
-            Transform transform = d.gameObject.transform;
-            Bounds bounds = mesh_filter.mesh.bounds;
-            
-            Vector3 scale    = transform.lossyScale;
-            Vector3 extents  = mul(scale, bounds.max) - mul(scale, bounds.min); // Turn into local space
-            extents.x = Math.Abs(extents.x) / 2.0f;
-            extents.y = Math.Abs(extents.y) / 2.0f;
-            extents.z = Math.Abs(extents.z) / 2.0f;
-
-            Vector3 position    = renderer.bounds.center;
-            Vector3 size        = extents;
-            Quaternion rotation = transform.rotation;
-
             s64 index = Core_Bindings.core_add_delimiter(world_handle, 
-                position.x, position.y, position.z, 
-                size.x, size.y, size.z, 
-                rotation.x, rotation.y, rotation.z, rotation.w,
+                transform.position.x, transform.position.y, transform.position.z, 
+                transform.size.x, transform.size.y, transform.size.z, 
+                transform.rotation.x, transform.rotation.y, transform.rotation.z, transform.rotation.w,
                 d.level);
 
             foreach(Delimiter_Plane p in d.planes) {
@@ -374,6 +409,44 @@ public unsafe class Core_Helpers {
         return null;
     }
 
+
+    public static void serialize_world_setup_code(string file_path, double cell_world_space_size) {
+        StringBuilder builder = new StringBuilder();
+        builder.Append("void setup_world() {\n");
+
+        Vector3 size = calculate_world_size();
+        builder.AppendFormat("    World_Handle world = core_create_world({0}, {1}, {2});\n", size.x, size.y, size.z);
+
+        foreach(Anchor a in UnityEngine.Object.FindObjectsOfType(typeof(Anchor))) {
+            if(a.disabled) continue;
+            Transform transform = a.gameObject.transform;
+            builder.AppendFormat("    core_add_anchor(world, {0}, {1}, {2});\n", transform.position.x, transform.position.y, transform.position.z);
+        }
+
+        s64 delimiter_index = 0;
+        foreach(Delimiter d in UnityEngine.Object.FindObjectsOfType(typeof(Delimiter))) {
+            Delimiter_Helper transform = find_delimiter_transform(d);
+            if(!transform.valid) continue;
+            
+            builder.AppendFormat("    auto d{0} = core_add_delimiter(world, {1}, {2}, {3}, {4}, {5}, {6}, {7}, {8}, {9}, {10}, {11});\n", delimiter_index, transform.position.x, transform.position.y, transform.position.z, transform.size.x, transform.size.y, transform.size.z, transform.rotation.x, transform.rotation.y, transform.rotation.z, transform.rotation.w, d.level);
+
+            foreach(Delimiter_Plane p in d.planes) {
+                string extension = "VIRTUAL_EXTENSION_None";
+                if(p.extend_u) extension = "VIRTUAL_EXTENSION_U";
+                if(p.extend_v) extension = "VIRTUAL_EXTENSION_V";
+                if(p.extend_u && p.extend_v) extension = "VIRTUAL_EXTENSION_U | VIRTUAL_EXTENSION_V";
+                builder.AppendFormat("    core_add_delimiter_plane(world, d{0}, {1}, {2}, {3});\n", delimiter_index, p.axis, p.centered != false ? "true" : "false", extension);
+            }
+
+            ++delimiter_index;
+        }
+        
+        builder.AppendFormat("    core_calculate_volumes(world, {0});\n", cell_world_space_size);
+        builder.Append("}\n");
+
+        File.WriteAllText(file_path, builder.ToString());
+    }
+    
 
     public static void draw_primitive(GameObject root, PrimitiveType primitive_type, Vector3 position, Quaternion rotation, Vector3 size, Color color) {
         GameObject _object = GameObject.CreatePrimitive(primitive_type);
