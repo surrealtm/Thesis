@@ -55,8 +55,6 @@ b8 Triangulated_Plane::cast_ray(vec3 ray_origin, vec3 ray_direction, real max_ra
     b8 hit_something = false;
 
     for(Triangle &triangle : this->triangles) {
-        tmZone("ray_double_sided_triangle_intersection", TM_BVH_COLOR);
-
         auto triangle_result = ray_double_sided_triangle_intersection(ray_origin, ray_direction, triangle.p0, triangle.p1, triangle.p2);
 
         if(triangle_result.intersection && triangle_result.distance >= 0.f && triangle_result.distance <= max_ray_distance) { // distance isn't normalized!

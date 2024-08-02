@@ -281,8 +281,6 @@ BVH_Cast_Result BVH::cast_ray(vec3 ray_origin, vec3 ray_direction, real max_ray_
             // Check all triangles contained in this node against the ray.
             s64 one_plus_last_entry_index = node->first_entry_index + node->entry_count;
             for(s64 i = node->first_entry_index; i < one_plus_last_entry_index; ++i) {
-                tmZone("ray_double_sided_triangle_intersection", TM_BVH_COLOR);
-
                 BVH_Entry &entry = this->entries[i];
                 auto triangle_result = ray_double_sided_triangle_intersection(ray_origin, ray_direction, entry.triangle.p0, entry.triangle.p1, entry.triangle.p2);
                 

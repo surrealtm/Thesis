@@ -255,9 +255,7 @@ void World::create(vec3 half_size) {
     //
     // Create the clipping planes.
     //
-    {
-        tmZone("create_root_clipping_planes", TM_WORLD_COLOR);
-        
+    {       
         // X-Axis
         this->root_clipping_planes[0].create(this->allocator, vec3(-this->half_size.x, 0, 0), vec3(0, this->half_size.y, 0), vec3(0, 0, this->half_size.z));
         this->root_clipping_planes[1].create(this->allocator, vec3(+this->half_size.x, 0, 0), vec3(0, 0, this->half_size.z), vec3(0, this->half_size.y, 0));
@@ -273,19 +271,15 @@ void World::create(vec3 half_size) {
 }
 
 void World::destroy() {
-    tmFunction(TM_WORLD_COLOR);
     this->arena.destroy();
 }
 
 void World::reserve_objects(s64 anchors, s64 delimiters) {
-    tmFunction(TM_WORLD_COLOR);
     this->anchors.reserve(anchors);
     this->delimiters.reserve(delimiters);
 }
 
 Anchor *World::add_anchor(vec3 position) {
-    tmFunction(TM_WORLD_COLOR);
-
     Anchor *anchor   = this->anchors.push();
     anchor->id       = this->anchors.count - 1;
     anchor->position = position;
@@ -305,8 +299,6 @@ Delimiter *World::add_delimiter(vec3 position, vec3 half_size, vec3 rotation, u8
 }
 
 Delimiter *World::add_delimiter(vec3 position, vec3 half_size, quat rotation, u8 level) {
-    tmFunction(TM_WORLD_COLOR);
-
     Delimiter *delimiter                 = this->delimiters.push();
     delimiter->id                        = this->delimiters.count - 1;
     delimiter->position                  = position;
@@ -338,8 +330,6 @@ Delimiter *World::add_delimiter(string dbg_name, vec3 position, vec3 half_size, 
 }
 
 void World::add_delimiter_plane(Delimiter *delimiter, Axis_Index normal_axis, b8 centered, Virtual_Extension virtual_extension) {
-    tmFunction(TM_WORLD_COLOR);
-
     assert(normal_axis >= 0 && normal_axis < AXIS_COUNT);
     assert(delimiter->plane_count + 1 <= ARRAY_COUNT(delimiter->planes));
 
@@ -535,8 +525,6 @@ b8 World::point_inside_bounds(vec3 point) {
 }
 
 b8 World::cast_ray_against_delimiters_and_root_planes(vec3 ray_origin, vec3 ray_direction, real max_ray_distance) {
-    tmFunction(TM_WORLD_COLOR);
-
     const b8 early_return = true; // @@Ship: Remove this parameter from all procedures if possible.
     
 #if USE_BVH_FOR_RAYCASTS
