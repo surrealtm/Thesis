@@ -346,10 +346,6 @@ Debug_Draw_Data debug_draw_world(World *world, Debug_Draw_Options options) {
 		}
 	}
 
-    if(options & DEBUG_DRAW_Flood_Fill) {
-        debug_draw_flood_fill(_internal, world->current_flood_fill);
-    }
-    
 	if(options & DEBUG_DRAW_Axis_Gizmo) {
         debug_draw_line(_internal, vec3(0, 0, 0), vec3(3, 0, 0), dbg_axis_gizmo_thickness, Dbg_Draw_Color { 255, 0, 0 });
         debug_draw_line(_internal, vec3(0, 0, 0), vec3(0, 3, 0), dbg_axis_gizmo_thickness, Dbg_Draw_Color { 0, 255, 0 });

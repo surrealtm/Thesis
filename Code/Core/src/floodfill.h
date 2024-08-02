@@ -18,28 +18,28 @@ enum Cell_State {
 struct Cell {
     v3i position; // So that we can just store pointers to Cells in the frontier, and don't have to also remember the position in the frontier...   Note: This will only be filled when it is first added to the frontier!
     Cell_State state;
-
-    v3i added_from_cell; // @@Ship: Remove this.
 };
 
 struct Flood_Fill {
     Allocator *allocator;
     World *world;
 
-    Resizable_Array<Cell *> frontier;
-    Resizable_Array<Cell *> flooded_cells; // So that we can quickly iterate over all flooded cells in the assembler.
-    
     s32 hx, hy, hz; // Dimensions in cells
     real cell_world_space_size; // In world space
+    
     vec3 cell_to_world_space_transform;
     vec3 world_to_cell_space_transform;
     v3i origin; // The first cell that was flooded (in cell coordinates)
 
     Cell *cells;
+    Resizable_Array<Cell *> frontier;
+    Resizable_Array<Cell *> flooded_cells; // So that we can quickly iterate over all flooded cells in the assembler.
 };
 
 Cell *get_cell(Flood_Fill *ff, v3i position);
 vec3 get_cell_world_space_center(Flood_Fill *ff, v3i position);
 vec3 get_cell_world_space_center(Flood_Fill *ff, Cell *cell);
+void create_flood_fill(Flood_Fill *ff, World *world, Allocator *allocator, real cell_world_space_size);
 void floodfill(Flood_Fill *ff, World *world, Allocator *allocator, vec3 world_space_center, real cell_world_space_size);
-void deallocate_flood_fill(Flood_Fill *ff);
+void floodfill(Flood_Fill *ff, vec3 world_space_center);
+void destroy_flood_fill(Flood_Fill *ff);

@@ -3,6 +3,7 @@
 #include "foundation.h"
 #include "memutils.h"
 #include "string_type.h"
+#include "jobs.h"
 
 #include "math/v2.h"
 #include "math/v3.h"
@@ -73,6 +74,10 @@ struct World {
     Memory_Pool pool;
     Allocator pool_allocator;
     Allocator *allocator; // Usually a pointer to the pool_allocator, but can be swapped for testing...
+
+#if USE_JOB_SYSTEM
+    Job_System job_system;
+#endif
     
     vec3 half_size; // This size is used to initialize the bvh. The bvh implementation does not support dynamic size changing, so this should be fixed.
 
@@ -93,8 +98,6 @@ struct World {
     // some raycasting checks based on the floodfilling results). This BVH does not contain any volume triangles
     // since we don't actually do any work on the volumes, after they have been created).
     struct BVH *bvh;
-    
-    struct Flood_Fill *current_flood_fill; // @@Ship: Just for debug drawing.
     
 
     // --- Internal implementation

@@ -27,7 +27,6 @@ void definitely_add_cell_to_frontier(Flood_Fill *ff, v3i position) {
     Cell *cell = get_cell(ff, position);
     cell->position = position;
     cell->state = CELL_Currently_In_Frontier;
-    cell->added_from_cell = position;
     ff->frontier.add(cell);
 }
 
@@ -38,7 +37,6 @@ void maybe_add_cell_to_frontier(Flood_Fill *ff, Cell *src, v3i position) {
     Cell *cell = get_cell(ff, position);
     if(cell->state != CELL_Untouched) return;
     cell->position        = position;
-    cell->added_from_cell = src->position;
     
     if(!flood_fill_condition(ff, cell, src)) return;
 
@@ -89,12 +87,14 @@ vec3 get_cell_world_space_center(Flood_Fill *ff, Cell *cell) {
     return get_cell_world_space_center(ff, cell->position);
 }
 
-void floodfill(Flood_Fill *ff, World *world, Allocator *allocator, vec3 flood_fill_origin, real cell_world_space_size) {
+void create_flood_fill(Flood_Fill *ff, World *world, Allocator *allocator, real cell_world_space_size) {
     tmFunction(TM_FLOODING_COLOR);
 
-    ff->cell_world_space_size = cell_world_space_size;
-    ff->allocator = allocator;
-    ff->world = world;
+    ff->cell_world_space_size   = cell_world_space_size;
+    ff->allocator               = allocator;
+    ff->world                   = world;
+    ff->frontier.allocator      = allocator;
+    ff->flooded_cells.allocator = allocator;
 
     // Make sure that we have an uneven number of cells, so that the origin cell is actually centered on the
     // world space center (with an even number of cells, an edge between two cells would be centered on the
@@ -102,18 +102,27 @@ void floodfill(Flood_Fill *ff, World *world, Allocator *allocator, vec3 flood_fi
     ff->hx = ceil_to_uneven(world->half_size.x / ff->cell_world_space_size * 2.);
     ff->hy = ceil_to_uneven(world->half_size.y / ff->cell_world_space_size * 2.);
     ff->hz = ceil_to_uneven(world->half_size.z / ff->cell_world_space_size * 2.);
+    ff->cells = (Cell *) ff->allocator->allocate(ff->hx * ff->hy * ff->hz * sizeof(Cell));
+}
 
+void floodfill(Flood_Fill *ff, World *world, Allocator *allocator, vec3 flood_fill_origin, real cell_world_space_size) {
+    create_flood_fill(ff, world, allocator, cell_world_space_size);
+    floodfill(ff, flood_fill_origin);
+    destroy_flood_fill(ff);
+}
+
+void floodfill(Flood_Fill *ff, vec3 flood_fill_origin) {
+    tmFunction(TM_FLOODING_COLOR);
+
+    ff->frontier.clear();
+    ff->flooded_cells.clear();
+    memset(ff->cells, 0, ff->hx * ff->hy * ff->hz * sizeof(Cell));
+    
     ff->world_to_cell_space_transform = vec3(fmod(flood_fill_origin.x, ff->cell_world_space_size), fmod(flood_fill_origin.y, ff->cell_world_space_size), fmod(flood_fill_origin.z, ff->cell_world_space_size));
     
     ff->cell_to_world_space_transform = vec3(ff->hx / 2, ff->hy / 2, ff->hz / 2) * ff->cell_world_space_size -
         ff->world_to_cell_space_transform;
     
-    ff->cells = (Cell *) ff->allocator->allocate(ff->hx * ff->hy * ff->hz * sizeof(Cell));
-    ff->frontier.allocator      = allocator;
-    ff->flooded_cells.allocator = allocator;
-    
-    memset(ff->cells, 0, ff->hx * ff->hy * ff->hz * sizeof(Cell)); // @@Speed: The allocator should guarantee zero-initialization anyway, so this seems unncessary. We probably want to reuse a Flood_Fill struct later though, so at that point it might become necessary again...
-
     ff->origin = world_space_to_cell_space(ff, flood_fill_origin);
     definitely_add_cell_to_frontier(ff, ff->origin);
     
@@ -123,7 +132,7 @@ void floodfill(Flood_Fill *ff, World *world, Allocator *allocator, vec3 flood_fi
     }
 }
 
-void deallocate_flood_fill(Flood_Fill *ff) {
+void destroy_flood_fill(Flood_Fill *ff) {
     ff->allocator->deallocate(ff->cells);
     ff->flooded_cells.clear();
     ff->frontier.clear();

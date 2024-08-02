@@ -232,6 +232,38 @@ b8 point_inside_volume(Resizable_Array<Triangle> &triangles, vec3 point) {
 
 
 
+/* ------------------------------------------ Volume Calculation Job ------------------------------------------ */
+
+struct Volume_Calculation_Job {
+    World *world;
+    s64 first;
+    s64 last;
+    real cell_world_space_size;
+};
+
+static
+void volume_calculation_job(Volume_Calculation_Job *job) {
+    tmFunction(TM_WORLD_COLOR);
+    
+    Flood_Fill ff;
+    create_flood_fill(&ff, job->world, job->world->allocator, job->cell_world_space_size);
+
+    for(s64 i = job->first; i <= job->last; ++i) {
+        Anchor &anchor = job->world->anchors[i];
+        floodfill(&ff, anchor.position);
+
+#if USE_MARCHING_CUBES_FOR_VOLUMES
+        marching_cubes(&anchor.volume, &ff);
+#else
+        assemble(&anchor.volume, job->world, &ff);
+#endif
+    }
+
+    destroy_flood_fill(&ff);
+}
+
+
+
 /* -------------------------------------------------- World -------------------------------------------------- */
 
 void World::create(vec3 half_size) {
@@ -245,6 +277,10 @@ void World::create(vec3 half_size) {
     this->pool_allocator = this->pool.allocator();
     this->allocator = &this->pool_allocator;
 
+#if USE_JOB_SYSTEM
+    create_job_system(&this->job_system, os_get_number_of_hardware_threads());
+#endif
+    
     //
     // Set up the basic objects.
     //
@@ -272,6 +308,10 @@ void World::create(vec3 half_size) {
 
 void World::destroy() {
     this->arena.destroy();
+
+#if USE_JOB_SYSTEM
+    destroy_job_system(&this->job_system, JOB_SYSTEM_Detach_Workers);
+#endif
 }
 
 void World::reserve_objects(s64 anchors, s64 delimiters) {
@@ -330,7 +370,7 @@ Delimiter *World::add_delimiter(string dbg_name, vec3 position, vec3 half_size, 
 }
 
 void World::add_delimiter_plane(Delimiter *delimiter, Axis_Index normal_axis, b8 centered, Virtual_Extension virtual_extension) {
-    assert(normal_axis >= 0 && normal_axis < AXIS_COUNT);
+    assert(normal_axis >= 0 && normal_axis < AXIS_SIGNED_COUNT);
     assert(delimiter->plane_count + 1 <= ARRAY_COUNT(delimiter->planes));
 
     real virtual_extension_scale = max(max(this->half_size.x, this->half_size.y), this->half_size.z) * 2.f; // Uniformly scale the clipping plane to cover the entire world space, before it will probably get cut down later.
@@ -489,33 +529,39 @@ void World::clip_delimiters() {
 void World::build_anchor_volumes(real cell_world_space_size) {
     tmFunction(TM_WORLD_COLOR);
 
-    // @@Ship: Remove this.
-    Hardware_Time calculation_start = os_get_hardware_time();
-    Hardware_Time anchor_start = calculation_start;
-    s64 anchor_index = 0;
-    
-    // @@Speed: Start reusing the Flood_Fill struct (i.e. the allocated cell field, etc.), instead of doing
-    // so fucking much memory allocation all the time.
-    for(Anchor &anchor : this->anchors) {
-        if(this->current_flood_fill != null) deallocate_flood_fill(this->current_flood_fill);
+#if USE_JOB_SYSTEM    
+    // Set up the different jobs. Each anchor takes so long to calculate that it's probably worth it making
+    // every single one a single job.
+    s64 job_count = this->anchors.count;
+    Volume_Calculation_Job *jobs = (Volume_Calculation_Job *) this->allocator->allocate(job_count * sizeof(Volume_Calculation_Job));
 
-        this->current_flood_fill = this->allocator->New<Flood_Fill>();
-        floodfill(this->current_flood_fill, this, this->allocator, anchor.position, cell_world_space_size);
+    s64 prev_last = -1;
+    for(s64 i = 0; i < job_count; ++i) {
+        s64 first = prev_last + 1;
+        s64 last  = (i + 1 == job_count) ? (this->anchors.count - 1) : first + (this->anchors.count / job_count) - 1;
+        jobs[i].world = this;
+        jobs[i].first = first;
+        jobs[i].last  = last;
+        jobs[i].cell_world_space_size = cell_world_space_size;
+        prev_last = last;
 
-#if USE_MARCHING_CUBES_FOR_VOLUMES
-        marching_cubes(&anchor.volume, this->current_flood_fill);
-#else
-        assemble(&anchor.volume, this, this->current_flood_fill);
-#endif
-
-        // @@Ship: Remove this
-        ++anchor_index;
-        Hardware_Time now = os_get_hardware_time();
-        if(os_convert_hardware_time(now - calculation_start, Seconds) > 1) {
-            printf("Calculated volume for anchor %" PRId64 " of %" PRId64 " (total: %fs, this anchor: %fs)\n", anchor_index, this->anchors.count, os_convert_hardware_time(now - calculation_start, Seconds), os_convert_hardware_time(now - anchor_start, Seconds));
-        }
-        anchor_start = now;
     }
+
+    // Spawn the jobs building the actual anchors
+    for(s64 i = 0; i < job_count; ++i) {
+        spawn_job(&this->job_system, { (Job_Procedure) volume_calculation_job, &jobs[i] });
+    }
+                  
+    // Wait for the jobs to complete
+    wait_for_all_jobs(&this->job_system);    
+#else
+    Volume_Calculation_Job job;
+    job.world = this;
+    job.first = 0;
+    job.last  = this->anchors.count - 1;
+    job.cell_world_space_size = cell_world_space_size;
+    volume_calculation_job(&job);
+#endif
 }
 
 b8 World::point_inside_bounds(vec3 point) {

@@ -6,8 +6,10 @@
 #include "math/qt.h"
 #include "memutils.h"
 
-#define USE_BVH_FOR_RAYCASTS true
+#define USE_BVH_FOR_RAYCASTS           true
 #define USE_MARCHING_CUBES_FOR_VOLUMES false
+#define USE_JOB_SYSTEM                 false // @Incomplete: Fuck, the memory allocators obviously aren't thread safe, so we can't really use this... Oh man.
+#define USE_HASH_TABLE_IN_ASSEMBLER    true
 
 //
 // This algorithm is supposed to work with both single and double floating point precision, so that the usual
@@ -56,6 +58,7 @@ enum Axis_Index {
     AXIS_NEGATIVE_X = 3,
     AXIS_NEGATIVE_Y = 4,
     AXIS_NEGATIVE_Z = 5,
+    AXIS_SIGNED_COUNT = 6,
     
     AXIS_X = AXIS_POSITIVE_X,
     AXIS_Y = AXIS_POSITIVE_Y,

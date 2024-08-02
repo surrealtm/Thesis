@@ -6,12 +6,10 @@
 #include "timing.h"
 #include "hash_table.h"
 
-#define USE_HASH_TABLE true
-
 void assemble(Resizable_Array<Triangle> *volume, World *world, Flood_Fill *ff) {
     tmFunction(TM_ASSEMBLING_COLOR);
 
-#if USE_HASH_TABLE
+#if USE_HASH_TABLE_IN_ASSEMBLER
     // When assembling the triangles that make up a volume, we want to make sure that we
     // don't have duplicates in that volume. This could happen because a triangle might have
     // line-of-sight to many flood-filling cells, in which case it would be added multiple
@@ -35,25 +33,29 @@ void assemble(Resizable_Array<Triangle> *volume, World *world, Flood_Fill *ff) {
             for(s64 i = leaf->first_entry_index; i < one_plus_last_entry_index; ++i) {
                 auto *entry = &world->bvh->entries[i];
 
-#if USE_HASH_TABLE
+#if USE_HASH_TABLE_IN_ASSEMBLER
                 // Make sure this triangle isn't already in the volume.
                 if(triangle_table.query(entry)) continue;
 #endif
 
-                // We add a little offset to the position here so that we don't find the triangle that we are actually casting from...
+                // We add a little offset to the position here so that we don't find the triangle that we are
+                // actually casting from...
                 vec3 direction = world_space_position - entry->center;
                 if(world->cast_ray_against_delimiters_and_root_planes(entry->center + direction * CORE_EPSILON, direction, 1.)) continue;
 
                 // Add the triangle to the volume
                 volume->add(entry->triangle);
-#if USE_HASH_TABLE
+                
+#if USE_HASH_TABLE_IN_ASSEMBLER
                 triangle_table.add(entry, true);
 #endif
             }
         }
+
+        leafs.clear();
     }
 
-#if USE_HASH_TABLE
+#if USE_HASH_TABLE_IN_ASSEMBLER
     triangle_table.destroy();
 #endif
 }
