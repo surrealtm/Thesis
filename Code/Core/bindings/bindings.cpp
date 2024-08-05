@@ -516,6 +516,7 @@ BOOL WINAPI DllMain(HINSTANCE hinstance, DWORD reason, LPVOID reserved) {
     tmSetColor(TM_TESSEL_COLOR,   255,   0, 224);
     tmSetColor(TM_FLOODING_COLOR,  93,  75, 255);
     tmSetColor(TM_MARCHING_COLOR, 255,  75,  75);
+    
     return true;
 }
 #endif

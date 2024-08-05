@@ -26,8 +26,8 @@ void assemble(Resizable_Array<Triangle> *volume, World *world, Flood_Fill *ff) {
     
     for(Cell *cell : ff->flooded_cells) {
         vec3 world_space_position = get_cell_world_space_center(ff, cell);
-        auto leafs = world->bvh->find_leafs_at_position(world->allocator, world_space_position); // @@Speed: Again, temp allocator
-
+        auto leafs = world->bvh->find_leafs_at_position(&temp, world_space_position);
+        
         for(auto *leaf : leafs) {
             s64 one_plus_last_entry_index = leaf->first_entry_index + leaf->entry_count;
             for(s64 i = leaf->first_entry_index; i < one_plus_last_entry_index; ++i) {
@@ -51,8 +51,6 @@ void assemble(Resizable_Array<Triangle> *volume, World *world, Flood_Fill *ff) {
 #endif
             }
         }
-
-        leafs.clear();
     }
 
 #if USE_HASH_TABLE_IN_ASSEMBLER

@@ -236,17 +236,17 @@ BVH_Cast_Result BVH::cast_ray(vec3 ray_origin, vec3 ray_direction, real max_ray_
     result.hit_something = false;
     result.hit_distance  = MAX_F32;
 
-    // @@Speed: It might be faster to just use a flat stack-allocated array here, maybe with the max node
-    // depth as size? Then again, we should hopefully only allocate for this array once, so maybe it's not that
-    // bad...
-    Resizable_Array<BVH_Node*> stack;
-    stack.allocator = this->allocator;
-    stack.reserve(MAX_BVH_DEPTH);
+    const s32 MAX_NODE_STACK_SIZE = 1 << MAX_BVH_DEPTH;
+    BVH_Node *stack[MAX_NODE_STACK_SIZE];
+    s32 stack_count = 0;
 
-    stack.add(&this->root);
-    
-    while(stack.count) {
-        BVH_Node *node = stack.pop(); // @@Speed: Does the order matter here? Do we have a higher chance of finding a result quicker if we query this in another way?
+#define add_to_stack(value) { assert(stack_count < MAX_NODE_STACK_SIZE); stack[stack_count++] = value; }
+#define pop_stack() stack[--stack_count]
+
+    add_to_stack(&this->root);    
+
+    while(stack_count) {
+        BVH_Node *node = pop_stack(); // @@Speed: Does the order matter here? Do we have a higher chance of finding a result quicker if we query this in another way?
 
         b8 intersects_aabb;
         
@@ -294,13 +294,12 @@ BVH_Cast_Result BVH::cast_ray(vec3 ray_origin, vec3 ray_direction, real max_ray_
             }
         } else {
             // Add all children of this node to the stack.
-            if(node->children[0]) stack.add(node->children[0]);
-            if(node->children[1]) stack.add(node->children[1]);
+            if(node->children[0]) add_to_stack(node->children[0]);
+            if(node->children[1]) add_to_stack(node->children[1]);
         }
     }
 
  early_exit:
-    stack.clear();
     
     return result;
 }

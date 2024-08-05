@@ -277,6 +277,8 @@ void World::create(vec3 half_size) {
     this->pool_allocator = this->pool.allocator();
     this->allocator = &this->pool_allocator;
 
+    create_temp_allocator(64 * ONE_MEGABYTE);
+    
 #if USE_JOB_SYSTEM
     create_job_system(&this->job_system, os_get_number_of_hardware_threads());
 #endif
@@ -457,12 +459,14 @@ void World::create_bvh_from_triangles(Resizable_Array<Triangle> &triangles) {
 void World::clip_delimiters() {
     tmFunction(TM_WORLD_COLOR);
 
+    u64 temp_mark = mark_temp_allocator();
+    
     {
         //
         // Find all intersections between any two delimiters and store them.
         //
         Resizable_Array<Delimiter_Intersection> intersections;
-        intersections.allocator = this->allocator;
+        intersections.allocator = &temp;
 
         for(s64 i = 0; i < this->delimiters.count; ++i) {
             Delimiter *d0 = &this->delimiters[i];
@@ -512,22 +516,24 @@ void World::clip_delimiters() {
                 Triangulated_Plane *delimiter_plane = &delimiter.planes[i];
                 for(Triangulated_Plane &root_plane : this->root_clipping_planes) {
                     // :OriginalDelimiterTriangles
-                    Resizable_Array<Triangle> original_t0s = delimiter_plane->triangles.copy(this->allocator); // @@Speed: Maybe even start using a temp allocator for this.
+                    Resizable_Array<Triangle> original_t0s = delimiter_plane->triangles.copy(&temp);
                     
                     tessellate_all_triangles(delimiter_plane->triangles, root_plane.triangles, root_plane.n, true, true, delimiter.position);
                     remove_all_triangles_behind_plane(delimiter_plane->triangles, root_plane.triangles, root_plane.n);
 
                     tessellate_all_triangles(root_plane.triangles, original_t0s, delimiter_plane->n, false, false);
-
-                    original_t0s.clear();
                 }
             }
         }
     }
+
+    release_temp_allocator(temp_mark);
 }
 
 void World::build_anchor_volumes(real cell_world_space_size) {
     tmFunction(TM_WORLD_COLOR);
+
+    u64 temp_mark = mark_temp_allocator();
 
 #if USE_JOB_SYSTEM    
     // Set up the different jobs. Each anchor takes so long to calculate that it's probably worth it making
@@ -562,6 +568,8 @@ void World::build_anchor_volumes(real cell_world_space_size) {
     job.cell_world_space_size = cell_world_space_size;
     volume_calculation_job(&job);
 #endif
+
+    release_temp_allocator(temp_mark);
 }
 
 b8 World::point_inside_bounds(vec3 point) {

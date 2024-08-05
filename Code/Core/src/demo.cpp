@@ -5,7 +5,7 @@
 
 int main() {
     tmBegin();
-
+    
     Hardware_Time start = os_get_hardware_time();
     setup_world(); // Serialized from unity!
     Hardware_Time end = os_get_hardware_time();
