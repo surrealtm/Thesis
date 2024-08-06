@@ -246,7 +246,7 @@ void volume_calculation_job(Volume_Calculation_Job *job) {
     tmFunction(TM_WORLD_COLOR);
     
     Flood_Fill ff;
-    create_flood_fill(&ff, job->world, job->world->allocator, job->cell_world_space_size);
+    create_flood_fill(&ff, job->world, &temp, job->cell_world_space_size);
 
     for(s64 i = job->first; i <= job->last; ++i) {
         Anchor &anchor = job->world->anchors[i];
@@ -453,6 +453,8 @@ void World::create_bvh() {
     }
     
     this->bvh->subdivide();
+
+    //this->bvh->print_stats();
 }
 
 void World::create_bvh_from_triangles(Resizable_Array<Triangle> &triangles) {

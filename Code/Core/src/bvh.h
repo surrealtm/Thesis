@@ -67,6 +67,7 @@ struct BVH {
     Resizable_Array<BVH_Node *> find_leafs_at_position(Allocator *allocator, vec3 position);
 
     BVH_Stats stats();
+    void print_stats();
 };
 
 

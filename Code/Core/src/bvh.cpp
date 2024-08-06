@@ -328,6 +328,19 @@ BVH_Stats BVH::stats() {
     return stats;
 }
 
+void BVH::print_stats() {
+    auto stats = this->stats();
+
+    printf("------------ BVH ------------\n");
+    printf("  > Max Depth:   %" PRId64 "\n", stats.max_leaf_depth);
+    printf("  > Min Depth:   %" PRId64 "\n", stats.min_leaf_depth);
+    printf("  > Max Entries: %" PRId64 "\n", stats.max_entries_in_leaf);
+    printf("  > Min Entries: %" PRId64 "\n", stats.min_entries_in_leaf);
+    printf("  > Node Count:  %" PRId64 "\n", stats.total_node_count);
+    printf("  > Avg Shrink:  %f\n", stats.average_shrinkage);
+    printf("-----------------------------\n");
+}
+
 
 
 // @@Ship: Remove all this below.
