@@ -6,4 +6,4 @@
 struct World;
 struct Flood_Fill;
 
-void assemble(Resizable_Array<Triangle> *volume, World *world, Flood_Fill *ff);
+Resizable_Array<Triangle> assemble(World *world, Flood_Fill *ff, Allocator *allocator);

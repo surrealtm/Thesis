@@ -255,7 +255,16 @@ void volume_calculation_job(Volume_Calculation_Job *job) {
 #if USE_MARCHING_CUBES_FOR_VOLUMES
         marching_cubes(&anchor.volume, &ff);
 #else
-        assemble(&anchor.volume, job->world, &ff);
+
+#if USE_JOB_SYSTEM
+        auto temp_volume = assemble(job->world, &ff, &temp);
+
+        lock(&job->world->mutex);
+        anchor.volume = temp_volume.copy(job->world->allocator);
+        unlock(&job->world->mutex);
+#else
+        anchor.volume = assemble(job->world, &ff, job->world->allocator);
+#endif
 #endif
     }
 
@@ -280,6 +289,7 @@ void World::create(vec3 half_size) {
     create_temp_allocator(64 * ONE_MEGABYTE);
     
 #if USE_JOB_SYSTEM
+    create_mutex(&this->mutex);
     create_job_system(&this->job_system, os_get_number_of_hardware_threads());
 #endif
     
@@ -313,6 +323,7 @@ void World::destroy() {
 
 #if USE_JOB_SYSTEM
     destroy_job_system(&this->job_system, JOB_SYSTEM_Detach_Workers);
+    destroy_mutex(&this->mutex);
 #endif
 }
 
@@ -325,7 +336,6 @@ Anchor *World::add_anchor(vec3 position) {
     Anchor *anchor   = this->anchors.push();
     anchor->id       = this->anchors.count - 1;
     anchor->position = position;
-    anchor->volume.allocator = this->allocator;
 
     return anchor;
 }

@@ -76,6 +76,7 @@ struct World {
     Allocator *allocator; // Usually a pointer to the pool_allocator, but can be swapped for testing...
 
 #if USE_JOB_SYSTEM
+    Mutex mutex;
     Job_System job_system;
 #endif
     

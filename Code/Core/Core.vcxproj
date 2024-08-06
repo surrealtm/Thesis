@@ -474,6 +474,7 @@
     <ClCompile Include="src\demo.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\Foundation\src\art.h" />
     <ClInclude Include="..\Foundation\src\concatenator.h" />
     <ClInclude Include="..\Foundation\src\data_array.h" />
     <ClInclude Include="..\Foundation\src\error.h" />
