@@ -296,9 +296,10 @@ void World::create(vec3 half_size) {
     //
     // Set up the basic objects.
     //
-    this->half_size = half_size;
-    this->anchors.allocator    = this->allocator;
-    this->delimiters.allocator = this->allocator;
+    this->half_size                  = half_size;
+    this->anchors.allocator          = this->allocator;
+    this->delimiters.allocator       = this->allocator;
+    this->root_bvh_entries.allocator = this->allocator;
     
     //
     // Create the clipping planes.
@@ -434,38 +435,36 @@ Anchor *World::query(vec3 point) {
 void World::create_bvh() {
     tmFunction(TM_WORLD_COLOR);
 
-    this->bvh = this->allocator->New<BVH>();
-    this->bvh->create(this->allocator);
-
-    for(Triangulated_Plane &root_plane : this->root_clipping_planes) {
-        for(Triangle &root_triangle : root_plane.triangles) {
-            this->bvh->add(root_triangle);
-        }
-    }
+    this->bvh.create(this->allocator);
     
     for(Delimiter &delimiter : this->delimiters) {
         for(s64 i = 0; i < delimiter.plane_count; ++i) {
             Triangulated_Plane &plane = delimiter.planes[i];
             for(Triangle &triangle : plane.triangles) {
-                this->bvh->add(triangle);
+                this->bvh.add(triangle);
             }
         }
     }
     
-    this->bvh->subdivide();
+    this->bvh.subdivide();
+    //this->bvh.print_stats();
 
-    //this->bvh->print_stats();
+    // :RootPlanesBVH
+    for(Triangulated_Plane &root_plane : this->root_clipping_planes) {
+        for(Triangle &all : root_plane.triangles) {
+            this->root_bvh_entries.add({ all, all.center() });
+        }
+    }
 }
 
 void World::create_bvh_from_triangles(Resizable_Array<Triangle> &triangles) {
     tmFunction(TM_WORLD_COLOR);
 
-    this->bvh = this->allocator->New<BVH>();
-    this->bvh->create(this->allocator);
+    this->bvh.create(this->allocator);
 
-    for(Triangle &triangle : triangles) this->bvh->add(triangle);
+    for(Triangle &triangle : triangles) this->bvh.add(triangle);
     
-    this->bvh->subdivide();
+    this->bvh.subdivide();
 }
 
 void World::clip_delimiters() {
@@ -590,19 +589,25 @@ b8 World::point_inside_bounds(vec3 point) {
         point.z >= -this->half_size.z && point.z <= +this->half_size.z;
 }
 
-b8 World::cast_ray_against_delimiters_and_root_planes(vec3 ray_origin, vec3 ray_direction, real max_ray_distance) {
-    const b8 early_return = true; // @@Ship: Remove this parameter from all procedures if possible.
+b8 World::cast_ray_against_delimiters_and_root_planes(vec3 ray_origin, vec3 ray_direction, real max_ray_distance) {    
+#if USE_BVH_FOR_RAYCASTS    
+    auto result = this->bvh.cast_ray(ray_origin, ray_direction, max_ray_distance);
+    if(result.hit_something) return true;
+
+    // :RootPlanesBVH
+    for(auto &root_entry : this->root_bvh_entries) {
+        auto result = cast_ray_against_entry(&root_entry, ray_origin, ray_direction, max_ray_distance);
+        if(result.hit_something) return true;
+    }
     
-#if USE_BVH_FOR_RAYCASTS
-    auto result = this->bvh->cast_ray(ray_origin, ray_direction, max_ray_distance, early_return);
-    return result.hit_something;
+    return false;
 #else
     b8 hit_something = false;
 
     for(Triangulated_Plane &root_plane : this->root_clipping_planes) {
-        if(root_plane.cast_ray(ray_origin, ray_direction, max_ray_distance, early_return)) {
+        if(root_plane.cast_ray(ray_origin, ray_direction, max_ray_distance)) {
             hit_something = true;
-            if(early_return) goto early_exit;
+            goto early_exit;
         }
     }
 
@@ -614,9 +619,9 @@ b8 World::cast_ray_against_delimiters_and_root_planes(vec3 ray_origin, vec3 ray_
     for(Delimiter &delimiter : this->delimiters) {
         for(s64 i = 0; i < delimiter.plane_count; ++i) {
             Triangulated_Plane *plane = &delimiter.planes[i];
-            if(plane->cast_ray(ray_origin, ray_direction, max_ray_distance, early_return)) {
+            if(plane->cast_ray(ray_origin, ray_direction, max_ray_distance)) {
                 hit_something = true;
-                if(early_return) goto early_exit;
+                goto early_exit;
             }
         }
     }

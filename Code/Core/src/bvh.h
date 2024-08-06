@@ -5,7 +5,7 @@
 
 #include "typedefs.h"
 
-#define MAX_BVH_DEPTH             9
+#define MAX_BVH_DEPTH             1 // @Incomplete: Shit seems broken with a higher depth, probably because we also need to consider other cells... Fuck man.
 #define MIN_BVH_ENTRIES_TO_SPLIT  4
 
 //
@@ -62,7 +62,7 @@ struct BVH {
     void add(Triangle triangle);
     void subdivide();
 
-    BVH_Cast_Result cast_ray(vec3 origin, vec3 direction, real max_distance, b8 early_return = false);
+    BVH_Cast_Result cast_ray(vec3 ray_origin, vec3 ray_direction, real max_ray_distance);
     
     Resizable_Array<BVH_Node *> find_leafs_at_position(Allocator *allocator, vec3 position);
 
@@ -70,5 +70,6 @@ struct BVH {
     void print_stats();
 };
 
+BVH_Cast_Result cast_ray_against_entry(BVH_Entry *entry, vec3 ray_origin, vec3 ray_direction, real max_ray_distance);
 
 Resizable_Array<Triangle> build_sample_triangle_mesh(Allocator *allocator); // @@Ship

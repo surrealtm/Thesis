@@ -115,7 +115,7 @@ void BVH::create(Allocator *allocator) {
 void BVH::add(Triangle triangle) {
     BVH_Entry *entry = this->entries.push();
     entry->triangle  = triangle;
-    entry->center    = (entry->triangle.p0 + entry->triangle.p1 + entry->triangle.p2) / 3.;
+    entry->center    = triangle.center();
 }
 
 void BVH::subdivide() {
@@ -228,7 +228,7 @@ void BVH::subdivide() {
     stack.clear();
 }
 
-BVH_Cast_Result BVH::cast_ray(vec3 ray_origin, vec3 ray_direction, real max_ray_distance, b8 early_return) {
+BVH_Cast_Result BVH::cast_ray(vec3 ray_origin, vec3 ray_direction, real max_ray_distance) {
     vec3 inverse_ray_direction = 1. / ray_direction;
     vec3 abs_inverse_ray_direction = vec3(fabs(inverse_ray_direction.x), fabs(inverse_ray_direction.y), fabs(inverse_ray_direction.z));
     
@@ -281,15 +281,11 @@ BVH_Cast_Result BVH::cast_ray(vec3 ray_origin, vec3 ray_direction, real max_ray_
             // Check all triangles contained in this node against the ray.
             s64 one_plus_last_entry_index = node->first_entry_index + node->entry_count;
             for(s64 i = node->first_entry_index; i < one_plus_last_entry_index; ++i) {
-                BVH_Entry &entry = this->entries[i];
-                auto triangle_result = ray_double_sided_triangle_intersection(ray_origin, ray_direction, entry.triangle.p0, entry.triangle.p1, entry.triangle.p2);
-                
-                if(triangle_result.intersection && triangle_result.distance >= 0. && triangle_result.distance <= max_ray_distance && triangle_result.distance < result.hit_distance) {
-                    result.hit_something = true;
-                    result.hit_distance  = triangle_result.distance;
-                    result.hit_triangle  = &entry.triangle;
+                auto entry_result = cast_ray_against_entry(&this->entries[i], ray_origin, ray_direction, max_ray_distance);
 
-                    if(early_return) goto early_exit;
+                if(entry_result.hit_something && entry_result.hit_distance < result.hit_distance) {
+                    result = entry_result;
+                    goto early_exit;
                 }
             }
         } else {
@@ -339,6 +335,21 @@ void BVH::print_stats() {
     printf("  > Node Count:  %" PRId64 "\n", stats.total_node_count);
     printf("  > Avg Shrink:  %f\n", stats.average_shrinkage);
     printf("-----------------------------\n");
+}
+
+BVH_Cast_Result cast_ray_against_entry(BVH_Entry *entry, vec3 ray_origin, vec3 ray_direction, real max_ray_distance) {
+    BVH_Cast_Result result;
+    auto triangle_result = ray_double_sided_triangle_intersection(ray_origin, ray_direction, entry->triangle.p0, entry->triangle.p1, entry->triangle.p2);
+                
+    if(triangle_result.intersection && triangle_result.distance >= 0. && triangle_result.distance <= max_ray_distance) {
+        result.hit_something = true;
+        result.hit_distance  = triangle_result.distance;
+        result.hit_triangle  = &entry->triangle;
+    } else {
+        result.hit_something = false;
+    }
+
+    return result;
 }
 
 

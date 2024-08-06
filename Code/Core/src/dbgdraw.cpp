@@ -276,7 +276,7 @@ Debug_Draw_Data debug_draw_world(World *world, Debug_Draw_Options options) {
     _internal.draw_normals = !!(options & DEBUG_DRAW_Normals);
 
 	if(options & DEBUG_DRAW_BVH) {
-        debug_draw_bvh(_internal, world->bvh);
+        debug_draw_bvh(_internal, &world->bvh);
 	}
 
 	if(options & DEBUG_DRAW_Anchors) {

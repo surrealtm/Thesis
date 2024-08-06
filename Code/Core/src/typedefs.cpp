@@ -32,6 +32,10 @@ b8 Triangle::no_point_in_front_of_plane(vec3 plane_origin, vec3 plane_normal) {
     return d0 <= CORE_EPSILON && d1 <= CORE_EPSILON && d2 <= CORE_EPSILON;
 }
 
+vec3 Triangle::center() {
+    return (this->p0 + this->p1 + this->p2) / 3.0;
+}
+
 
 
 void Triangulated_Plane::create(Allocator *allocator, vec3 c, vec3 n, vec3 left, vec3 right, vec3 top, vec3 bottom) {
@@ -51,7 +55,7 @@ void Triangulated_Plane::create(Allocator *allocator, vec3 c, vec3 u, vec3 v) {
     this->create(allocator, c, v3_normalize(v3_cross_v3(u, v)), -u, u, -v, v);
 }
 
-b8 Triangulated_Plane::cast_ray(vec3 ray_origin, vec3 ray_direction, real max_ray_distance, b8 early_return) {
+b8 Triangulated_Plane::cast_ray(vec3 ray_origin, vec3 ray_direction, real max_ray_distance) {
     b8 hit_something = false;
 
     for(Triangle &triangle : this->triangles) {
@@ -59,7 +63,7 @@ b8 Triangulated_Plane::cast_ray(vec3 ray_origin, vec3 ray_direction, real max_ra
 
         if(triangle_result.intersection && triangle_result.distance >= 0.f && triangle_result.distance <= max_ray_distance) { // distance isn't normalized!
             hit_something = true;
-            if(early_return) goto early_exit;
+            goto early_exit;
         }
     }
 

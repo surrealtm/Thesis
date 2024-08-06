@@ -90,6 +90,7 @@ struct Triangle {
     b8 is_dead();
     b8 no_point_behind_plane(vec3 plane_origin, vec3 plane_normal);
     b8 no_point_in_front_of_plane(vec3 plane_origin, vec3 plane_normal);
+    vec3 center();
 };
 
 struct Triangulated_Plane {
@@ -99,7 +100,7 @@ struct Triangulated_Plane {
 
     void create(Allocator *allocator, vec3 c, vec3 n, vec3 left, vec3 right, vec3 top, vec3 bottom);
     void create(Allocator *allocator, vec3 c, vec3 u, vec3 v);
-    b8 cast_ray(vec3 ray_origin, vec3 ray_direction, real ray_distance, b8 early_return);
+    b8 cast_ray(vec3 ray_origin, vec3 ray_direction, real ray_distance);
 };
 
 real axis_sign(Axis_Index index); // 1 for positive, -1 for negative axis.

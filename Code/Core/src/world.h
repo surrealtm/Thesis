@@ -10,6 +10,7 @@
 #include "math/qt.h"
 
 #include "typedefs.h"
+#include "bvh.h"
 
 
 
@@ -98,7 +99,14 @@ struct World {
     // this data structure to quickly determine which delimiter triangles are bordering which anchors (by doing
     // some raycasting checks based on the floodfilling results). This BVH does not contain any volume triangles
     // since we don't actually do any work on the volumes, after they have been created).
-    struct BVH *bvh;
+    BVH bvh;
+
+    
+    // :RootPlanesBVH
+    // The root triangles are fucking terrible for the BVH as they tend to be really large and covering the entire
+    // world space, which would lead to the BVH nodes to not have any shrinkage (and therefore benefit) at all.
+    // Instead, we must manually cast against them.
+    Resizable_Array<BVH_Entry> root_bvh_entries; 
     
 
     // --- Internal implementation
