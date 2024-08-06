@@ -9,6 +9,7 @@
 
 struct Assembler {
     World *world;
+    Flood_Fill *ff;
     Resizable_Array<Triangle> volume;
 
 #if USE_HASH_TABLE_IN_ASSEMBLER
@@ -21,7 +22,7 @@ struct Assembler {
 };
 
 static
-void assemble_triangle(Assembler *assembler, vec3 cell_world_space_position, BVH_Entry *entry) {
+void assemble_triangle_against_cell(Assembler *assembler, vec3 cell_world_space_position, BVH_Entry *entry) {
 #if USE_HASH_TABLE_IN_ASSEMBLER
     // Make sure this triangle isn't already in the volume.
     if(assembler->triangle_table.query(entry)) return;
@@ -48,11 +49,20 @@ void assemble_triangle(Assembler *assembler, vec3 cell_world_space_position, BVH
 #endif
 }
 
+static
+void assemble_triangle(Assembler *assembler, BVH_Entry *entry) {
+    for(Cell *cell : assembler->ff->flooded_cells) {
+        vec3 cell_world_space_position = get_cell_world_space_center(assembler->ff, cell);
+        assemble_triangle_against_cell(assembler, cell_world_space_position, entry);
+    }
+}
+
 Resizable_Array<Triangle> assemble(World *world, Flood_Fill *ff, Allocator *allocator) {
     tmFunction(TM_ASSEMBLING_COLOR);
 
     Assembler assembler;
     assembler.world = world;
+    assembler.ff = ff;
     
     // Because this procedure is running simultaneously in several threads, we would need to
     // make the world's allocator thread-safe using a lock. That seems like a bad idea however,
@@ -77,21 +87,13 @@ Resizable_Array<Triangle> assemble(World *world, Flood_Fill *ff, Allocator *allo
     assembler.triangle_art.allocator = &temp;
     assembler.triangle_art.create();
 #endif
-    
-    for(Cell *cell : ff->flooded_cells) {
-        vec3 cell_world_space_position = get_cell_world_space_center(ff, cell);
 
-        for(auto &root_entry : assembler.world->root_bvh_entries) {
-            assemble_triangle(&assembler, cell_world_space_position, &root_entry);
-        }
+    for(auto &root_entry : assembler.world->root_bvh_entries) {
+        assemble_triangle(&assembler, &root_entry);
+    }
         
-        auto leafs = assembler.world->bvh.find_leafs_at_position(&temp, cell_world_space_position);
-        for(auto *leaf : leafs) {
-            s64 one_plus_last_entry_index = leaf->first_entry_index + leaf->entry_count;
-            for(s64 i = leaf->first_entry_index; i < one_plus_last_entry_index; ++i) {
-                assemble_triangle(&assembler, cell_world_space_position, &assembler.world->bvh.entries[i]);
-            }
-        }
+    for(s64 i = 0; i < assembler.world->bvh.entries.count; ++i) {
+        assemble_triangle(&assembler, &assembler.world->bvh.entries[i]);
     }
 
 #if USE_HASH_TABLE_IN_ASSEMBLER && FOUNDATION_DEVELOPER
