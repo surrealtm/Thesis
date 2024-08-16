@@ -479,24 +479,28 @@ void World::clip_delimiters() {
         Resizable_Array<Delimiter_Intersection> intersections;
         intersections.allocator = &temp;
 
-        for(s64 i = 0; i < this->delimiters.count; ++i) {
-            Delimiter *d0 = &this->delimiters[i];
-            
-            // Find intersections between clipping planes of the same delimiter, which can happen
-            // if a delimiter has planes on different axis. These planes will only tessellate each
-            // other (so that we can properly assemble anchor volumes), but they will not clip
-            // each other.
-            for(s64 j = 0; j < d0->plane_count; ++j) {
-                for(s64 k = j + 1; k < d0->plane_count; ++k) {
-                    find_intersections(this, d0, d0, &d0->planes[j], &d0->planes[k], intersections);
-                }
-            }
+        {
+            tmZone("find_delimiter_intersections", TM_WORLD_COLOR);
 
-            // Find intersections with all other delimiters. Only check delimiters after this one in
-            // the array to avoid duplicates.
-            for(s64 j = i + 1; j < this->delimiters.count; ++j) {
-                Delimiter *d1 = &this->delimiters[j];
-                find_intersections(this, d0, d1, intersections);
+            for(s64 i = 0; i < this->delimiters.count; ++i) {
+                Delimiter *d0 = &this->delimiters[i];
+            
+                // Find intersections between clipping planes of the same delimiter, which can happen
+                // if a delimiter has planes on different axis. These planes will only tessellate each
+                // other (so that we can properly assemble anchor volumes), but they will not clip
+                // each other.
+                for(s64 j = 0; j < d0->plane_count; ++j) {
+                    for(s64 k = j + 1; k < d0->plane_count; ++k) {
+                        find_intersections(this, d0, d0, &d0->planes[j], &d0->planes[k], intersections);
+                    }
+                }
+
+                // Find intersections with all other delimiters. Only check delimiters after this one in
+                // the array to avoid duplicates.
+                for(s64 j = i + 1; j < this->delimiters.count; ++j) {
+                    Delimiter *d1 = &this->delimiters[j];
+                    find_intersections(this, d0, d1, intersections);
+                }
             }
         }
 
