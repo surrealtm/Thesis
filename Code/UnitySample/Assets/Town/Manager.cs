@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using UnityEngine;
 using UnityEditor;
 
@@ -34,14 +35,18 @@ public class Manager : MonoBehaviour {
         if(this.world_handle.valid()) Core_Bindings.core_destroy_world(world_handle);
         Core_Helpers.clear_debug_draw();
         this.world_handle.invalidate();
-        Debug.Log("Destroyed world.");
+        UnityEngine.Debug.Log("Destroyed world.");
     }
 
     void create_world() {
         this.destroy_world();
 
+        Stopwatch sw = new Stopwatch();
+        sw.Start();
         this.world_handle = Core_Helpers.create_world_from_scene_and_print_profiling(this.cell_world_space_size);
-        
+        sw.Stop();
+        UnityEngine.Debug.Log("Created world (" + sw.Elapsed.Seconds + "s).");
+
         Core_Helpers.debug_draw_world(this.world_handle, this.debug_draw_options, true);
     }
 
