@@ -48,9 +48,6 @@
     <ClCompile Include="src\dbgdraw.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\Foundation\src\math\intersect.cpp">
-      <Filter>Foundation</Filter>
-    </ClCompile>
     <ClCompile Include="..\Foundation\src\threads.cpp">
       <Filter>Foundation</Filter>
     </ClCompile>

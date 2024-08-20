@@ -375,7 +375,7 @@ extern "C" {
         
         world->add_anchor("room"_s, vec3(0, 1, 0));
 
-        world->calculate_volumes();
+        world->calculate_volumes(1.f);
 
         return world;        
     }

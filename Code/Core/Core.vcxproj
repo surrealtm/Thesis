@@ -453,7 +453,6 @@
     <ClCompile Include="..\Foundation\src\fileio.cpp" />
     <ClCompile Include="..\Foundation\src\foundation.cpp" />
     <ClCompile Include="..\Foundation\src\jobs.cpp" />
-    <ClCompile Include="..\Foundation\src\math\intersect.cpp" />
     <ClCompile Include="..\Foundation\src\memutils.cpp" />
     <ClCompile Include="..\Foundation\src\noise.cpp" />
     <ClCompile Include="..\Foundation\src\random.cpp" />

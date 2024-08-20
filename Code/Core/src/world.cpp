@@ -288,11 +288,6 @@ void World::create(vec3 half_size) {
 
     create_temp_allocator(64 * ONE_MEGABYTE);
     
-#if USE_JOB_SYSTEM
-    create_mutex(&this->mutex);
-    create_job_system(&this->job_system, os_get_number_of_hardware_threads());
-#endif
-    
     //
     // Set up the basic objects.
     //
@@ -321,11 +316,6 @@ void World::create(vec3 half_size) {
 
 void World::destroy() {
     this->arena.destroy();
-
-#if USE_JOB_SYSTEM
-    destroy_job_system(&this->job_system, JOB_SYSTEM_Detach_Workers);
-    destroy_mutex(&this->mutex);
-#endif
 }
 
 void World::reserve_objects(s64 anchors, s64 delimiters) {
@@ -550,7 +540,11 @@ void World::build_anchor_volumes(real cell_world_space_size) {
 
     u64 temp_mark = mark_temp_allocator();
 
-#if USE_JOB_SYSTEM    
+#if USE_JOB_SYSTEM
+    // Create the job system.
+    create_mutex(&this->mutex);
+    create_job_system(&this->job_system, os_get_number_of_hardware_threads());
+
     // Set up the different jobs. Each anchor takes so long to calculate that it's probably worth it making
     // every single one a single job.
     s64 job_count = this->anchors.count;
@@ -574,7 +568,12 @@ void World::build_anchor_volumes(real cell_world_space_size) {
     }
                   
     // Wait for the jobs to complete
-    wait_for_all_jobs(&this->job_system);    
+    wait_for_all_jobs(&this->job_system);
+    
+    // Destroy the job system.
+    destroy_job_system(&this->job_system, JOB_SYSTEM_Kill_Workers);
+    destroy_mutex(&this->mutex);
+
 #else
     Volume_Calculation_Job job;
     job.world = this;
