@@ -17,8 +17,7 @@ int main() {
     tmBegin();
     
     Hardware_Time start = os_get_hardware_time();
-    //setup_world(); // Serialized from unity!
-    core_do_louvre_test();
+    setup_world(); // Serialized from unity!
     Hardware_Time end = os_get_hardware_time();
 
     printf("Test case took %.2fs, %.2fmb.\n", os_convert_hardware_time(end - start, Seconds), convert_to_memory_unit(os_get_working_set_size(), Megabytes));
