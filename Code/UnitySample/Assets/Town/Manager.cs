@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -53,6 +54,15 @@ public class Manager : MonoBehaviour {
     void serialize_world() {
         Core_Helpers.serialize_world_setup_code("C:/source/Thesis/Code/Core/src/serialized_setup.cpp", this.cell_world_space_size);
     }
+
+    Anchor query_world() {
+        Stopwatch sw = new Stopwatch();
+        sw.Start();
+        Anchor anchor = Core_Helpers.query_world(this.world_handle, this.query_object.transform.position);
+        sw.Stop();
+        UnityEngine.Debug.Log("Queried world (" + sw.Elapsed.Ticks / (float) TimeSpan.TicksPerMillisecond + "ms).");
+        return anchor;    
+    }
     
     void Start() {
         this.world_handle.invalidate();
@@ -63,7 +73,7 @@ public class Manager : MonoBehaviour {
         this.current_residing_anchor = null;
 
         if(this.query_object != null) {
-            this.current_residing_anchor = Core_Helpers.query_world(this.world_handle, this.query_object.transform.position);
+            this.current_residing_anchor = this.query_world();
         }
     }
 

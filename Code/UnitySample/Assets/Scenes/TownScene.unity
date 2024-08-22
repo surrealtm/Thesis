@@ -4266,10 +4266,6 @@ PrefabInstance:
       propertyPath: name
       value: OuterGarden
       objectReference: {fileID: 0}
-    - target: {fileID: 3282871953113580884, guid: e06fe6bddc07e4a41a8edf51ea7732c4, type: 3}
-      propertyPath: disabled
-      value: 0
-      objectReference: {fileID: 0}
     - target: {fileID: 4052490138134063785, guid: e06fe6bddc07e4a41a8edf51ea7732c4, type: 3}
       propertyPath: m_RootOrder
       value: 43
@@ -7058,10 +7054,6 @@ PrefabInstance:
       propertyPath: name
       value: HouseWalls
       objectReference: {fileID: 0}
-    - target: {fileID: 3282871953113580884, guid: e06fe6bddc07e4a41a8edf51ea7732c4, type: 3}
-      propertyPath: disabled
-      value: 1
-      objectReference: {fileID: 0}
     - target: {fileID: 4052490138134063785, guid: e06fe6bddc07e4a41a8edf51ea7732c4, type: 3}
       propertyPath: m_RootOrder
       value: 41
@@ -8815,10 +8807,6 @@ PrefabInstance:
     - target: {fileID: 3282871953113580884, guid: e06fe6bddc07e4a41a8edf51ea7732c4, type: 3}
       propertyPath: name
       value: InnerGarden
-      objectReference: {fileID: 0}
-    - target: {fileID: 3282871953113580884, guid: e06fe6bddc07e4a41a8edf51ea7732c4, type: 3}
-      propertyPath: disabled
-      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 4052490138134063785, guid: e06fe6bddc07e4a41a8edf51ea7732c4, type: 3}
       propertyPath: m_RootOrder
