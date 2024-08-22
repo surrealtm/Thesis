@@ -59,7 +59,7 @@ vec3 get_barycentric_coefficient_for_corner_index(s64 index) {
 
 static inline
 b8 points_almost_identical(vec3 p0, vec3 p1) {
-    return fabs(p0.x - p1.x) < CORE_EPSILON && fabs(p0.y - p1.y) < CORE_EPSILON && fabs(p0.z - p1.z) < CORE_EPSILON;
+    return fabs(p0.x - p1.x) <= CORE_EPSILON && fabs(p0.y - p1.y) <= CORE_EPSILON && fabs(p0.z - p1.z) <= CORE_EPSILON;
 }
 
 static inline
