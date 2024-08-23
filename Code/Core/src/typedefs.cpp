@@ -36,6 +36,16 @@ vec3 Triangle::center() {
     return (this->p0 + this->p1 + this->p2) / 3.0;
 }
 
+vec3 Triangle::operator[](s8 index) {
+    assert(index >= 0 && index <= 2);
+    
+    switch(index) {
+    case 0: return this->p0;
+    case 1: return this->p1;
+    default: return this->p2;    
+    }
+}
+
 
 
 void Triangulated_Plane::create(Allocator *allocator, vec3 c, vec3 n, vec3 left, vec3 right, vec3 top, vec3 bottom) {

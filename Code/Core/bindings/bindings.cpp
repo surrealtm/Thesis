@@ -153,15 +153,18 @@ extern "C" {
     World_Handle core_do_house_test() {
         tmZone("do_house_test", TM_SYSTEM_COLOR);
 
+        // nocheckin
+
         World *world = (World *) core_create_world(100, 10, 100);
-        world->add_anchor("Living Room"_s, vec3(5, -3, -5));
-        world->add_anchor("Kitchen"_s, vec3(-5, -3, -5));
-        world->add_anchor("Hallway"_s, vec3(-5, -3, 8.5));
+        //world->add_anchor("Living Room"_s, vec3(5, -3, -5));
+        //world->add_anchor("Kitchen"_s, vec3(-5, -3, -5));
+        //world->add_anchor("Hallway"_s, vec3(-5, -3, 8.5));
         //world->add_anchor("Garden"_s, vec3(0, -3, -30));
         
         auto hallway_wall = world->add_delimiter("HallwayWall"_s, vec3(-2, -3, +6), vec3(7.5, .25, .5), vec3(0, 0, 0), 1);
         world->add_delimiter_plane(hallway_wall, AXIS_Z, true, VIRTUAL_EXTENSION_Positive_U | VIRTUAL_EXTENSION_Positive_V | VIRTUAL_EXTENSION_Negative_V);
 
+        /*
         auto kitchen_wall0 = world->add_delimiter("KitchenWall0"_s, vec3(0, -3, -7), vec3(.5, .25, 2.5), vec3(0, 0, 0), 1);
         world->add_delimiter_plane(kitchen_wall0, AXIS_X, true, VIRTUAL_EXTENSION_Positive_U | VIRTUAL_EXTENSION_Negative_U | VIRTUAL_EXTENSION_Positive_V);
         
@@ -179,6 +182,7 @@ extern "C" {
 
         auto outer_wall_west = world->add_delimiter("OuterWallWest"_s, vec3(-10, -3, 0), vec3(.5, .25, 10), vec3(0, 0, 0), 0);
         world->add_both_delimiter_planes(outer_wall_west, AXIS_X);
+        */
         
         world->calculate_volumes();
 
@@ -510,12 +514,13 @@ BOOL WINAPI DllMain(HINSTANCE hinstance, DWORD reason, LPVOID reserved) {
     //
     // Set up some things regarding the core library.
     //
-    tmSetColor(TM_SYSTEM_COLOR,   209, 202, 197);
-    tmSetColor(TM_WORLD_COLOR,     95, 230,  46);
-    tmSetColor(TM_BVH_COLOR,       46, 184, 230);
-    tmSetColor(TM_TESSEL_COLOR,   255,   0, 224);
-    tmSetColor(TM_FLOODING_COLOR,  93,  75, 255);
-    tmSetColor(TM_MARCHING_COLOR, 255,  75,  75);
+    tmSetColor(TM_SYSTEM_COLOR,    209, 202, 197);
+    tmSetColor(TM_WORLD_COLOR,      95, 230,  46);
+    tmSetColor(TM_BVH_COLOR,        46, 184, 230);
+    tmSetColor(TM_TESSEL_COLOR,    255,   0, 224);
+    tmSetColor(TM_FLOODING_COLOR,   93,  75, 255);
+    tmSetColor(TM_MARCHING_COLOR,  255,  75,  75);
+    tmSetColor(TM_OPTIMIZER_COLOR,   0, 255, 207);
     
     return true;
 }

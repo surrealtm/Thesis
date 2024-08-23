@@ -4,6 +4,7 @@
 #include "floodfill.h"
 #include "march.h"
 #include "assembler.h"
+#include "optimizer.h"
 
 #include "os_specific.h"
 #include "timing.h"
@@ -530,6 +531,21 @@ void World::clip_delimiters() {
                 }
             }
         }
+    }
+    
+    {
+        //
+        // Finally optimize all delimiter plane meshes to improve the run-time and quality of the
+        // assembling step.
+        //
+#if USE_OPTIMIZER_FOR_DELIMITERS
+        for(Delimiter &delimiter : this->delimiters) {
+            for(s64 i = 0; i < delimiter.plane_count; ++i) {
+                Triangulated_Plane *delimiter_plane = &delimiter.planes[i];
+                optimize_mesh(delimiter_plane->triangles);
+            }
+        }        
+#endif
     }
 
     release_temp_allocator(temp_mark);

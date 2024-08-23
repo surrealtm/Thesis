@@ -464,6 +464,7 @@
     <ClCompile Include="bindings\bindings.cpp" />
     <ClCompile Include="src\assembler.cpp" />
     <ClCompile Include="src\bvh.cpp" />
+    <ClCompile Include="src\optimizer.cpp" />
     <ClCompile Include="src\typedefs.cpp" />
     <ClCompile Include="src\world.cpp" />
     <ClCompile Include="src\dbgdraw.cpp" />
@@ -499,6 +500,7 @@
     <ClInclude Include="bindings\bindings.h" />
     <ClInclude Include="src\assembler.h" />
     <ClInclude Include="src\bvh.h" />
+    <ClInclude Include="src\optimizer.h" />
     <ClInclude Include="src\typedefs.h" />
     <ClInclude Include="src\world.h" />
     <ClInclude Include="src\dbgdraw.h" />

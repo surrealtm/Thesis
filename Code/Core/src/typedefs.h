@@ -11,6 +11,7 @@
 #define USE_JOB_SYSTEM                 true
 #define USE_HASH_TABLE_IN_ASSEMBLER    false
 #define USE_ART_IN_ASSEMBLER           true
+#define USE_OPTIMIZER_FOR_DELIMITERS   true
 
 //
 // This algorithm is supposed to work with both single and double floating point precision, so that the usual
@@ -46,6 +47,7 @@ constexpr real CORE_SMALL_EPSILON = 0.0000001; // :CORE_SMALL_EPSILON
 #define TM_TESSEL_COLOR     3
 #define TM_FLOODING_COLOR   4
 #define TM_MARCHING_COLOR   5
+#define TM_OPTIMIZER_COLOR  6
 #define TM_ASSEMBLING_COLOR TM_MARCHING_COLOR
 
 
@@ -91,6 +93,8 @@ struct Triangle {
     b8 no_point_behind_plane(vec3 plane_origin, vec3 plane_normal);
     b8 no_point_in_front_of_plane(vec3 plane_origin, vec3 plane_normal);
     vec3 center();
+
+    vec3 operator[](s8 index);
 };
 
 struct Triangulated_Plane {
