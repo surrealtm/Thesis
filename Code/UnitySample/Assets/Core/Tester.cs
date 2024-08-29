@@ -1,5 +1,3 @@
-#if FOUNDATION_DEVELOPER
-
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -7,6 +5,8 @@ using UnityEditor;
 
 public enum Test_Case {
     Scene,
+
+#if FOUNDATION_DEVELOPER
     House,
     BVH,
     Large_Volumes,
@@ -17,6 +17,7 @@ public enum Test_Case {
     Gallery,
     Louvre,
     Jobs,
+#endif
 }
 
 public class Tester : MonoBehaviour {
@@ -45,7 +46,7 @@ public class Tester : MonoBehaviour {
 
     public Camera camera = null;
     public Debug_Draw_Options debug_draw_options = Debug_Draw_Options.Everything;
-    public Test_Case test_case = Test_Case.House;
+    public Test_Case test_case;
 
     private World_Handle world_handle;
     private bool create_from_scene_flag = false;
@@ -56,13 +57,16 @@ public class Tester : MonoBehaviour {
     public void run_test() {
         this.destroy_world();
 
+#if FOUNDATION_DEVELOPER
         Core_Bindings.core_begin_profiling();
+#endif
 
         switch(this.test_case) {
         case Test_Case.Scene:
             this.world_handle = this.create_world_from_scene();
             break;
 
+#if FOUNDATION_DEVELOPER
         case Test_Case.House:
             this.world_handle = Core_Bindings.core_do_house_test();
             break;
@@ -102,10 +106,15 @@ public class Tester : MonoBehaviour {
         case Test_Case.Jobs:
             this.world_handle = Core_Bindings.core_do_jobs_test();
             break;
+
+#endif
         }
 
+#if FOUNDATION_DEVELOPER
         Core_Bindings.core_stop_profiling();
         Core_Helpers.print_profiling(this.world_handle, true);
+#endif
+
         Core_Helpers.debug_draw_world(this.world_handle, this.debug_draw_options, true);
     }
 
@@ -157,5 +166,3 @@ public class Tester : MonoBehaviour {
         this.rerun_test_flag = true;
     }
 }
-
-#endif
