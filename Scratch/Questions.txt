@@ -6,3 +6,4 @@ Do I need multiple sources for different pages of the same book? Do I need multi
 Is the chapter about the volume definition okay?
 How does the code work in the submission? Technical Specification?
 How does the Coloquium work? Anmeldung, Ablauf, Zeitraum, Vorbereitung...?
+Do you read some chapters for feedback?
