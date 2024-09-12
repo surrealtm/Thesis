@@ -1,8 +1,10 @@
 Questions for the Dan:
 
+* Subtitle of the Thesis?
 * What happened to the Pacing Graph Paper? Cool use case as source...
 * Are the few sources alright? Do I need sources for shit like "Triangle Meshes are default"?
 * Do I need multiple sources for different pages of the same book? Do I need multiple sources for different direct quotes (on different pages)?
 * How does the code work in the submission? Technical Specification?
 * How does the Coloquium work? Anmeldung, Ablauf, Zeitraum, Vorbereitung...?
 * Do you read some chapters for feedback? Volume Definition, Functional vs. Non-functional Requirements...
+* Where the heck to I print the shit, and how do I give you the shit?
