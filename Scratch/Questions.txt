@@ -44,4 +44,4 @@ Kann auch 3. Oktoberwoche sein
 
 
 
-* TODO: Abstract, Acknowledgements!
+* TODO: Abstract, Acknowledgements, Eideserklärung!
