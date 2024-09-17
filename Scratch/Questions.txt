@@ -1,10 +1,47 @@
 Questions for the Dan:
 
 * Subtitle of the Thesis?
-* What happened to the Pacing Graph Paper? Cool use case as source...
-* Are the few sources alright? Do I need sources for shit like "Triangle Meshes are default"?
-* Do I need multiple sources for different pages of the same book? Do I need multiple sources for different direct quotes (on different pages)?
-* How does the code work in the submission? Technical Specification?
-* How does the Coloquium work? Anmeldung, Ablauf, Zeitraum, Vorbereitung...?
+Nope
+
+
 * Do you read some chapters for feedback? Volume Definition, Functional vs. Non-functional Requirements...
+Roughly
+Definition of Volume: architecture: form space and order, francis ching (introduction?)
+
+
+* Are the few sources alright? Do I need sources for shit like "Triangle Meshes are default"?
+Alles was im Grundstudium gelernt wird muss nicht bewiesen werden (als Faustregel)
+
+
+* Do I need multiple sources for different pages of the same book? Do I need multiple sources for different direct quotes (on different pages)?
+Seiten im Fließtext, hinten nur einmal ohne Seiten
+
+
+* What happened to the Pacing Graph Paper? Cool use case as source...
+Cite as unpublished
+Daniel Dyrda, Claudio Belloni
+
+
+* How does the code work in the submission? Technical Specification?
+Email an Daniel mit Github link zu Repo, keine Specification
+Chapter 4, subsection für Code (link zu Github, Anfrage per Email)
+
+
+* How does the paper submission work? Where? When?
+https://portal.cit.tum.de/
+Wahrscheinlich bis 0:00?
+
+
 * Where the heck to I print the shit, and how do I give you the shit?
+Fachschaft Informatik drucken, Daniel geben wann auch immer
+
+
+* How does the Coloquium work? Anmeldung, Ablauf, Zeitraum, Vorbereitung...?
+wiki.tum.de -> Suchen nach FAR -> Oberseminar Augmented Reality
+Datum vorschlagen, schauen dass max 4. Talks an dem Tag sind
+Kann auch 3. Oktoberwoche sein
+
+
+
+
+* TODO: Abstract, Acknowledgements!
